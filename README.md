@@ -37,8 +37,8 @@
 
 ## Установка / Installation
 
-1. Скачайте репозиторий (**Code → Download ZIP**) и распакуйте в любую папку, например `Documents\dmxON-FabKit`.
-   Download the repository (**Code → Download ZIP**) and unpack it anywhere, e.g. `Documents\dmxON-FabKit`.
+1. Скачайте последнюю версию со страницы [Releases](https://github.com/AlexSmith2025/dmxON-FabKit/releases/latest) (архив **Source code (zip)**) и распакуйте в любую папку, например `Documents\dmxON-FabKit`.
+   Download the latest version from [Releases](https://github.com/AlexSmith2025/dmxON-FabKit/releases/latest) (**Source code (zip)**) and unpack it anywhere, e.g. `Documents\dmxON-FabKit`.
 2. Структуру не меняйте: `dmxON_FabKit.ulp` ищет модули в `lib\` и настройки в `config\` рядом с собой.
    Keep the layout: `dmxON_FabKit.ulp` loads its modules from `lib\` and settings from `config\` next to it.
 3. По желанию добавьте папку в пути ULP: **Electronics → Preferences → Directories → ULPs**.
