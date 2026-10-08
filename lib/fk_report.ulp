@@ -445,6 +445,7 @@ void report_phase1(string path, string base, string stamp)
                    th2n("Сдвиг, мм", "Offset, mm"), th2("Итог", "Result"), th2("Вид", "View"));
             for (int pass = 0; pass < 2; pass++) {
                 for (q = 0; q < n_mp; q++) {
+                    if (mp_cnt[q] == 0) continue;       // пары кандидатов в замены и прежних деталей — не на плате
                     int okp = mp_clean(q);
                     if ((pass == 0 && okp) || (pass == 1 && !okp)) continue;
                     string how = hs("по номерам выводов", "pin numbers");
@@ -485,7 +486,11 @@ void report_phase1(string path, string base, string stamp)
             if (net_diag != "") printf("%s<br>\n", h(net_diag));
         }
         if (n_imp > 0 || imp_diag != "")
-            printf("%s<br>\n", hs("Импорт BOM: " + istr(n_imp) + " обозначений. " + imp_diag, "BOM import: " + istr(n_imp) + " designators. " + imp_diag));
+        {
+            string ir = "Импорт BOM: " + istr(n_imp) + " обозначений.";
+            if (imp_cut > 0) ir += " Пропущено обрезанных списков обозначений («R1,R2…»): " + istr(imp_cut) + ".";
+            printf("%s<br>\n", hs(ir, "BOM import: " + istr(n_imp) + " designators. " + imp_diag));
+        }
         if (n_scr > 0) printf("%s<br>\n", hs("Записано атрибутов LCSC_PART: " + istr(n_scr) + ".", "LCSC_PART attributes written: " + istr(n_scr) + "."));
         printf("<pre style=\"white-space:pre-wrap;margin:8px 0 0\">%s</pre>\n", h(log_txt));
         printf("</div>\n");

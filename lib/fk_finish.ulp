@@ -37,6 +37,19 @@ string fsize(int b)
     return istr((b + 512) / 1024) + " KB";
 }
 
+// имя файлов внутри архива: только латиница, цифры и - _ .
+string zip_base(string b)
+{
+    string t = "";
+    for (int i = 0; b[i]; i++) {
+        int c = b[i];
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.') t += b[i];
+        else if (c < 128) t += "_";
+    }
+    if (t == "") t = "board";
+    return t;
+}
+
 string gf_jlc_name(int i)
 {
     if (gf_code[i] != "XLN" && starts_with(gf_code[i], "XLN")) return fn_base + "_" + gf_code[i] + ".XLN";
@@ -57,7 +70,8 @@ void finish_gerber()
         return;
     }
     fk_log("Gerber: unpack");
-    shell("mkdir " + qp(cam) + " 2>nul & tar -xf " + qp(fn_tmp + "/cam.zip") + " -C " + qp(cam));
+    // tar.exe не понимает кириллицу в аргументах: переходим в папку и даём ему относительные имена
+    shell("mkdir " + qp(cam) + " 2>nul & cd /d " + qp(cam) + " && tar -xf ..\\cam.zip");
     shell("dir /s /b /a-d " + qp(cam) + " > " + qp(fn_tmp + "/cam_list.txt"));
     gerber_classify(fn_tmp + "/cam_list.txt");
     if (n_gf == 0) { fn_err += "Gerber: no layer files in the export. "; return; }
@@ -71,17 +85,23 @@ void finish_gerber()
     fn_gdir = fn_d1 + "/JLCPCB_GERBER";
     string ud = fn_gdir + "/unpacked";
     shell("mkdir " + qp(ud) + " 2>nul");
+    // архив собирается во временной папке из копий с латинскими именами (tar и кириллица несовместимы),
+    // затем копируется на место; JLCPCB узнаёт слой по расширению
+    string zb = zip_base(fn_base);
+    string zt = fn_tmp + "/jlc";
+    shell("mkdir " + qp(zt) + " 2>nul");
     string cmd = "", names = "";
     for (i = 0; i < n_gf; i++) {
         gf_dst[i] = gf_jlc_name(i);
+        string zn = zb + strsub(gf_dst[i], strlen(fn_base));
         if (cmd != "") cmd += " & ";
-        cmd += "copy /y " + qp(gf_src[i]) + " " + qp(ud + "/" + gf_dst[i]) + " >nul";
-        if (strlen(cmd) > 6000) { shell(cmd); cmd = ""; }
-        names += " \"" + gf_dst[i] + "\"";
+        cmd += "copy /y " + qp(gf_src[i]) + " " + qp(ud + "/" + gf_dst[i]) + " >nul & copy /y " + qp(gf_src[i]) + " " + qp(zt + "/" + zn) + " >nul";
+        if (strlen(cmd) > 5000) { shell(cmd); cmd = ""; }
+        names += " \"" + zn + "\"";
     }
     if (cmd != "") shell(cmd);
     fn_zip = fn_gdir + "/" + fn_base + "_Gerber_JLCPCB.zip";
-    shell("tar -a -cf " + qp(fn_zip) + " -C " + qp(ud) + names);
+    shell("cd /d " + qp(zt) + " && tar -a -cf ..\\gerber.zip" + names + " && copy /y ..\\gerber.zip " + qp(fn_zip) + " >nul");
     for (i = 0; i < n_gf; i++) gf_size[i] = filesize(ud + "/" + gf_dst[i]);
     if (!file_exists(fn_zip)) fn_err += "Gerber: zip not created. ";
 
@@ -571,16 +591,8 @@ int html_to_pdf(string html, string pdf)
     string prof = fn_tmp + "/edge_profile";
     system("\"" + to_win(ex) + "\" --headless=new --disable-gpu --no-first-run --no-default-browser-check --user-data-dir=" + qp(prof) +
            " --no-pdf-header-footer --virtual-time-budget=8000 --print-to-pdf=" + qp(pdf) + " \"" + url_file(html) + "\"");
-    // Edge может вернуть управление раньше, чем допишет файл: ждём, пока размер перестанет расти (до 2 минут)
-    int last = -1;
-    for (int w = 0; w < 120; w++) {
-        if (file_exists(pdf)) {
-            int sz = filesize(pdf);
-            if (sz > 0 && sz == last) break;
-            last = sz;
-        }
-        system("ping -n 2 127.0.0.1");
-    }
+    // Edge может вернуть управление раньше, чем допишет файл: ждём, пока размер перестанет расти
+    wait_file(pdf, 90);
     if (!file_exists(pdf)) { fn_err += "PDF: " + filename(pdf) + " not created. "; return 0; }
     return 1;
 }
@@ -702,8 +714,8 @@ void toner_page(string dst)
                h("Стороны совмещать по отверстиям (лист DRILL); при необходимости сначала просверлить."));
         printf("<li>%s<span class=\"en\">Paper: glossy/photo or transfer film; iron 160&ndash;180 &deg;C.</span></li>",
                h("Бумага: глянцевая/фото или термотрансферная плёнка; утюг 160–180 °C."));
-        if (fn_layers > 2) printf("<li><b class=\"m\">%s</b><span class=\"en\">The board has %d copper layers: inner layers cannot be made at home, the sheets are for reference only.</span></li>",
-               h("У платы " + istr(fn_layers) + " слоя меди: внутренние слои дома не изготовить, листы — для справки."), fn_layers);
+        if (fn_layers > 2) printf("<li><b class=\"m\">%s</b><span class=\"en\">The board has %d copper layers: at home only double-sided boards can be made — these sheets cover the outer layers only (for reference or a simplified prototype).</span></li>",
+               h("У платы " + istr(fn_layers) + " слоя меди: дома делаются только двусторонние платы — листы только для внешних слоёв (для справки или упрощённого макета)."), fn_layers);
         printf("</ol></div><div class=\"box\"><b>%s</b> <span class=\"en\" style=\"display:inline\">/ Files</span><ul>", h("Файлы"));
         for (int i = 0; i < n; i++) printf("<li><a href=\"%s\">%s</a></li>", replace_all(filename(files[i]), " ", "%20"), h(filename(files[i])));
         printf("</ul></div><p class=\"en\">%s</p></div></body></html>\n", h(fk_sign()));
@@ -762,6 +774,11 @@ void finish_main(string stfile)
     fn_out = st_get("outdir"); fn_tmp = st_get("tmp"); fn_base = st_get("base");
     fn_d1 = fn_out + "/01_JLCPCB_ORDER"; fn_d2 = fn_out + "/02_REPORT"; fn_d3 = fn_out + "/03_ASSEMBLY_DOCS"; fn_d4 = fn_out + "/04_TONER_TRANSFER_1to1";
     fn_outline = fn_tmp + "/outline.txt";
+    if (file_exists(st_get("runner"))) fk_runner = st_get("runner");
+    if (!file_exists(fn_out)) {
+        if (!st_geti("batch")) dlgMessageBox("dmxON FabKit: " + L("нет папки пакета", "package folder not found") + "\n" + fn_out, "OK");
+        return;
+    }
     opt_gerber = st_geti("gerber"); opt_docs = st_geti("docs"); opt_toner = st_geti("toner"); opt_pdf = st_geti("pdf");
     opt_open = st_geti("open"); batch_mode = st_geti("batch"); opt_boards = st_geti("boards");
     opt_mask = st_get("mask"); opt_silk = st_get("silk"); opt_finish = st_get("finish"); opt_thick = st_get("thick");
@@ -772,6 +789,7 @@ void finish_main(string stfile)
 
     // листам ЛУТ тоже нужны Gerber
     if (opt_gerber || opt_toner) finish_gerber();
+    if (fn_layers == 0) fn_layers = st_geti("layers");      // без Gerber — по слоям платы
     dfm_check();
 
     if (opt_toner) {

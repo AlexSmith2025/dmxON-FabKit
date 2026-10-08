@@ -217,7 +217,7 @@ void docs_page_assembly(int bottom)
     if (bottom) { ru = "Сборочный чертёж — нижняя сторона (вид со стороны пайки)"; en = "Assembly drawing — bottom side (solder-side view)"; }
     int cnt = 0;
     for (int e = 0; e < n_el; e++) if (el_bottom[e] == bottom) cnt++;
-    printf("%s", pg_open(ru, en, h(istr(cnt) + " компонентов / components")));
+    printf("%s", pg_open(ru, en, h("компонентов: " + istr(cnt) + " / components: " + istr(cnt))));
     printf("<div class=\"area\"><div class=\"ctr\">%s</div></div>", draw_scaled(bottom, "", 1, sc));
     printf("%s", tech_req());
     printf("%s", pg_close(ru, en, scale_txt(sc)));
@@ -244,13 +244,14 @@ void docs_steps()
     int stack = (sc_stack > sc_side);
     real sc = sc_side;
     // строк на колонку таблицы (компактная строка ~3.6 мм), колонок на листе, символов обозначений в строке
-    int budget = int((130 - 17) / 3.6), ncol = 1, wrap = 16;
+    // строк таблицы на колонку: строка ~4.3 мм, шапка ~7 мм (подсказка — в углу у штампа)
+    int budget = int((130 - 7) / 4.3), ncol = 1, wrap = 16, wv = 12, wk = 14;
     if (stack) {
         sc = sc_stack;
-        budget = int((134 - H * sc - 17) / 3.6);
+        budget = int((134 - H * sc - 3 - 7) / 4.3);
         if (budget < 4) budget = 4;
         ncol = 2;
-        wrap = 24;
+        wrap = 26; wv = 16; wk = 22;
     }
     for (s = 1; s <= STEP_N; s++) {
         int n = 0, any_bot = 0, any_top = 0;
@@ -264,7 +265,8 @@ void docs_steps()
         int bottom = (any_bot && !any_top);
         // группы: ключ «номинал|корпус»
         numeric string gk[];
-        string gdes[], gval[], gpkg[], gkey_ru[], gkey_en[];
+        string gdes[], gval[], gpkg[], gkey_ru[], gkey_en[], gkl[];
+        int gdiff[], gnk[];
         int gq[], ng = 0;
         for (e = 0; e < n_el; e++) {
             if (el_step[e] != s) continue;
@@ -273,32 +275,57 @@ void docs_steps()
             for (k = 0; k < ng; k++) if (gk[k] == key) { f = k; break; }
             if (f < 0) {
                 f = ng++;
-                gk[f] = key; gdes[f] = ""; gval[f] = el_comment[e]; gpkg[f] = el_jpkg[e]; gq[f] = 0; gkey_ru[f] = ""; gkey_en[f] = "";
+                gk[f] = key; gdes[f] = ""; gval[f] = el_comment[e]; gpkg[f] = el_jpkg[e]; gq[f] = 0; gkey_ru[f] = ""; gkey_en[f] = ""; gkl[f] = ""; gdiff[f] = 0; gnk[f] = 0;
             }
             if (gdes[f] != "") gdes[f] += ", ";
             gdes[f] += el_name[e];
             gq[f]++;
             if (needs_key(e) && el_has_p1[e]) {
-                string kr = key_where_ru(e), ke = key_where_en(e);
-                if (el_p1cat[e]) { kr = "катод " + kr; ke = "cathode " + ke; }
-                else { kr = "вывод 1 " + kr; ke = "pin 1 " + ke; }
+                // «1 ↖» — вывод 1 слева сверху, «K →» — катод справа (пояснение — в подсказке шага)
+                string kr = "1 " + key_arrow(e);
+                if (el_p1cat[e]) kr = "K " + key_arrow(e);
+                string ke = kr;
                 if (gq[f] == 1) { gkey_ru[f] = kr; gkey_en[f] = ke; }
-                else if (gkey_ru[f] != kr) { gkey_ru[f] = "см. чертёж"; gkey_en[f] = "see drawing"; }
+                else if (gkey_ru[f] != kr) gdiff[f] = 1;
+                // ключи по каждой детали — пригодятся, если в группе они смотрят в разные стороны
+                if (gkl[f] != "") gkl[f] += ", ";
+                gkl[f] += el_name[e] + " " + kr;
+                gnk[f]++;
             }
+        }
+        for (k = 0; k < ng; k++) {
+            if (!gdiff[k]) continue;
+            if (gnk[k] <= 8) { gkey_ru[k] = gkl[k]; gkey_en[k] = gkl[k]; }
+            else { gkey_ru[k] = "см. чертёж"; gkey_en[k] = "see drawing"; }
         }
         int ord[];
         sort(ng, ord, gk);
         // разбивка на листы: до ncol колонок по budget строк (длинные списки обозначений занимают больше)
+        // высота строки в строках текста: самое длинное из обозначений, номинала, ключа
+        int rl[];
+        for (i = 0; i < ng; i++) {
+            k = ord[i];
+            int a1 = 1 + strlen(gdes[k]) / wrap, a2 = 1 + strlen(gval[k]) / wv, a3 = 1;
+            if (gkey_ru[k] != "") {
+                string kt = gkey_ru[k];
+                if (gkey_en[k] != gkey_ru[k]) kt += " / " + gkey_en[k];
+                a3 = 1 + strlen(kt) / wk;
+            }
+            rl[i] = max(a1, max(a2, a3));
+        }
         int from = 0, prt = 0;
         while (from < ng) {
             int cut[];                       // границы колонок
-            int to = from, c;
+            int to = from, c, cap = budget;
+            // всё оставшееся помещается на лист — делим по колонкам поровну
+            int rest = 0;
+            for (i = from; i < ng; i++) rest += rl[i];
+            if (rest <= budget * ncol) cap = (rest + ncol - 1) / ncol;
             for (c = 0; c < ncol; c++) {
                 int lines = 0, c0 = to;
                 while (to < ng) {
-                    int ln = 1 + strlen(gdes[ord[to]]) / wrap;
-                    if (lines + ln > budget && to > c0) break;
-                    lines += ln;
+                    if (lines + rl[to] > cap && to > c0) break;
+                    lines += rl[to];
                     to++;
                 }
                 cut[c] = to;
@@ -315,10 +342,13 @@ void docs_steps()
             string rt = h(istr(n) + " шт / pcs");
             if (prt > 1 || to < ng) rt += " &middot; " + h("часть / part " + istr(prt));
             printf("%s", pg_open(ru, en, rt));
-            string tip = "<div class=\"tip\"><b>" + h(step_ru(s)) + "</b> <span class=\"en1\">/ " + h(step_en(s)) + "</span><br>" + h(step_tip_ru(s)) +
-                         " <span class=\"en1\">/ " + h(step_tip_en(s)) + "</span></div>";
-            if (stack) printf("<div class=\"area\"><div class=\"stk\"><div class=\"dw\">%s</div>%s", draw_scaled(bottom, sel, 0, sc), tip);
-            else printf("<div class=\"area\"><div class=\"step\"><div class=\"dw\">%s</div><div>%s", draw_scaled(bottom, sel, 0, sc), tip);
+            // подсказка шага — в свободном углу слева от штампа, таблице остаётся вся высота
+            string tip = "<div class=\"tr\"><b>" + h(step_ru(s)) + "</b> <span class=\"en1\">/ " + h(step_en(s)) + "</span><br>" + h(step_tip_ru(s)) +
+                         " <span class=\"en1\">/ " + h(step_tip_en(s)) + "</span><br>" +
+                         h("Ключ: 1 — вывод 1, K — катод, стрелка — где он от центра корпуса.") +
+                         " <span class=\"en1\">/ " + h("Key: 1 — pin 1, K — cathode, the arrow shows where it is from the body centre.") + "</span></div>";
+            if (stack) printf("<div class=\"area\"><div class=\"stk\"><div class=\"dw\">%s</div>", draw_scaled(bottom, sel, 0, sc));
+            else printf("<div class=\"area\"><div class=\"step\"><div class=\"dw\">%s</div><div>", draw_scaled(bottom, sel, 0, sc));
             printf("<div style=\"display:grid;grid-template-columns:repeat(%d,1fr);gap:3mm;align-items:start\">", ncol);
             int c_from = from;
             for (c = 0; c < ncol; c++) {
@@ -328,7 +358,10 @@ void docs_steps()
                 for (i = c_from; i < cut[c]; i++) {
                     k = ord[i];
                     string kk = "";
-                    if (gkey_ru[k] != "") kk = h(gkey_ru[k]) + " <span class=\"en1\">/ " + h(gkey_en[k]) + "</span>";
+                    if (gkey_ru[k] != "") {
+                        kk = h(gkey_ru[k]);
+                        if (gkey_en[k] != gkey_ru[k]) kk += " <span class=\"en1\">/ " + h(gkey_en[k]) + "</span>";
+                    }
                     printf("<tr><td class=\"n\">%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>", gq[k], h(gdes[k]), h(gval[k]), h(gpkg[k]), kk);
                 }
                 printf("</table>");
@@ -337,6 +370,7 @@ void docs_steps()
             printf("</div>");
             if (stack) printf("</div></div>");
             else printf("</div></div></div>");
+            printf("%s", tip);
             printf("%s", pg_close(ru, en, scale_txt(sc)));
             dc_pages++;
             from = to;

@@ -267,6 +267,28 @@ string key_where_en(int e)
     return s;
 }
 
+// ключ стрелкой (не зависит от языка): куда смотреть от центра корпуса, вид на эту сторону
+string key_arrow(int e)
+{
+    if (!el_has_p1[e]) return "";
+    real cx = (el_bx1[e] + el_bx2[e]) / 2, cy = (el_by1[e] + el_by2[e]) / 2;
+    real dx = el_p1x[e] - cx, dy = el_p1y[e] - cy;
+    if (el_bottom[e]) dx = -dx;
+    real w = (el_bx2[e] - el_bx1[e]) / 2, hh = (el_by2[e] - el_by1[e]) / 2;
+    int v = 0, g = 0;
+    if (dy > hh * 0.25) v = 1; else if (dy < -hh * 0.25) v = -1;
+    if (dx > w * 0.25) g = 1; else if (dx < -w * 0.25) g = -1;
+    if (v == 1 && g == -1) return "↖";
+    if (v == 1 && g == 1) return "↗";
+    if (v == -1 && g == -1) return "↙";
+    if (v == -1 && g == 1) return "↘";
+    if (v == 1) return "↑";
+    if (v == -1) return "↓";
+    if (g == -1) return "←";
+    if (g == 1) return "→";
+    return "•";
+}
+
 // нужен ли ключ на чертеже: микросхемы, транзисторы, диоды, светодиоды, полярные конденсаторы
 int needs_key(int e)
 {
@@ -386,14 +408,17 @@ void collect_draw(int i, UL_ELEMENT E)
             el_bb_add(i, cx + abs(w) / 2, cy + abs(hh) / 2);
         }
     }
-    real px[], py[];
-    int np = 0, p1 = 0, kat = 0;
+    // шаг и число выводов — по SMD-площадкам, если они есть (переходные отверстия теплоотвода
+    // в QFN/DPAK — тоже «pad», но это не выводы); вывод 1: точное имя «1» главнее «P$1»
+    real px[], py[], sx[], sy[];
+    int np = 0, ns = 0, p1 = 0, kat = 0, p1rank = 0;
     E.footprint.contacts(C) {
         real x = u2mm(C.x), y = u2mm(C.y), w, hh, rot = 0;
         int rnd = 0;
         if (C.smd) {
             w = u2mm(C.smd.dx); hh = u2mm(C.smd.dy); rot = C.smd.angle;
             rnd = (C.smd.roundness >= 100 && C.smd.dx == C.smd.dy);
+            sx[ns] = x; sy[ns] = y; ns++;
         } else {
             w = u2mm(C.pad.diameter[LAYER_TOP]);
             if (w <= 0) w = u2mm(C.pad.drill) * 1.6;
@@ -406,9 +431,16 @@ void collect_draw(int i, UL_ELEMENT E)
         px[np] = x; py[np] = y; np++;
         if (is_cathode_name(C.name)) {
             el_p1x[i] = x; el_p1y[i] = y; kat = 1; p1 = 1;
-        } else if (!kat && pin_norm(C.name) == "1") {
-            el_p1x[i] = x; el_p1y[i] = y; p1 = 1;
+        } else if (!kat) {
+            int rk = 0;
+            if (C.name == "1") { if (C.smd) rk = 4; else rk = 3; }
+            else if (pin_norm(C.name) == "1") { if (C.smd) rk = 2; else rk = 1; }
+            if (rk > p1rank) { el_p1x[i] = x; el_p1y[i] = y; p1 = 1; p1rank = rk; }
         }
+    }
+    if (ns >= 2) {
+        np = ns;
+        for (int q2 = 0; q2 < ns; q2++) { px[q2] = sx[q2]; py[q2] = sy[q2]; }
     }
     el_npads[i] = np;
     el_has_p1[i] = p1;

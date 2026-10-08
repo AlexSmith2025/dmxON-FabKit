@@ -8,6 +8,35 @@ New feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.0.1 — 2026-10-08
+
+**Исправлено / Fixed**
+
+- Папки и имена с кириллицей: путь пакета, штамп и итоговое окно больше не искажаются (символы восстанавливаются по таблице, а не через 8-битный `char`).
+  Cyrillic folders and names: the package path, title block and summary window are no longer garbled (characters are restored from a table instead of an 8-bit `char`).
+- Архив Gerber и импорт XLSX в папках с кириллицей: `tar.exe` работает из временной папки с латинскими именами.
+  Gerber zip and XLSX import in Cyrillic folders: `tar.exe` now runs from the temp folder with Latin names.
+- Служебные команды больше не открывают окна консоли/Терминала (запуск через `wscript`, без окна); ожидание PDF — без мигающих окон.
+  Helper commands no longer pop up console/Terminal windows (run via windowless `wscript`); PDF waiting without flashing windows.
+- Если папку пакета создать нельзя — понятное сообщение сразу, а не цепочка ошибок.
+  If the package folder cannot be created — a clear message right away instead of a chain of errors.
+- Настоящие детали с посадочным местом без пасты (например, диод SOD-123) остаются в BOM/CPL с предупреждением, а не исключаются как перемычки.
+  Real parts whose footprint has no paste (e.g. an SOD-123 diode) stay in BOM/CPL with a warning instead of being dropped as jumpers.
+- Вывод 1: точное имя «1» главнее переходных отверстий теплоотвода `P$1`; шаг выводов — по SMD-площадкам (QFN, DPAK).
+  Pin 1: the exact name «1» wins over thermal vias named `P$1`; lead pitch is taken from SMD pads (QFN, DPAK).
+- Керамические чипы 0402…2512 не попадают в лист «Ключи и полярность».
+  Ceramic chips 0402…2512 no longer appear on the «Pin 1 and polarity» sheet.
+- Таблица посадочных мест не показывает пары кандидатов в замены.
+  The footprint table no longer lists substitute-candidate pairs.
+- Таблицы порядка пайки не заходят под штамп; колонки заполняются поровну.
+  Soldering-step tables no longer run under the title block; columns are balanced.
+- Диалог помещается на экран 1024×768: подписи в две строки, короче вкладки.
+  The dialog fits a 1024×768 screen: two-line labels, shorter tabs.
+- Импорт: текст со страницы заказа JLCPCB распознаётся раньше таблицы CSV.
+  Import: text copied from the JLCPCB order page is recognised before CSV.
+
+---
+
 ## 2.0.0 — 2026-10-08
 
 Первый выпуск dmxON FabKit. / First release of dmxON FabKit.

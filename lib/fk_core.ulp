@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------- продукт
 
 string FK_NAME    = "dmxON FabKit";
-string FK_VERSION = "2.0.0";              // при каждой переделке поднимать (см. CHANGELOG.md)
+string FK_VERSION = "2.0.1";              // при каждой переделке поднимать (см. CHANGELOG.md)
 string FK_DATE    = "2026-10-08";
 string FK_AUTHOR  = "dmxON by AlexSmith";
 string FK_YEAR    = "2026";
@@ -111,10 +111,67 @@ int file_exists(string p)
     return fileglob(a, p) > 0;
 }
 
-// команда Windows через cmd.exe; окно консоли мелькает — так и должно быть
+// Команды Windows выполняются без окон: через маленький VBS-запускальщик (wscript — оконная
+// программа, консоль не открывает). В Windows 11 иначе каждый вызов открывает окно Терминала.
+// Кавычки в команде передаются как ` и восстанавливаются в запускальщике.
+string fk_runner = "";
+
+string RUNNER_VBS =
+    "Option Explicit\r\n" +
+    "Dim sh, fso, mode, a, i, last, sz\r\n" +
+    "Set sh = CreateObject(\"WScript.Shell\")\r\n" +
+    "Set fso = CreateObject(\"Scripting.FileSystemObject\")\r\n" +
+    "mode = WScript.Arguments(0)\r\n" +
+    "a = Replace(WScript.Arguments(1), \"`\", Chr(34))\r\n" +
+    "If mode = \"run\" Then\r\n" +
+    "  WScript.Quit sh.Run(\"cmd.exe /s /c \" & Chr(34) & a & Chr(34), 0, True)\r\n" +
+    "ElseIf mode = \"wait\" Then\r\n" +
+    "  last = -1\r\n" +
+    "  For i = 1 To CInt(WScript.Arguments(2)) * 2\r\n" +
+    "    If fso.FileExists(a) Then\r\n" +
+    "      sz = fso.GetFile(a).Size\r\n" +
+    "      If sz > 0 And sz = last Then WScript.Quit 0\r\n" +
+    "      last = sz\r\n" +
+    "    End If\r\n" +
+    "    WScript.Sleep 500\r\n" +
+    "  Next\r\n" +
+    "  WScript.Quit 1\r\n" +
+    "End If\r\n";
+
+// запускальщик кладётся в папку, которая уже есть (временная папка Windows пользователя)
+void runner_init(string dir)
+{
+    if (dir == "") return;
+    string p = dir + "/dmxon_fabkit_run.vbs";
+    output(p, "wb") printf("%s", RUNNER_VBS);
+    if (filesize(p) <= 0) return;
+    // Windows Script Host бывает отключён политикой — тогда работаем через cmd.exe
+    if (system("wscript.exe //nologo //B \"" + to_win(p) + "\" run \"exit 7\"") == 7) fk_runner = p;
+}
+
 int shell(string cmd)
 {
+    if (fk_runner != "")
+        return system("wscript.exe //nologo //B \"" + to_win(fk_runner) + "\" run \"" + replace_all(cmd, "\"", "`") + "\"");
     return system("cmd.exe /c " + cmd);
+}
+
+// дождаться файла, пока его размер не перестанет расти (до seconds секунд); 1 — дождались
+int wait_file(string path, int seconds)
+{
+    if (fk_runner != "")
+        return system("wscript.exe //nologo //B \"" + to_win(fk_runner) + "\" wait \"" + to_win(path) + "\" " + istr(seconds)) == 0;
+    // без запускальщика — короткие паузы через ping
+    int last = -1;
+    for (int w = 0; w < seconds; w++) {
+        if (file_exists(path)) {
+            int sz = filesize(path);
+            if (sz > 0 && sz == last) return 1;
+            last = sz;
+        }
+        system("cmd.exe /c ping -n 2 127.0.0.1 >nul");
+    }
+    return file_exists(path);
 }
 
 string qp(string p)
@@ -172,6 +229,22 @@ void st_save(string path)
     }
 }
 
+// символ по коду Юникода: char в ULP 8-битный, поэтому берём символ из таблиц-литералов
+string UNI_CYR = "ЀЁЂЃЄЅІЇЈЉЊЋЌЍЎЏАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяѐёђѓєѕіїјљњћќѝўџѠѡѢѣѤѥѦѧѨѩѪѫѬѭѮѯѰѱѲѳѴѵѶѷѸѹѺѻѼѽѾѿҀҁ҂҃҄҅҆҇҈҉ҊҋҌҍҎҏҐґҒғҔҕҖҗҘҙҚқҜҝҞҟҠҡҢңҤҥҦҧҨҩҪҫҬҭҮүҰұҲҳҴҵҶҷҸҹҺһҼҽҾҿӀӁӂӃӄӅӆӇӈӉӊӋӌӍӎӏӐӑӒӓӔӕӖӗӘәӚӛӜӝӞӟӠӡӢӣӤӥӦӧӨөӪӫӬӭӮӯӰӱӲӳӴӵӶӷӸӹӺӻӼӽӾӿ";
+string UNI_LAT = " ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ";
+string UNI_PUN = "–—‘’“”„•…№™←↑→↓−≤≥≈≠×‰€′″";
+int UNI_PUN_CODE[] = { 8211, 8212, 8216, 8217, 8220, 8221, 8222, 8226, 8230, 8470, 8482, 8592, 8593, 8594, 8595, 8722, 8804, 8805, 8776, 8800, 215, 8240, 8364, 8242, 8243 };
+
+string uchar(int c)
+{
+    if (c < 128) { char a = c; string t = ""; t += a; return t; }
+    if (c >= 0x400 && c < 0x500) return strsub(UNI_CYR, c - 0x400, 1);
+    if (c >= 0xA0 && c < 0x100) return strsub(UNI_LAT, c - 0xA0, 1);
+    for (int i = 0; i < 25; i++)
+        if (UNI_PUN_CODE[i] == c) return strsub(UNI_PUN, i, 1);
+    return "?";
+}
+
 // значения пишутся через h(): так кириллица и спецсимволы переживают однобайтовую кодировку
 string unh(string s)
 {
@@ -186,10 +259,7 @@ string unh(string s)
                 else if (ent == "lt") t += "<";
                 else if (ent == "gt") t += ">";
                 else if (ent == "quot") t += "\"";
-                else if (ent[0] == '#') {
-                    char c = strtol(strsub(ent, 1));
-                    t += c;
-                } else t += "&" + ent + ";";
+                else if (ent[0] == '#') t += uchar(strtol(strsub(ent, 1))); else t += "&" + ent + ";";
                 i = e + 1;
                 continue;
             }

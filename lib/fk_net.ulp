@@ -115,7 +115,7 @@ void run_requests(string tmpdir, int from, string extra)
             }
         }
         status("JLCPCB: " + istr(n_req - from) + " запросов через curl...");
-        rc = system("curl.exe -s --create-dirs --parallel --parallel-max 4 " + extra + " -K \"" + to_win(cfg) + "\"");
+        rc = shell("curl.exe -s --create-dirs --parallel --parallel-max 4 " + extra + " -K \"" + to_win(cfg) + "\"");
         string found[];
         for (i = from; i < n_req; i++) {
             string f = resp_file(tmpdir, i);

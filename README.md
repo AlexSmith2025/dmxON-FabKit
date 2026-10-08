@@ -3,7 +3,7 @@
 **Полный производственный пакет JLCPCB из платы Fusion Electronics — одной командой.**
 **A complete JLCPCB production package from a Fusion Electronics board — in one run.**
 
-`v2.0.0` · 2026-10-08 · **dmxON by AlexSmith 2026** · [лицензия / license](LICENSE.md)
+`v2.0.1` · 2026-10-08 · **dmxON by AlexSmith 2026** · [лицензия / license](LICENSE.md)
 
 ---
 
@@ -62,11 +62,11 @@
 
 | Вкладка / Tab | Что настраивается / What it sets |
 |---|---|
-| **Выгрузка / Output** | папка; что создать: Gerber, документацию A4, PDF, листы ЛУТ / folder; what to build: Gerber, A4 docs, PDF, toner sheets |
-| **Детали / Parts** | поиск в каталоге, Basic/Preferred, замены, сверка посадочных мест, перепроверка атрибутов, запись `LCSC_PART`, число плат, мин. напряжение конденсаторов, плата за катушку, импорт BOM, THT, исключения / catalogue search, Basic/Preferred, substitutes, footprint check, attribute re-check, writing `LCSC_PART`, board quantity, min capacitor voltage, feeder fee, BOM import, THT, exclusions |
+| **Выгрузка / Output** | папка; что создать: Gerber, документацию A4, PDF, листы ЛУТ; что идёт в BOM/CPL: THT, центр площадок, исключаемые обозначения / folder; what to build: Gerber, A4 docs, PDF, toner sheets; what goes into BOM/CPL: THT, pad centre, skipped designators |
+| **Детали / Parts** | поиск в каталоге, Basic/Preferred, замены, сверка посадочных мест, перепроверка атрибутов, запись `LCSC_PART`, число плат, мин. напряжение конденсаторов, плата за катушку, импорт BOM / catalogue search, Basic/Preferred, substitutes, footprint check, attribute re-check, writing `LCSC_PART`, board quantity, min capacitor voltage, feeder fee, BOM import |
 | **Плата / PCB** | толщина, цвет маски и шелкографии, покрытие — для отчёта, формы заказа и вида платы / thickness, mask and silk colour, finish — for the report, the order form and the render |
-| **Штамп / Title block** | изделие, обозначение, редакция, заказчик, примечание (у каждой платы свои); организация и подписи (общие) / product, document No., revision, customer, note (per board); company and signatures (shared) |
-| **О программе / About** | версия, автор, лицензия / version, author, license |
+| **Штамп / Title** | изделие, обозначение, редакция, заказчик, примечание (у каждой платы свои); организация и подписи (общие) / product, document No., revision, customer, note (per board); company and signatures (shared) |
+| **Инфо / About** | версия, автор, лицензия / version, author, license |
 
 Все настройки запоминаются. / All settings are remembered.
 

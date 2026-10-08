@@ -62,3 +62,9 @@ HTML drafts carry marker lines that phase 3 replaces with finished sections; `{{
   Images for PDFs avoid SVG masks (cut-outs are painted with the background colour): not every viewer or printer handles masks in PDFs.
 - Командная строка Fusion принимает одну команду за раз; цепочка фазы 2 передаётся через `exit()`.
   Fusion's command line takes one command at a time; the phase-2 chain is passed via `exit()`.
+- `char` в ULP 8-битный: символ Юникода по коду (`&#1058;` → «Т») берётся из таблиц-литералов (`uchar()` в `fk_core`).
+  ULP `char` is 8-bit: a Unicode character by code is taken from literal tables (`uchar()` in `fk_core`).
+- Служебные команды идут через `dmxon_fabkit_run.vbs` (`wscript`, без окна): в Windows 11 каждый консольный вызов иначе открывает окно Терминала. Если Windows Script Host отключён — откат на `cmd.exe`.
+  Helper commands go through `dmxon_fabkit_run.vbs` (`wscript`, windowless): on Windows 11 every console call would otherwise open a Terminal window. If Windows Script Host is disabled — fallback to `cmd.exe`.
+- `tar.exe` не понимает кириллицу в аргументах: архивы собираются и распаковываются во временной папке с латинскими именами (`cd /d` + относительные пути).
+  `tar.exe` cannot take Cyrillic arguments: archives are built and unpacked in the temp folder with Latin names (`cd /d` + relative paths).

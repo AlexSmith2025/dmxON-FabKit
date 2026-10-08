@@ -212,8 +212,9 @@ string xml_attr(string tag, string name)
 void import_xlsx(string path, string tmpdir)
 {
     string dir = tmpdir + "/xlsx";
-    shell("rmdir /s /q " + qp(dir) + " 2>nul & mkdir " + qp(dir));
-    shell("tar -xf " + qp(path) + " -C " + qp(dir));
+    // копия с простым именем: tar.exe не понимает кириллицу в путях
+    shell("rmdir /s /q " + qp(dir) + " 2>nul & mkdir " + qp(dir) + " & copy /y " + qp(path) + " " + qp(dir + "/in.xlsx") + " >nul");
+    shell("cd /d " + qp(dir) + " && tar -xf in.xlsx");
     string ss = "", sh = "";
     if (file_exists(dir + "/xl/sharedStrings.xml")) fileread(ss, dir + "/xl/sharedStrings.xml");
     if (!file_exists(dir + "/xl/worksheets/sheet1.xml")) { imp_diag += "xlsx: sheet1.xml not found; "; return; }
