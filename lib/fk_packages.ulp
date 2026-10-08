@@ -1,0 +1,325 @@
+// fk_packages.ulp — корпуса Fusion/EAGLE → JLC, файл сопоставления
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+
+// ---------------------------------------------------------------- корпуса
+
+string chip_codes[] = { "01005", "0201", "0402", "0603", "0805", "1206", "1210", "1806", "1812", "2010", "2220", "2512" };
+string metric_codes[] = { "0402", "0603", "1005", "1608", "2012", "3216", "3225", "4516", "4532", "5025", "5750", "6332" };
+int N_CHIP = 12;
+
+int has_code(string P, string code)
+{
+    int l = strlen(code);
+    int p = strstr(P, code);
+    while (p >= 0) {
+        int ok = 1;
+        if (p > 0) {
+            if (isdigit(P[p - 1])) ok = 0;
+        }
+        if (isdigit(P[p + l])) ok = 0;
+        if (ok) return 1;
+        p = strstr(P, code, p + 1);
+    }
+    return 0;
+}
+
+int is_chip(string pkg)
+{
+    for (int i = 0; i < N_CHIP; i++)
+        if (pkg == chip_codes[i]) return 1;
+    return 0;
+}
+
+// разбор имён IPC-7351: SOIC127P600X175-8N, QFN50P400X400X100-25N, SOT95P280X145-6N
+string ipc_fam;
+int ipc_pitch, ipc_d1, ipc_d2, ipc_d3, ipc_pins;
+
+int ipc_parse(string P)
+{
+    int i = 0;
+    string a;
+    ipc_fam = "";
+    ipc_pitch = 0; ipc_d1 = 0; ipc_d2 = 0; ipc_d3 = 0; ipc_pins = 0;
+    while (isalpha(P[i])) { ipc_fam += P[i]; i++; }
+    if (ipc_fam == "") return 0;
+    a = "";
+    while (isdigit(P[i])) { a += P[i]; i++; }
+    if (a == "" || P[i] != 'P') return 0;
+    ipc_pitch = strtol(a);
+    i++;
+    a = "";
+    while (isdigit(P[i])) { a += P[i]; i++; }
+    if (a == "" || P[i] != 'X') return 0;
+    ipc_d1 = strtol(a);
+    i++;
+    a = "";
+    while (isdigit(P[i])) { a += P[i]; i++; }
+    if (a == "") return 0;
+    ipc_d2 = strtol(a);
+    if (P[i] == 'X') {
+        i++;
+        a = "";
+        while (isdigit(P[i])) { a += P[i]; i++; }
+        ipc_d3 = strtol(a);
+    }
+    if (P[i] == '-') {
+        i++;
+        a = "";
+        while (isdigit(P[i])) { a += P[i]; i++; }
+        ipc_pins = strtol(a);
+    }
+    return ipc_pins > 0;
+}
+
+string cl_rest;
+
+// "TSSOP-14", "TSSOP14", "SO_8W" -> число выводов; остаток строки в cl_rest
+int fam_num(string P, string fam)
+{
+    if (!starts_with(P, fam)) return 0;
+    int i = strlen(fam);
+    if (P[i] == '-' || P[i] == '_' || P[i] == ' ') i++;
+    string a = "";
+    while (isdigit(P[i])) { a += P[i]; i++; }
+    cl_rest = strsub(P, i);
+    if (a == "") return 0;
+    return strtol(a);
+}
+
+// "4X4" / "_4X4MM" / "-3.5X3.5" в остатке -> "4x4"
+string dims_in(string s)
+{
+    for (int i = 0; s[i]; i++) {
+        if (!isdigit(s[i])) continue;
+        string a = "", b = "";
+        int k = i;
+        while (isdigit(s[k]) || s[k] == '.') { a += s[k]; k++; }
+        if (s[k] != 'X') continue;
+        k++;
+        while (isdigit(s[k]) || s[k] == '.') { b += s[k]; k++; }
+        if (b != "") return a + "x" + b;
+    }
+    return "";
+}
+
+string lqfp_body(int pins)
+{
+    if (pins == 32 || pins == 48) return "7x7";
+    if (pins == 44 || pins == 52 || pins == 64) return "10x10";
+    if (pins == 80) return "12x12";
+    if (pins == 100) return "14x14";
+    if (pins == 144) return "20x20";
+    if (pins == 176) return "24x24";
+    if (pins == 208) return "28x28";
+    return "";
+}
+
+string strip_seps(string s)
+{
+    string t = "";
+    for (int i = 0; s[i]; i++)
+        if (s[i] != '-' && s[i] != '_' && s[i] != ' ' && s[i] != '.') t += s[i];
+    return t;
+}
+
+string tant_case(char c)
+{
+    if (c == 'A') return "CASE-A-3216-18(mm)";
+    if (c == 'B') return "CASE-B-3528-21(mm)";
+    if (c == 'C') return "CASE-C-6032-28(mm)";
+    if (c == 'D') return "CASE-D-7343-31(mm)";
+    if (c == 'E') return "CASE-E-7343-43(mm)";
+    return "";
+}
+
+// имя корпуса из библиотеки -> имя корпуса в библиотеке JLC
+string jlc_pkg_auto(string pkg)
+{
+    string P = strupr(trim(pkg));
+    string Q = strip_seps(P);
+    int i, n;
+
+    // чип IPC: RESC1608X55N, CAPC2012X..., INDC, LEDC, DIOC, FUSC
+    if (starts_with(P, "RESC") || starts_with(P, "CAPC") || starts_with(P, "INDC") ||
+        starts_with(P, "LEDC") || starts_with(P, "DIOC") || starts_with(P, "FUSC")) {
+        string mc = strsub(P, 4, 4);
+        for (i = 0; i < N_CHIP; i++)
+            if (metric_codes[i] == mc) return chip_codes[i];
+    }
+
+    // резисторные сборки
+    if (starts_with(Q, "EXB38") || starts_with(Q, "EXB3V")) return "0603x4";
+    if (starts_with(Q, "EXB28") || starts_with(Q, "EXB2V")) return "0402x4";
+    if (starts_with(Q, "EXB34")) return "0603x2";
+    if (starts_with(Q, "EXB24")) return "0402x2";
+    if (starts_with(Q, "EXB18")) return "0201x4";
+    if (strstr(Q, "4X0603") >= 0 || strstr(Q, "0603X4") >= 0) return "0603x4";
+    if (strstr(Q, "4X0402") >= 0 || strstr(Q, "0402X4") >= 0) return "0402x4";
+    if (strstr(Q, "2X0603") >= 0 || strstr(Q, "0603X2") >= 0) return "0603x2";
+
+    // микросхемы IPC
+    if (ipc_parse(P)) {
+        string f = ipc_fam;
+        int pins = ipc_pins;
+        if (f == "SOIC" || (f == "SOP" && ipc_pitch == 127)) {
+            if (ipc_d1 >= 950) return "SOIC-" + istr(pins) + "-300mil";
+            if (ipc_d1 >= 750) return "SOIC-" + istr(pins) + "-208mil";
+            return "SOIC-" + istr(pins);
+        }
+        if (f == "SOP" || f == "TSOP") {
+            if (ipc_d1 < 550) return "MSOP-" + istr(pins);
+            if (ipc_d1 >= 700) return "SSOP-" + istr(pins);
+            return "TSSOP-" + istr(pins);
+        }
+        if (f == "QFP") {
+            string body = num(ipc_d1 / 100.0 - 2.0) + "x" + num(ipc_d2 / 100.0 - 2.0);
+            if (ipc_d3 > 0 && ipc_d3 <= 120) return "TQFP-" + istr(pins) + "(" + body + ")";
+            return "LQFP-" + istr(pins) + "(" + body + ")";
+        }
+        if (f == "QFN" || f == "SON" || f == "DFN") {
+            string fam = "QFN";
+            if (f != "QFN") fam = "DFN";
+            string d = "(" + num(ipc_d1 / 100.0) + "x" + num(ipc_d2 / 100.0) + ")";
+            if (pins % 2) return fam + "-" + istr(pins - 1) + "-EP" + d;
+            return fam + "-" + istr(pins) + d;
+        }
+        if (f == "SOT") {
+            if (ipc_pitch >= 200) return "SOT-223";
+            if (ipc_pitch == 150) return "SOT-89";
+            if (ipc_pitch >= 90) {
+                if (pins == 5) return "SOT-23-5";
+                if (pins == 6) return "SOT-23-6";
+                return "SOT-23";
+            }
+            if (ipc_pitch >= 60) {
+                if (pins == 5) return "SOT-353";
+                if (pins == 6) return "SOT-363";
+                return "SOT-323";
+            }
+            if (pins == 6) return "SOT-563";
+            return "SOT-523";
+        }
+    }
+
+    // классические имена
+    if ((n = fam_num(P, "TSSOP")) > 0) return "TSSOP-" + istr(n);
+    if ((n = fam_num(P, "VSSOP")) > 0) return "VSSOP-" + istr(n);
+    if ((n = fam_num(P, "MSOP")) > 0) return "MSOP-" + istr(n);
+    if ((n = fam_num(P, "SSOP")) > 0) return "SSOP-" + istr(n);
+    n = fam_num(P, "SOIC");
+    if (n == 0) n = fam_num(P, "SO");
+    if (n > 0) {
+        if (starts_with(strip_seps(cl_rest), "W")) return "SOIC-" + istr(n) + "-300mil";
+        return "SOIC-" + istr(n);
+    }
+    if ((n = fam_num(P, "SOP")) > 0) return "SOP-" + istr(n);
+    n = fam_num(P, "LQFP");
+    if (n == 0) n = fam_num(P, "TQFP");
+    if (n == 0) n = fam_num(P, "QFP");
+    if (n > 0) {
+        string fam = "LQFP";
+        if (starts_with(P, "TQFP")) fam = "TQFP";
+        string d = dims_in(cl_rest);
+        if (d == "") d = lqfp_body(n);
+        if (d != "") return fam + "-" + istr(n) + "(" + d + ")";
+        return fam + "-" + istr(n);
+    }
+    n = fam_num(P, "VQFN");
+    if (n == 0) n = fam_num(P, "WQFN");
+    if (n == 0) n = fam_num(P, "UQFN");
+    if (n == 0) n = fam_num(P, "QFN");
+    if (n > 0) {
+        string dq = dims_in(cl_rest);
+        string ep = "";
+        if (strstr(cl_rest, "EP") >= 0) ep = "-EP";
+        if (dq != "") return "QFN-" + istr(n) + ep + "(" + dq + ")";
+        return "QFN-" + istr(n) + ep;
+    }
+    n = fam_num(P, "PDIP");
+    if (n == 0) n = fam_num(P, "DIP");
+    if (n == 0) n = fam_num(P, "DIL");
+    if (n > 0) return "DIP-" + istr(n);
+
+    if (starts_with(Q, "SOT223")) return "SOT-223";
+    if (starts_with(Q, "SOT235") || starts_with(Q, "SOT25")) return "SOT-23-5";
+    if (starts_with(Q, "SOT236") || starts_with(Q, "SOT26")) return "SOT-23-6";
+    if (starts_with(Q, "SOT23")) return "SOT-23";
+    if (starts_with(Q, "SOT323") || Q == "SC70") return "SOT-323";
+    if (starts_with(Q, "SOT353") || starts_with(Q, "SC705")) return "SOT-353";
+    if (starts_with(Q, "SOT363") || starts_with(Q, "SC706") || starts_with(Q, "SC88")) return "SOT-363";
+    if (starts_with(Q, "SOT523")) return "SOT-523";
+    if (starts_with(Q, "SOT563")) return "SOT-563";
+    if (starts_with(Q, "SOT89")) return "SOT-89";
+    if (starts_with(Q, "SOT143")) return "SOT-143";
+    if (starts_with(Q, "SOD123F")) return "SOD-123F";
+    if (starts_with(Q, "SOD123")) return "SOD-123";
+    if (starts_with(Q, "SOD323")) return "SOD-323";
+    if (starts_with(Q, "SOD523")) return "SOD-523";
+    if (starts_with(Q, "SOD923")) return "SOD-923";
+    if (starts_with(Q, "TO252") || starts_with(Q, "DPAK")) return "TO-252";
+    if (starts_with(Q, "TO263") || starts_with(Q, "D2PAK")) return "TO-263";
+    if (starts_with(Q, "TO220")) return "TO-220";
+    if (starts_with(Q, "TO92")) return "TO-92";
+
+    // танталовые: SMC_A (rcl), CASE-B, TANT_C, A/3216-18R
+    string tc = "";
+    if (strlen(Q) == 4 && starts_with(Q, "SMC")) tc = tant_case(Q[3]);
+    if (strlen(Q) == 5 && (starts_with(Q, "CASE") || starts_with(Q, "TANT"))) tc = tant_case(Q[4]);
+    if (tc != "") return tc;
+    if (strstr(P, "3216-18") >= 0) return tant_case('A');
+    if (strstr(P, "3528-21") >= 0) return tant_case('B');
+    if (strstr(P, "6032-28") >= 0) return tant_case('C');
+    if (strstr(P, "7343-31") >= 0) return tant_case('D');
+
+    if (Q == "SMA" || starts_with(Q, "DO214AC")) return "SMA(DO-214AC)";
+    if (Q == "SMB" || starts_with(Q, "DO214AA")) return "SMB(DO-214AA)";
+    if (Q == "SMC" || starts_with(Q, "DO214AB")) return "SMC(DO-214AB)";
+
+    // чип-корпуса в любом месте имени: R0603, C0603K, CHIP-LED0603, WCAP-CSGP_1210_H2.5
+    for (i = 0; i < N_CHIP; i++)
+        if (has_code(P, chip_codes[i])) return chip_codes[i];
+
+    return trim(pkg);
+}
+
+// ---------------------------------------------------------------- файл сопоставления
+
+int n_map = 0;
+string map_pkg[], map_jlc[], map_rot[];
+
+void load_map(string path)
+{
+    string found[];
+    if (fileglob(found, path) <= 0) return;
+    string lines[];
+    string f[];
+    int n = fileread(lines, path);
+    for (int i = 0; i < n; i++) {
+        string s = trim(lines[i]);
+        if (s == "" || s[0] == '#') continue;
+        int k = strsplit(f, s, ';');
+        if (k < 2) continue;
+        map_pkg[n_map] = strupr(trim(f[0]));
+        map_jlc[n_map] = trim(f[1]);
+        map_rot[n_map] = "";
+        if (k > 2) map_rot[n_map] = trim(f[2]);
+        n_map++;
+    }
+}
+
+string jlc_package(string pkg, string ovr)
+{
+    if (trim(ovr) != "") return trim(ovr);
+    string P = strupr(trim(pkg));
+    for (int i = 0; i < n_map; i++)
+        if (map_pkg[i] == P && map_jlc[i] != "") return map_jlc[i];
+    return jlc_pkg_auto(pkg);
+}
+
+string map_rotation(string pkg)
+{
+    string P = strupr(trim(pkg));
+    for (int i = 0; i < n_map; i++)
+        if (map_pkg[i] == P && map_rot[i] != "") return map_rot[i];
+    return "";
+}

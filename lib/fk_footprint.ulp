@@ -1,0 +1,625 @@
+// fk_footprint.ulp — сверка посадочных мест с библиотекой JLC (EasyEDA)
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+
+// ---------------------------------------------------------------- посадочные места
+//
+// Площадки футпринта на плате (из библиотеки платы, в координатах футпринта)
+// сравниваются с посадочным местом детали в библиотеке JLC (EasyEDA): перебор
+// 4 поворотов и зеркала, совмещение по номерам выводов, а если номера не
+// сходятся — по форме. Отсюда поворот для CPL, центр детали и вердикт.
+
+real PI_ = 3.14159265358979;
+real EDA_U = 0.254;                              // единица EasyEDA = 10 mil
+string EDA_PAD = "<g c_partid=\\\"part_pad\\\""; // в JSON кавычки экранированы
+
+string eda_url(string code)
+{
+    return "https://easyeda.com/api/products/" + code + "/svgs";
+}
+
+// футпринты платы
+int n_ef = 0;
+string ef_lib[], ef_name[], ef_urn[];
+int ef_first[], ef_n[];
+int n_ep = 0;
+string ep_name[], ep_uname[];
+real ep_x[], ep_y[], ep_w[], ep_h[], ep_rot[];
+int ep_round[];
+
+int find_ef(string lib, string name, string urn)
+{
+    int alt = -1;
+    for (int i = 0; i < n_ef; i++) {
+        if (ef_lib[i] != lib || ef_name[i] != name) continue;
+        if (urn == "" || ef_urn[i] == "" || ef_urn[i] == urn) return i;
+        if (alt < 0) alt = i;
+    }
+    return alt;
+}
+
+// посадочные места JLC
+int n_jf = 0;
+string jf_code[], jf_pkg[], jf_why[];
+int jf_ok[], jf_first[], jf_n[];
+int n_jp = 0;
+string jp_name[];
+real jp_x[], jp_y[], jp_w[], jp_h[], jp_rot[];
+int jp_round[];
+
+int find_jf(string code)
+{
+    for (int i = 0; i < n_jf; i++)
+        if (jf_code[i] == code) return i;
+    return -1;
+}
+
+// значение атрибута в теге SVG внутри JSON: name=\"значение\"
+string eattr(string tag, string name)
+{
+    string pat = " " + name + "=\\\"";
+    int p = strstr(tag, pat);
+    if (p < 0) return "";
+    p += strlen(pat);
+    int e = strstr(tag, "\\\"", p);
+    if (e < 0) return "";
+    return strsub(tag, p, e - p);
+}
+
+void parse_eda(string code, string r)
+{
+    int i, p, te, j;
+    string xy[];
+    int k = n_jf++;
+    jf_code[k] = code; jf_pkg[k] = ""; jf_why[k] = ""; jf_ok[k] = 0;
+    jf_first[k] = n_jp; jf_n[k] = 0;
+    if (strstr(r, "{") < 0) { jf_why[k] = "нет ответа от EasyEDA"; return; }
+    if (strstr(r, "\"success\":true") < 0) { jf_why[k] = "у JLC нет модели посадочного места"; return; }
+
+    split_items(r, "{\"component_uuid\"");
+    string fp = "";
+    for (i = 0; i < n_it; i++) {
+        if (strstr(it[i], "\"docType\":4") >= 0) {
+            fp = it[i];
+            break;
+        }
+    }
+    int cp = strstr(fp, " c_para=\\\"");
+    if (fp == "" || cp < 0) { jf_why[k] = "у JLC нет модели посадочного места"; return; }
+
+    // начало координат: c_origin в том же теге, что и c_para (стоит перед ним)
+    int op = -1;
+    int q = strstr(fp, " c_origin=\\\"");
+    while (q >= 0 && q < cp) {
+        op = q;
+        q = strstr(fp, " c_origin=\\\"", q + 1);
+    }
+    if (op < 0 || strsplit(xy, eattr(strsub(fp, op, cp - op), "c_origin"), ',') < 2) {
+        jf_why[k] = "не разобрать модель EasyEDA";
+        return;
+    }
+    real ox = strtod(xy[0]), oy = strtod(xy[1]);
+
+    string para = eattr(strsub(fp, cp, 2000), "c_para");
+    int pk = strstr(para, "package`");
+    if (pk >= 0) {
+        int pe = strstr(para, "`", pk + 8);
+        if (pe > pk) jf_pkg[k] = strsub(para, pk + 8, pe - pk - 8);
+    }
+
+    p = strstr(fp, EDA_PAD);
+    while (p >= 0) {
+        te = strstr(fp, ">", p);
+        if (te < 0) break;
+        string tag = strsub(fp, p, te - p);
+        if (strsplit(xy, eattr(tag, "c_origin"), ',') >= 2) {
+            j = n_jp++;
+            jp_name[j] = strupr(trim(eattr(tag, "number")));
+            jp_x[j] = (strtod(xy[0]) - ox) * EDA_U;
+            jp_y[j] = -(strtod(xy[1]) - oy) * EDA_U;         // у EasyEDA ось Y вниз
+            jp_w[j] = strtod(eattr(tag, "c_width")) * EDA_U;
+            jp_h[j] = strtod(eattr(tag, "c_height")) * EDA_U;
+            jp_rot[j] = -strtod(eattr(tag, "c_rotation"));
+            jp_round[j] = (eattr(tag, "c_shape") == "ELLIPSE");
+        }
+        p = strstr(fp, EDA_PAD, te);
+    }
+    jf_n[k] = n_jp - jf_first[k];
+    if (jf_n[k] > 0) jf_ok[k] = 1;
+    else jf_why[k] = "в модели JLC нет площадок";
+}
+
+// типоразмер чипа в имени корпуса из каталога ("0603", "R0603") или ""
+string chip_in(string s)
+{
+    s = strupr(s);
+    for (int i = 0; i < N_CHIP; i++)
+        if (has_code(s, chip_codes[i])) return chip_codes[i];
+    return "";
+}
+
+// "P$1" -> "1", "PAD01" -> "1"
+string pin_norm(string n)
+{
+    n = strupr(trim(n));
+    if (starts_with(n, "P$") && strlen(n) > 2) n = strsub(n, 2);
+    else if (starts_with(n, "PAD") && strlen(n) > 3) n = strsub(n, 3);
+    else if (starts_with(n, "PIN") && strlen(n) > 3) n = strsub(n, 3);
+    else if (starts_with(n, "#") && strlen(n) > 1) n = strsub(n, 1);
+    int alld = 1;
+    for (int i = 0; n[i]; i++)
+        if (!isdigit(n[i])) alld = 0;
+    if (alld) {
+        while (strlen(n) > 1 && n[0] == '0') n = strsub(n, 1);
+    }
+    return n;
+}
+
+// группы площадок с одинаковым именем (теплоотвод, разрезанный на части) и пары по именам
+string eg_name[], jg_name[];
+real eg_x[], eg_y[], jg_x[], jg_y[];
+int eg_c[], jg_c[];
+int n_eg, n_jg;
+int pr_e[], pr_j[];
+int n_pr;
+
+void make_groups(int ef, int jf)
+{
+    int i, k, e, cnt;
+    n_eg = 0;
+    for (i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++) {
+        if (ep_uname[i] == "") continue;
+        for (k = 0; k < n_eg; k++)
+            if (eg_name[k] == ep_uname[i]) break;
+        if (k == n_eg) {
+            eg_name[k] = ep_uname[i]; eg_x[k] = 0; eg_y[k] = 0; eg_c[k] = 0;
+            n_eg++;
+        }
+        eg_x[k] += ep_x[i]; eg_y[k] += ep_y[i]; eg_c[k]++;
+    }
+    for (k = 0; k < n_eg; k++) { eg_x[k] /= eg_c[k]; eg_y[k] /= eg_c[k]; }
+
+    n_jg = 0;
+    for (i = jf_first[jf]; i < jf_first[jf] + jf_n[jf]; i++) {
+        if (jp_name[i] == "") continue;
+        for (k = 0; k < n_jg; k++)
+            if (jg_name[k] == jp_name[i]) break;
+        if (k == n_jg) {
+            jg_name[k] = jp_name[i]; jg_x[k] = 0; jg_y[k] = 0; jg_c[k] = 0;
+            n_jg++;
+        }
+        jg_x[k] += jp_x[i]; jg_y[k] += jp_y[i]; jg_c[k]++;
+    }
+    for (k = 0; k < n_jg; k++) { jg_x[k] /= jg_c[k]; jg_y[k] /= jg_c[k]; }
+
+    // точное имя, иначе упрощённое (P$1 -> 1), если оно однозначно
+    n_pr = 0;
+    for (k = 0; k < n_jg; k++) {
+        e = -1;
+        for (i = 0; i < n_eg; i++) {
+            if (eg_name[i] == jg_name[k]) { e = i; break; }
+        }
+        if (e < 0) {
+            cnt = 0;
+            for (i = 0; i < n_eg; i++) {
+                if (pin_norm(eg_name[i]) == pin_norm(jg_name[k])) { cnt++; e = i; }
+            }
+            if (cnt != 1) e = -1;
+        }
+        if (e >= 0) {
+            pr_e[n_pr] = e; pr_j[n_pr] = k;
+            n_pr++;
+        }
+    }
+}
+
+real tr_x, tr_y;
+
+// поворот на кратный 90° угол против часовой, m = сначала зеркало по X
+void tr_pt(real x, real y, int a, int m)
+{
+    if (m) x = -x;
+    if (a == 0) { tr_x = x; tr_y = y; }
+    else if (a == 90) { tr_x = -y; tr_y = x; }
+    else if (a == 180) { tr_x = -x; tr_y = -y; }
+    else { tr_x = y; tr_y = -x; }
+}
+
+// попадает ли точка в площадку платы i (с допуском 0.05 мм)
+int pad_has(int i, real px, real py)
+{
+    real dx = px - ep_x[i], dy = py - ep_y[i];
+    real tol = 0.05;
+    if (ep_round[i]) return sqrt(dx * dx + dy * dy) <= ep_w[i] / 2 + tol;
+    real c = cos(ep_rot[i] * PI_ / 180.0), s = sin(ep_rot[i] * PI_ / 180.0);
+    real lx = dx * c + dy * s, ly = -dx * s + dy * c;
+    if (lx < 0) lx = -lx;
+    if (ly < 0) ly = -ly;
+    if (lx > ep_w[i] / 2 + tol) return 0;
+    if (ly > ep_h[i] / 2 + tol) return 0;
+    return 1;
+}
+
+real ev_rms, ev_mx, ev_tx, ev_ty;
+int ev_in, ev_n;
+
+void eval_combo(int ef, int jf, int by_name, int a, int m)
+{
+    int i, k, nb, hit;
+    real cex = 0, cey = 0, cjx = 0, cjy = 0, s2 = 0, px, py, dx, dy, d, bd;
+    int ne = 0, nj = 0;
+    if (by_name) {
+        for (k = 0; k < n_pr; k++) {
+            cex += eg_x[pr_e[k]]; cey += eg_y[pr_e[k]]; ne++;
+            tr_pt(jg_x[pr_j[k]], jg_y[pr_j[k]], a, m);
+            cjx += tr_x; cjy += tr_y; nj++;
+        }
+    } else {
+        for (i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++) { cex += ep_x[i]; cey += ep_y[i]; ne++; }
+        for (i = jf_first[jf]; i < jf_first[jf] + jf_n[jf]; i++) {
+            tr_pt(jp_x[i], jp_y[i], a, m);
+            cjx += tr_x; cjy += tr_y; nj++;
+        }
+    }
+    ev_rms = 1000000.0; ev_mx = 1000000.0; ev_in = 0; ev_n = 0; ev_tx = 0; ev_ty = 0;
+    if (ne == 0 || nj == 0) return;
+    cex /= ne; cey /= ne; cjx /= nj; cjy /= nj;
+    ev_tx = cex - cjx; ev_ty = cey - cjy;     // где начало JLC в координатах футпринта платы
+    ev_mx = 0;
+
+    if (by_name) {
+        for (k = 0; k < n_pr; k++) {
+            tr_pt(jg_x[pr_j[k]], jg_y[pr_j[k]], a, m);
+            px = tr_x + ev_tx; py = tr_y + ev_ty;
+            dx = px - eg_x[pr_e[k]]; dy = py - eg_y[pr_e[k]];
+            d = sqrt(dx * dx + dy * dy);
+            s2 += d * d;
+            if (d > ev_mx) ev_mx = d;
+            ev_n++;
+            hit = 0;
+            for (i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++) {
+                if (ep_uname[i] == eg_name[pr_e[k]]) {
+                    if (pad_has(i, px, py)) hit = 1;
+                }
+            }
+            ev_in += hit;
+        }
+    } else {
+        for (k = jf_first[jf]; k < jf_first[jf] + jf_n[jf]; k++) {
+            tr_pt(jp_x[k], jp_y[k], a, m);
+            px = tr_x + ev_tx; py = tr_y + ev_ty;
+            nb = -1; bd = 1000000.0;
+            for (i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++) {
+                dx = px - ep_x[i]; dy = py - ep_y[i];
+                d = sqrt(dx * dx + dy * dy);
+                if (d < bd) { bd = d; nb = i; }
+            }
+            s2 += bd * bd;
+            if (bd > ev_mx) ev_mx = bd;
+            ev_n++;
+            if (nb >= 0) ev_in += pad_has(nb, px, py);
+        }
+    }
+    if (ev_n > 0) ev_rms = sqrt(s2 / ev_n);
+}
+
+// результат сверки: stat 1 = совпадает, 2 = отличается, 3 = не подходит, 4 = по форме да, по номерам нет
+int mt_stat, mt_rot, mt_mir, mt_amb, mt_byname, mt_in, mt_n, mt_miss;
+real mt_tx, mt_ty, mt_mx;
+string mt_missing;
+
+void match_core(int ef, int jf, int polar, int force_form)
+{
+    int a, m, k, q, has;
+    real rms_of[];
+    make_groups(ef, jf);
+    int by_name = (n_pr >= 2 && n_pr * 10 >= n_jg * 8 && !force_form);
+    real b_rms = 1000000.0, mi_rms = 1000000.0, b_tx = 0, b_ty = 0, b_mx = 1000000.0;
+    int b_a = 0, b_in = 0, b_n = 0, mi_in = 0;
+    for (m = 0; m < 2; m++) {
+        for (k = 0; k < 4; k++) {
+            a = k * 90;
+            eval_combo(ef, jf, by_name, a, m);
+            if (!m) {
+                rms_of[k] = ev_rms;
+                if (ev_rms < b_rms - 0.000001) {
+                    b_rms = ev_rms; b_a = a; b_in = ev_in; b_n = ev_n; b_tx = ev_tx; b_ty = ev_ty; b_mx = ev_mx;
+                }
+            } else if (ev_rms < mi_rms) {
+                mi_rms = ev_rms; mi_in = ev_in;
+            }
+        }
+    }
+    mt_byname = by_name; mt_rot = b_a; mt_tx = b_tx; mt_ty = b_ty; mt_mx = b_mx; mt_in = b_in; mt_n = b_n;
+    // зеркало — только если оно заметно лучше: у двух площадок зеркало и 180° одно и то же
+    mt_mir = (mi_rms < b_rms - 0.05 && mi_in > b_in);
+    mt_amb = 0;
+    if (!by_name && polar) {
+        for (k = 0; k < 4; k++) {
+            if (k * 90 != b_a && rms_of[k] < b_rms + 0.05) mt_amb = 1;
+        }
+    }
+    if (b_n > 0 && b_in == b_n) mt_stat = 1;
+    else if (b_mx <= 0.5) mt_stat = 2;
+    else mt_stat = 3;
+
+    mt_miss = 0;
+    mt_missing = "";
+    if (by_name) {
+        for (k = 0; k < n_jg; k++) {
+            has = 0;
+            for (q = 0; q < n_pr; q++)
+                if (pr_j[q] == k) has = 1;
+            if (!has) {
+                mt_miss++;
+                if (mt_miss <= 6) {
+                    if (mt_missing != "") mt_missing += ",";
+                    mt_missing += jg_name[k];
+                }
+            }
+        }
+    }
+}
+
+// кэш результатов по парам (футпринт платы, посадочное место JLC)
+int n_mp = 0;
+int mp_ef[], mp_jf[], mp_stat[], mp_rot[], mp_mir[], mp_amb[], mp_byname[], mp_in[], mp_n[], mp_miss[], mp_cnt[];
+int mp_polar2[];       // полярная деталь с двумя выводами: нумерация 1/2 в библиотеках бывает разной
+real mp_tx[], mp_ty[], mp_mx[];
+string mp_missing[], mp_des[];
+
+int get_mp(int ef, int jf, int polar)
+{
+    for (int i = 0; i < n_mp; i++)
+        if (mp_ef[i] == ef && mp_jf[i] == jf) return i;
+
+    match_core(ef, jf, polar, 0);
+    // по номерам не сошлось — пробуем по форме: совпадение формы при разных номерах = другая цоколёвка
+    if (mt_byname && mt_stat != 1) {
+        int s_stat = mt_stat, s_rot = mt_rot, s_mir = mt_mir, s_amb = mt_amb, s_in = mt_in, s_n = mt_n, s_miss = mt_miss;
+        real s_tx = mt_tx, s_ty = mt_ty, s_mx = mt_mx;
+        string s_missing = mt_missing;
+        match_core(ef, jf, polar, 1);
+        if (mt_stat == 1 && !mt_mir) {
+            mt_stat = 4;
+        } else {
+            mt_stat = s_stat; mt_rot = s_rot; mt_mir = s_mir; mt_amb = s_amb; mt_in = s_in; mt_n = s_n; mt_miss = s_miss;
+            mt_tx = s_tx; mt_ty = s_ty; mt_mx = s_mx; mt_missing = s_missing; mt_byname = 1;
+        }
+    }
+    int k = n_mp++;
+    mp_ef[k] = ef; mp_jf[k] = jf; mp_stat[k] = mt_stat; mp_rot[k] = mt_rot; mp_mir[k] = mt_mir; mp_amb[k] = mt_amb;
+    mp_byname[k] = mt_byname; mp_in[k] = mt_in; mp_n[k] = mt_n; mp_miss[k] = mt_miss; mp_missing[k] = mt_missing;
+    mp_tx[k] = mt_tx; mp_ty[k] = mt_ty; mp_mx[k] = mt_mx;
+    mp_des[k] = ""; mp_cnt[k] = 0;
+    mp_polar2[k] = (polar && n_jg == 2);
+    return k;
+}
+
+string mp_status(int k)
+{
+    if (mp_mir[k]) return "зеркально";
+    if (mp_stat[k] == 1) return "совпадает";
+    if (mp_stat[k] == 2) return "отличается";
+    if (mp_stat[k] == 3) return "не подходит";
+    return "номера выводов не совпадают";
+}
+
+string jf_why_en(string s)
+{
+    if (s == "нет ответа от EasyEDA") return "no answer from EasyEDA";
+    if (s == "у JLC нет модели посадочного места") return "JLC has no footprint model";
+    if (s == "не разобрать модель EasyEDA") return "EasyEDA model could not be parsed";
+    if (s == "в модели JLC нет площадок") return "JLC model has no pads";
+    return s;
+}
+
+string mp_status_en(int k)
+{
+    if (mp_mir[k]) return "mirrored";
+    if (mp_stat[k] == 1) return "match";
+    if (mp_stat[k] == 2) return "differs";
+    if (mp_stat[k] == 3) return "does not fit";
+    return "pin numbers differ";
+}
+
+// годится ли результат, чтобы брать из него поворот и центр
+int mp_usable(int k)
+{
+    if (mp_mir[k]) return 0;
+    return mp_stat[k] == 1 || mp_stat[k] == 2 || mp_stat[k] == 4;
+}
+
+// без замечаний
+int mp_clean(int k)
+{
+    if (mp_stat[k] != 1 || mp_mir[k] || mp_amb[k] || mp_miss[k]) return 0;
+    if (mp_polar2[k] && mp_byname[k] && mp_rot[k] != 0) return 0;
+    return 1;
+}
+
+// замечания по паре для строки BOM
+string mp_notes(int k)
+{
+    string s = "";
+    string pkg = jf_pkg[mp_jf[k]];
+    if (mp_mir[k]) s = "ВНИМАНИЕ: посадочное место зеркально корпусу детали (" + pkg + ")";
+    else if (mp_stat[k] == 3) s = "ВНИМАНИЕ: посадочное место " + ef_name[mp_ef[k]] + " не подходит к корпусу " + pkg + ", расхождение до " + num(mp_mx[k]) + " мм";
+    else if (mp_stat[k] == 4) s = "ВНИМАНИЕ: по форме посадочное место совпадает, а номера выводов нет — проверить цоколёвку";
+    else if (mp_stat[k] == 2) s = "посадочное место отличается от JLC: выводы частично вне площадок (до " + num(mp_mx[k]) + " мм)";
+    if (mp_amb[k]) {
+        if (s != "") s += "; ";
+        s += "полярность по форме не определить — проверить в предпросмотре";
+    }
+    if (mp_polar2[k] && mp_byname[k] && mp_rot[k] != 0 && mp_usable(k)) {
+        if (s != "") s += "; ";
+        s += "полярная деталь развёрнута на " + istr(mp_rot[k]) + "° по номерам площадок 1/2 — у двухвыводных деталей " +
+             "нумерация в библиотеках бывает разной, проверить метку полярности в предпросмотре";
+    }
+    if (mp_miss[k] > 0) {
+        if (s != "") s += "; ";
+        s += "у детали выводы без площадок на плате: " + mp_missing[k];
+    }
+    return s;
+}
+
+string mp_notes_en(int k)
+{
+    string s = "";
+    string pkg = jf_pkg[mp_jf[k]];
+    if (mp_mir[k]) s = "WARNING: footprint is a mirror image of the part package (" + pkg + ")";
+    else if (mp_stat[k] == 3) s = "WARNING: footprint " + ef_name[mp_ef[k]] + " does not fit package " + pkg + ", deviation up to " + num(mp_mx[k]) + " mm";
+    else if (mp_stat[k] == 4) s = "WARNING: shape matches but pin numbers do not — check the pinout";
+    else if (mp_stat[k] == 2) s = "footprint differs from JLC: some leads partly outside pads (up to " + num(mp_mx[k]) + " mm)";
+    if (mp_amb[k]) {
+        if (s != "") s += "; ";
+        s += "polarity cannot be derived from the shape — check in the JLCPCB preview";
+    }
+    if (mp_polar2[k] && mp_byname[k] && mp_rot[k] != 0 && mp_usable(k)) {
+        if (s != "") s += "; ";
+        s += "polar part rotated by " + istr(mp_rot[k]) + "° from pad numbers 1/2 — two-pin libraries number pads " +
+             "differently, check the polarity mark in the preview";
+    }
+    if (mp_miss[k] > 0) {
+        if (s != "") s += "; ";
+        s += "part leads without board pads: " + mp_missing[k];
+    }
+    return s;
+}
+
+// точка из координат футпринта -> координаты платы; режим преобразования подбирается по площадкам
+real bp_x, bp_y;
+real ml_x, ml_y;
+
+void map_local(real x, real y, int mode, real c, real s)
+{
+    if (mode == 0) { ml_x = x * c - y * s; ml_y = x * s + y * c; }            // поворот
+    else if (mode == 1) { ml_x = -x * c - y * s; ml_y = -x * s + y * c; }     // зеркало, затем поворот
+    else { ml_x = -(x * c - y * s); ml_y = x * s + y * c; }                   // поворот, затем зеркало
+}
+
+// координаты двух площадок элемента на плате (заполняются при обходе платы)
+string el_cn1[], el_cn2[], el_flib[], el_furn[];
+real el_cx1[], el_cy1[], el_cx2[], el_cy2[];
+int el_ef[], el_mp[], el_geo[];
+real el_cpl_x[], el_cpl_y[], el_cpl_rot[];
+
+int board_point(int e, int ef, real tx, real ty)
+{
+    int mode, q, i, pi, used, best = -1;
+    real err, bx, by, dx, dy, berr = 1000000.0;
+    string cn;
+    real th = el_angle[e] * PI_ / 180.0;
+    real c = cos(th), s = sin(th);
+    for (mode = 0; mode < 3; mode++) {
+        if (el_bottom[e] && mode == 0) continue;
+        if (!el_bottom[e] && mode > 0) continue;
+        err = 0; used = 0;
+        for (q = 0; q < 2; q++) {
+            if (q == 0) { cn = el_cn1[e]; bx = el_cx1[e]; by = el_cy1[e]; }
+            else { cn = el_cn2[e]; bx = el_cx2[e]; by = el_cy2[e]; }
+            if (cn == "") continue;
+            pi = -1;
+            for (i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++) {
+                if (ep_name[i] == cn) { pi = i; break; }
+            }
+            if (pi < 0) continue;
+            map_local(ep_x[pi], ep_y[pi], mode, c, s);
+            dx = el_x[e] + ml_x - bx; dy = el_y[e] + ml_y - by;
+            err += sqrt(dx * dx + dy * dy);
+            used++;
+        }
+        if (used == 0) continue;
+        if (err < berr) { berr = err; best = mode; }
+    }
+    if (best < 0 || berr > 0.1) return 0;
+    map_local(tx, ty, best, c, s);
+    bp_x = el_x[e] + ml_x;
+    bp_y = el_y[e] + ml_y;
+    return 1;
+}
+
+// ---- картинка для отчёта: площадки платы и посадочное место JLC после совмещения
+
+string f3(real v)
+{
+    string s;
+    sprintf(s, "%.3f", v);
+    return s;
+}
+
+string svg_pad(real x, real y, real w, real hh, real rot, int rnd, string cls)
+{
+    string s;
+    if (rnd) sprintf(s, "<circle class=\"%s\" cx=\"%s\" cy=\"%s\" r=\"%s\"/>", cls, f3(x), f3(y), f3(w / 2));
+    else sprintf(s, "<rect class=\"%s\" x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" transform=\"translate(%s %s) rotate(%s)\"/>",
+                 cls, f3(-w / 2), f3(-hh / 2), f3(w), f3(hh), f3(x), f3(y), f3(rot));
+    return s;
+}
+
+string svg_pair(int k)
+{
+    int ef = mp_ef[k], jf = mp_jf[k], a = mp_rot[k], m = mp_mir[k];
+    real tx = mp_tx[k], ty = mp_ty[k];
+    int i, p1;
+    real r, px, py, rot;
+    real x1 = -0.5, y1 = -0.5, x2 = 0.5, y2 = 0.5;
+    for (i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++) {
+        r = max(ep_w[i], ep_h[i]) / 2;
+        x1 = min(x1, ep_x[i] - r); x2 = max(x2, ep_x[i] + r);
+        y1 = min(y1, ep_y[i] - r); y2 = max(y2, ep_y[i] + r);
+    }
+    for (i = jf_first[jf]; i < jf_first[jf] + jf_n[jf]; i++) {
+        tr_pt(jp_x[i], jp_y[i], a, m);
+        px = tr_x + tx; py = tr_y + ty;
+        r = max(jp_w[i], jp_h[i]) / 2;
+        x1 = min(x1, px - r); x2 = max(x2, px + r);
+        y1 = min(y1, py - r); y2 = max(y2, py + r);
+    }
+    x1 = min(x1, tx - 0.5); x2 = max(x2, tx + 0.5);
+    y1 = min(y1, ty - 0.5); y2 = max(y2, ty + 0.5);
+    real mg = (x2 - x1 + y2 - y1) * 0.04;
+    x1 -= mg; x2 += mg; y1 -= mg; y2 += mg;
+    real W = x2 - x1, H = y2 - y1;
+    int pw = 170;
+    int ph = int(pw * H / W);
+    if (ph > 240) ph = 240;
+    if (ph < 50) ph = 50;
+    real mk = min(W, H) * 0.035;
+
+    string s, t;
+    sprintf(s, "<svg viewBox=\"%s %s %s %s\" width=\"%d\" height=\"%d\"><g transform=\"scale(1,-1)\">",
+            f3(x1), f3(-y2), f3(W), f3(H), pw, ph);
+    for (i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++)
+        s += svg_pad(ep_x[i], ep_y[i], ep_w[i], ep_h[i], ep_rot[i], ep_round[i], "ep");
+    for (i = jf_first[jf]; i < jf_first[jf] + jf_n[jf]; i++) {
+        tr_pt(jp_x[i], jp_y[i], a, m);
+        rot = jp_rot[i];
+        if (m) rot = -rot;
+        s += svg_pad(tr_x + tx, tr_y + ty, jp_w[i], jp_h[i], rot + a, jp_round[i], "jp");
+    }
+    // вывод 1 на плате и у детали
+    p1 = -1;
+    for (i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++) {
+        if (pin_norm(ep_name[i]) == "1") { p1 = i; break; }
+    }
+    if (p1 >= 0) {
+        sprintf(t, "<circle class=\"p1e\" cx=\"%s\" cy=\"%s\" r=\"%s\"/>", f3(ep_x[p1]), f3(ep_y[p1]), f3(mk * 1.6));
+        s += t;
+    }
+    p1 = -1;
+    for (i = jf_first[jf]; i < jf_first[jf] + jf_n[jf]; i++) {
+        if (jp_name[i] == "1") { p1 = i; break; }
+    }
+    if (p1 >= 0) {
+        tr_pt(jp_x[p1], jp_y[p1], a, m);
+        sprintf(t, "<circle class=\"p1j\" cx=\"%s\" cy=\"%s\" r=\"%s\"/>", f3(tr_x + tx), f3(tr_y + ty), f3(mk));
+        s += t;
+    }
+    // начало корпуса на плате (крестик) и центр детали JLC (кружок)
+    sprintf(t, "<path class=\"oe\" d=\"M %s 0 L %s 0 M 0 %s L 0 %s\"/>", f3(-mk * 3), f3(mk * 3), f3(-mk * 3), f3(mk * 3));
+    s += t;
+    sprintf(t, "<circle class=\"oj\" cx=\"%s\" cy=\"%s\" r=\"%s\"/>", f3(tx), f3(ty), f3(mk * 2));
+    s += t;
+    s += "</g></svg>";
+    return s;
+}

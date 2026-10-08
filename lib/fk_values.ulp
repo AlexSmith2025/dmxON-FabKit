@@ -1,0 +1,144 @@
+// fk_values.ulp — разбор и форматирование номиналов
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+
+// ---------------------------------------------------------------- номиналы
+
+real pv_value;   // результат parse_value: Ом / Ф / Гн
+real pv_volt;    // напряжение из строки номинала, 0 если нет
+
+real mult_of(char c, int kind)
+{
+    if (kind == 'R') {
+        if (c == 'R' || c == 'r' || c == 'E' || c == 'e') return 1.0;
+        if (c == 'k' || c == 'K') return 1000.0;
+        if (c == 'M') return 1000000.0;
+        if (c == 'm') return 0.001;
+        if (c == 'G') return 1000000000.0;
+        return -1.0;
+    }
+    if (c == 'p' || c == 'P') return 0.000000000001;
+    if (c == 'n' || c == 'N') return 0.000000001;
+    if (c == 'u' || c == 'U') return 0.000001;
+    if (c == 'm') return 0.001;
+    return -1.0;
+}
+
+// Разбор номинала пассивного компонента: 4k7, 12k1, 49,9R, 0, 100n, 2u2,
+// 100nF 50V, 1nF 1kV, 56 µF, R_120R_0603, C_100NF/50V_0603 (библиотека JLC Basic)
+int parse_value(string v, int kind)
+{
+    int i;
+    pv_value = -1.0;
+    pv_volt = 0.0;
+    string s = squeeze(v);
+    if (s == "") return 0;
+
+    string pre;
+    sprintf(pre, "%c_", kind);
+    if (starts_with(strupr(s), pre)) s = strsub(s, 2);
+    int u = strrstr(s, "_");
+    if (u > 0) {
+        int digits = 1;
+        for (i = u + 1; s[i]; i++)
+            if (!isdigit(s[i])) digits = 0;
+        if (digits && strlen(s) - u > 1) s = strsub(s, 0, u);
+    }
+
+    s = replace_all(s, "µ", "u");
+    s = replace_all(s, "μ", "u");
+    s = replace_all(s, "Ω", "R");
+    s = replace_all(s, "\\u00b5", "u");
+    s = replace_all(s, "\\u00B5", "u");
+    s = replace_all(s, "\\u03bc", "u");
+    s = replace_all(s, "\\u03a9", "R");
+    s = replace_all(s, "\\u03A9", "R");
+    s = replace_all(s, "OHMS", "R");
+    s = replace_all(s, "OHM", "R");
+    s = replace_all(s, "Ohms", "R");
+    s = replace_all(s, "Ohm", "R");
+    s = replace_all(s, "ohms", "R");
+    s = replace_all(s, "ohm", "R");
+
+    // "56 uF" -> "56uF"
+    string t = "";
+    for (i = 0; s[i]; i++) {
+        if (s[i] == ' ' && i > 0) {
+            if (isdigit(s[i - 1]) && isalpha(s[i + 1])) continue;
+        }
+        t += s[i];
+    }
+    s = t;
+
+    int e = 0;
+    while (s[e] && s[e] != ' ' && s[e] != '/' && s[e] != ';') e++;
+    string m = strsub(s, 0, e);
+    string rest = strsub(s, e);
+
+    i = 0;
+    string ip = "", fp = "";
+    while (isdigit(m[i])) { ip += m[i]; i++; }
+    if (m[i] == '.' || m[i] == ',') {
+        i++;
+        while (isdigit(m[i])) { fp += m[i]; i++; }
+    }
+    if (ip == "" && fp == "") return 0;
+
+    real mul = 1.0;
+    int have_mul = 0;
+    if (isalpha(m[i])) {
+        real mm = mult_of(m[i], kind);
+        if (mm > 0) {
+            mul = mm;
+            have_mul = 1;
+            i++;
+            if (fp == "") {
+                while (isdigit(m[i])) { fp += m[i]; i++; }
+            }
+        }
+    }
+
+    string unit = strupr(strsub(m, i));
+    if (kind == 'R') {
+        if (unit != "" && unit != "R") return 0;
+    } else if (kind == 'C') {
+        if (unit != "" && unit != "F") return 0;
+        if (!have_mul && unit != "F") return 0;
+    } else {
+        if (unit != "" && unit != "H") return 0;
+        if (!have_mul && unit != "H") return 0;
+    }
+
+    if (ip == "") ip = "0";
+    if (fp == "") fp = "0";
+    pv_value = strtod(ip + "." + fp) * mul;
+    pv_volt = volts_in(rest);
+    return 1;
+}
+
+string fmt_value(real v, int kind)
+{
+    if (kind == 'R') {
+        if (v >= 1000000.0) return num(v / 1000000.0) + "M";
+        if (v >= 1000.0) return num(v / 1000.0) + "k";
+        return num(v) + "R";
+    }
+    if (kind == 'C') {
+        if (v >= 0.00000099) return num(v * 1000000.0) + "uF";
+        if (v >= 0.00000000099) return num(v * 1000000000.0) + "nF";
+        return num(v * 1000000000000.0) + "pF";
+    }
+    if (v >= 0.00099) return num(v * 1000.0) + "mH";
+    if (v >= 0.00000099) return num(v * 1000000.0) + "uH";
+    return num(v * 1000000000.0) + "nH";
+}
+
+int same_value(real a, real b)
+{
+    if (a == b) return 1;
+    real d = a - b;
+    if (d < 0) d = -d;
+    real m = a;
+    if (m < 0) m = -m;
+    if (b > m) m = b;
+    return d <= m * 0.005;
+}

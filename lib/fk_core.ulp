@@ -1,0 +1,226 @@
+// fk_core.ulp — версия, настройки, двуязычные строки, файлы, состояние между фазами
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+
+// ---------------------------------------------------------------- продукт
+
+string FK_NAME    = "dmxON FabKit";
+string FK_VERSION = "2.0.0";              // при каждой переделке поднимать (см. CHANGELOG.md)
+string FK_DATE    = "2026-10-08";
+string FK_AUTHOR  = "dmxON by AlexSmith";
+string FK_YEAR    = "2026";
+string FK_ID      = "dmxon_fabkit";       // префикс настроек в eaglerc
+string FK_MARKER  = ".dmxon-fabkit";      // метка «эта папка создана FabKit» — только такую можно очищать
+
+string fk_title()
+{
+    return FK_NAME + " v" + FK_VERSION;
+}
+
+string fk_sign()
+{
+    return FK_NAME + " v" + FK_VERSION + " · " + FK_AUTHOR + " " + FK_YEAR;
+}
+
+// ---------------------------------------------------------------- адреса каталогов
+
+string LCSC_HEADER  = "JLCPCB Part #";
+string JLC_API      = "https://jlcpcb.com/api/overseas-pcb-order/v1/shoppingCart/smtGood/selectSmtComponentList";
+string JLCSEARCH    = "https://jlcsearch.tscircuit.com";
+int    NET_TIMEOUT  = 25;
+
+// ---------------------------------------------------------------- настройки (запоминаются в eaglerc)
+
+string opt_root      = "";     // куда выгружать
+int    opt_open      = 1;      // открыть папку после выгрузки
+int    opt_online    = 1;      // искать номера в каталогах
+int    opt_basic     = 1;      // предпочитать Basic/Preferred
+int    opt_tht       = 1;      // выгружать выводные детали
+int    opt_centroid  = 0;      // CPL по центру площадок (если посадочное место не сверено)
+int    opt_writeattr = 0;      // записать найденные номера в атрибут LCSC_PART
+int    opt_fixattr   = 0;      // номер из атрибута не совпал с номиналом -> подобрать по номиналу
+int    opt_geo       = 1;      // сверять посадочные места с JLC, поворот и центр — по ним
+int    opt_alt       = 1;      // подставлять совместимые замены вместо отсутствующих деталей
+int    opt_boards    = 5;      // плат в заказе
+int    opt_minv      = 16;     // минимальное напряжение конденсаторов, В
+string opt_fee       = "3";    // плата за установку катушки Extended, $
+string opt_prefixes  = "H,MH,FID,FD,SJ,TP";
+int    opt_gerber    = 1;      // Gerber + сверловка для JLCPCB
+int    opt_docs      = 1;      // документация для ручной сборки (A4)
+int    opt_toner     = 1;      // PDF 1:1 для ЛУТ
+int    opt_pdf       = 1;      // HTML -> PDF через Microsoft Edge
+string opt_thick     = "1.6";  // толщина платы для заказа, мм
+string opt_mask      = "Green";
+string opt_silk      = "White";
+string opt_finish    = "HASL (with lead)";
+int    batch_mode    = 0;
+
+// штамп (заполняется в диалоге, хранится отдельно для каждой платы)
+string tb_product = "", tb_docno = "", tb_company = "", tb_designer = "", tb_checker = "";
+string tb_approver = "", tb_customer = "", tb_rev = "1.0", tb_note = "";
+
+real fee_usd()
+{
+    return strtod(opt_fee);
+}
+
+// ---------------------------------------------------------------- двуязычные строки
+
+// для диалогов и простого текста: «Русский / English»
+string L(string ru, string en)
+{
+    return ru + " / " + en;
+}
+
+// для HTML: русский основной, английский — подстрочником (класс en)
+string hl(string ru, string en)
+{
+    return h(ru) + "<span class=\"en\">" + h(en) + "</span>";
+}
+
+// готовая разметка: не-ASCII символы -> числовые ссылки (теги и сущности не трогает)
+string asc(string s)
+{
+    string t = "";
+    int i = 0, from = 0;
+    while (s[i]) {
+        if (s[i] > 127) {
+            if (i > from) t += strsub(s, from, i - from);
+            string e;
+            sprintf(e, "&#%d;", s[i]);
+            t += e;
+            from = i + 1;
+        }
+        i++;
+    }
+    if (from == 0) return s;
+    if (i > from) t += strsub(s, from, i - from);
+    return t;
+}
+
+// в одну строку через косую черту
+string hs(string ru, string en)
+{
+    return h(ru) + " <span class=\"en1\">/ " + h(en) + "</span>";
+}
+
+// ---------------------------------------------------------------- файлы и команды
+
+int file_exists(string p)
+{
+    string a[];
+    return fileglob(a, p) > 0;
+}
+
+// команда Windows через cmd.exe; окно консоли мелькает — так и должно быть
+int shell(string cmd)
+{
+    return system("cmd.exe /c " + cmd);
+}
+
+string qp(string p)
+{
+    return "\"" + to_win(p) + "\"";
+}
+
+string url_file(string p)
+{
+    string s = replace_all(p, "\\", "/");
+    s = replace_all(s, " ", "%20");
+    s = replace_all(s, "#", "%23");
+    return "file:///" + s;
+}
+
+// ---------------------------------------------------------------- состояние между фазами (key=value)
+
+string st_k[], st_v[];
+int n_st = 0;
+
+void st_set(string k, string v)
+{
+    for (int i = 0; i < n_st; i++) {
+        if (st_k[i] == k) { st_v[i] = v; return; }
+    }
+    st_k[n_st] = k;
+    st_v[n_st] = v;
+    n_st++;
+}
+
+void st_seti(string k, int v)
+{
+    st_set(k, istr(v));
+}
+
+string st_get(string k)
+{
+    for (int i = 0; i < n_st; i++)
+        if (st_k[i] == k) return st_v[i];
+    return "";
+}
+
+int st_geti(string k)
+{
+    return strtol(st_get(k));
+}
+
+void st_save(string path)
+{
+    output(path, "wt") {
+        for (int i = 0; i < n_st; i++) {
+            string v = replace_all(st_v[i], "\n", "\\n");
+            printf("%s=%s\n", st_k[i], h(v));
+        }
+    }
+}
+
+// значения пишутся через h(): так кириллица и спецсимволы переживают однобайтовую кодировку
+string unh(string s)
+{
+    string t = "";
+    int i = 0;
+    while (s[i]) {
+        if (s[i] == '&') {
+            int e = strstr(s, ";", i);
+            if (e > i) {
+                string ent = strsub(s, i + 1, e - i - 1);
+                if (ent == "amp") t += "&";
+                else if (ent == "lt") t += "<";
+                else if (ent == "gt") t += ">";
+                else if (ent == "quot") t += "\"";
+                else if (ent[0] == '#') {
+                    char c = strtol(strsub(ent, 1));
+                    t += c;
+                } else t += "&" + ent + ";";
+                i = e + 1;
+                continue;
+            }
+        }
+        t += s[i];
+        i++;
+    }
+    return t;
+}
+
+void st_load(string path)
+{
+    string lines[];
+    n_st = 0;
+    if (!file_exists(path)) return;
+    int n = fileread(lines, path);
+    for (int i = 0; i < n; i++) {
+        int p = strstr(lines[i], "=");
+        if (p <= 0) continue;
+        st_k[n_st] = strsub(lines[i], 0, p);
+        st_v[n_st] = replace_all(unh(trim(strsub(lines[i], p + 1))), "\\n", "\n");
+        n_st++;
+    }
+}
+
+// ---------------------------------------------------------------- журнал хода работы (для отчёта)
+
+string log_txt = "";
+
+void fk_log(string s)
+{
+    log_txt += t2string(time(), "hh:mm:ss") + "  " + s + "\n";
+    status(FK_NAME + ": " + s);
+}

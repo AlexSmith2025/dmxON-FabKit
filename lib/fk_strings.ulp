@@ -1,0 +1,271 @@
+// fk_strings.ulp — строки, числа, кодировки, HTML
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+
+// ---------------------------------------------------------------- строки
+
+string istr(int v)
+{
+    string s;
+    sprintf(s, "%d", v);
+    return s;
+}
+
+string trim(string s)
+{
+    int a = 0, b = strlen(s);
+    while (a < b) {
+        if (!isspace(s[a])) break;
+        a++;
+    }
+    while (b > a) {
+        if (!isspace(s[b - 1])) break;
+        b--;
+    }
+    return strsub(s, a, b - a);
+}
+
+// trim + схлопывание повторных пробелов
+string squeeze(string s)
+{
+    string t = "";
+    int sp = 0;
+    s = trim(s);
+    for (int i = 0; s[i]; i++) {
+        if (isspace(s[i])) {
+            sp = 1;
+        } else {
+            if (sp) t += " ";
+            sp = 0;
+            t += s[i];
+        }
+    }
+    return t;
+}
+
+int starts_with(string s, string p)
+{
+    return strsub(s, 0, strlen(p)) == p;
+}
+
+int ends_with(string s, string p)
+{
+    int n = strlen(s) - strlen(p);
+    if (n < 0) return 0;
+    return strsub(s, n) == p;
+}
+
+string replace_all(string s, string a, string b)
+{
+    string r = "";
+    int la = strlen(a);
+    if (!la) return s;
+    int p = strstr(s, a);
+    while (p >= 0) {
+        r += strsub(s, 0, p) + b;
+        s = strsub(s, p + la);
+        p = strstr(s, a);
+    }
+    return r + s;
+}
+
+string csv(string s)
+{
+    return "\"" + replace_all(s, "\"", "\"\"") + "\"";
+}
+
+string json_escape(string s)
+{
+    s = replace_all(s, "\\", "\\\\");
+    return replace_all(s, "\"", "\\\"");
+}
+
+// 49.9000 -> 49.9, 1500.0000 -> 1500
+string num(real v)
+{
+    string s;
+    sprintf(s, "%.4f", v);
+    while (ends_with(s, "0")) s = strsub(s, 0, strlen(s) - 1);
+    if (ends_with(s, ".")) s = strsub(s, 0, strlen(s) - 1);
+    if (s == "-0") s = "0";
+    return s;
+}
+
+// десятичная запись без экспоненты для малых величин (фарады)
+string num_small(real v)
+{
+    string s;
+    sprintf(s, "%.15f", v);
+    while (ends_with(s, "0")) s = strsub(s, 0, strlen(s) - 1);
+    if (ends_with(s, ".")) s = strsub(s, 0, strlen(s) - 1);
+    return s;
+}
+
+string to_win(string p)
+{
+    return replace_all(p, "/", "\\");
+}
+
+// "C:/Users/имя/..." -> "C:/Users/имя"
+string home_from(string p)
+{
+    p = replace_all(p, "\\", "/");
+    int i = strstr(strupr(p), ":/USERS/");
+    if (i < 0) return "";
+    int e = strstr(p, "/", i + 8);
+    if (e < 0) return "";
+    return strsub(p, 0, e);
+}
+
+// имя папки/файла без запрещённых в Windows символов
+string safe_name(string s)
+{
+    string t = "";
+    for (int i = 0; s[i]; i++) {
+        int c = s[i];
+        if (c < 32 || c == '<' || c == '>' || c == ':' || c == '"' || c == '/' || c == '\\' || c == '|' || c == '?' || c == '*')
+            t += "_";
+        else
+            t += s[i];
+    }
+    t = trim(t);
+    while (ends_with(t, ".")) t = strsub(t, 0, strlen(t) - 1);
+    if (t == "") t = "board";
+    return t;
+}
+
+// Fusion пишет файлы в однобайтовой кодировке Windows, поэтому в CSV — только ASCII
+string ascii_csv(string s)
+{
+    s = replace_all(s, "µ", "u");
+    s = replace_all(s, "μ", "u");
+    s = replace_all(s, "Ω", "Ohm");
+    s = replace_all(s, "±", "+/-");
+    s = replace_all(s, "°", "deg");
+    s = replace_all(s, "²", "2");
+    s = replace_all(s, "³", "3");
+    string t = "";
+    for (int i = 0; s[i]; i++) {
+        int c = s[i];
+        if (c < 32 || c > 126) t += "_";
+        else t += s[i];
+    }
+    return t;
+}
+
+// значение из каталога ("120Ω", "4.7µF") -> только ASCII ("120", "4.7uF")
+string ascii_only(string s)
+{
+    s = replace_all(s, "µ", "u");
+    s = replace_all(s, "μ", "u");
+    string t = "";
+    for (int i = 0; s[i]; i++) {
+        int c = s[i];
+        if (c >= 32 && c <= 126) t += s[i];
+    }
+    return t;
+}
+
+// текст для HTML-отчёта: всё, что не ASCII, — числовыми ссылками (&#1040;),
+// так русский текст переживает однобайтовую кодировку файла
+string h(string s)
+{
+    string t = "";
+    for (int i = 0; s[i]; i++) {
+        int c = s[i];
+        if (c == '&') t += "&amp;";
+        else if (c == '<') t += "&lt;";
+        else if (c == '>') t += "&gt;";
+        else if (c == '"') t += "&quot;";
+        else if (c > 126 || c < 0) {
+            string e;
+            sprintf(e, "&#%d;", c);
+            t += e;
+        }
+        else t += s[i];
+    }
+    return t;
+}
+
+string cfg_quote(string s)
+{
+    s = replace_all(s, "\\", "\\\\");
+    return replace_all(s, "\"", "\\\"");
+}
+
+string mm3(real v)
+{
+    string s;
+    sprintf(s, "%.3f", v);
+    if (s == "-0.000") s = "0.000";
+    return s + "mm";
+}
+
+// ключ сравнения номеров изготовителя: только буквы и цифры, верхний регистр
+string mpn_key(string s)
+{
+    string t = "";
+    s = strupr(s);
+    for (int i = 0; s[i]; i++)
+        if (isalnum(s[i])) t += s[i];
+    return t;
+}
+
+// "C21190" / "21190" -> "C21190", остальное -> ""
+string lcsc_code(string s)
+{
+    s = strupr(trim(s));
+    if (s == "") return "";
+    int i = 0;
+    if (s[0] == 'C') i = 1;
+    if (!s[i]) return "";
+    for (int k = i; s[k]; k++)
+        if (!isdigit(s[k])) return "";
+    if (i == 0) s = "C" + s;
+    return s;
+}
+
+// буквенная часть обозначения: "R12" -> "R", "U$3" -> "U$"
+string des_prefix(string nm)
+{
+    string p = "";
+    nm = strupr(nm);
+    for (int i = 0; nm[i]; i++) {
+        if (isdigit(nm[i])) break;
+        p += nm[i];
+    }
+    return p;
+}
+
+real angle_mod(real a)
+{
+    while (a < 0) a += 360;
+    while (a >= 360) a -= 360;
+    return a;
+}
+
+// первое число перед буквой V: "25V(DC)" -> 25, "1kV" -> 1000
+real volts_in(string s)
+{
+    s = strupr(s);
+    for (int j = 0; s[j]; j++) {
+        if (!isdigit(s[j])) continue;
+        if (j > 0) {
+            if (isalnum(s[j - 1]) || s[j - 1] == '.') continue;
+        }
+        string a = "";
+        int k = j;
+        while (isdigit(s[k]) || s[k] == '.' || s[k] == ',') {
+            if (s[k] == ',') a += "."; else a += s[k];
+            k++;
+        }
+        real f = 1.0;
+        if (s[k] == 'K') { f = 1000.0; k++; }
+        if (s[k] == ' ') {
+            if (s[k + 1] == 'V') k++;
+        }
+        if (s[k] == 'V') return strtod(a) * f;
+        j = k;
+        if (!s[j]) break;
+    }
+    return 0.0;
+}

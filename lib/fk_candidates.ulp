@@ -1,0 +1,93 @@
+// fk_candidates.ulp — кандидаты для поиска по номеру, исключения
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+
+// ---------------------------------------------------------------- кандидаты для поиска по номеру
+
+string cand[];
+int cand_attr[];
+int n_cand;
+
+int mpn_like(string k)
+{
+    int nd = 0, na = 0;
+    for (int i = 0; k[i]; i++) {
+        if (isdigit(k[i])) nd++;
+        else na++;
+    }
+    if (nd == 0) return 0;
+    if (na == 0) return strlen(k) >= 6;
+    return strlen(k) >= 5;
+}
+
+void add_cand(string s, int from_attr)
+{
+    s = trim(s);
+    string k = mpn_key(s);
+    if (!mpn_like(k)) return;
+    for (int i = 0; i < n_cand; i++)
+        if (mpn_key(cand[i]) == k) return;
+    cand_attr[n_cand] = from_attr;
+    cand[n_cand++] = s;
+}
+
+string alt_seps[] = { " or ", " OR ", " Or ", " lub ", " LUB ", " или ", " ИЛИ ", " / ", ";" };
+
+// "A lub B", "A or B" -> A, B; затем отдельные слова; затем атрибут MPN
+void build_cands(string value, string mpn)
+{
+    int i, j, nt;
+    string alts[];
+    string tk[];
+    n_cand = 0;
+    string v = squeeze(value);
+    for (i = 0; i < 9; i++) v = replace_all(v, alt_seps[i], "|");
+    int na = strsplit(alts, v, '|');
+    for (i = 0; i < na; i++) add_cand(alts[i], 0);
+    for (i = 0; i < na; i++) {
+        nt = strsplit(tk, trim(alts[i]), ' ');
+        if (nt > 1)
+            for (j = 0; j < nt; j++) add_cand(tk[j], 0);
+    }
+    // "RTL8305NB-CG_QFN-48" -> "RTL8305NB-CG"
+    for (i = 0; i < na; i++) {
+        nt = strsplit(tk, trim(alts[i]), '_');
+        if (nt > 1)
+            for (j = 0; j < nt; j++) add_cand(tk[j], 0);
+    }
+    add_cand(mpn, 1);
+}
+
+// ---------------------------------------------------------------- исключения по обозначению
+
+string ex_pref[];
+int n_ex_pref = 0;
+
+void prep_prefixes()
+{
+    string f[];
+    int k = strsplit(f, opt_prefixes, ',');
+    n_ex_pref = 0;
+    for (int i = 0; i < k; i++) {
+        string p = strupr(trim(f[i]));
+        if (p != "") ex_pref[n_ex_pref++] = p;
+    }
+}
+
+int prefix_excluded(string nm)
+{
+    string p = des_prefix(nm);
+    for (int i = 0; i < n_ex_pref; i++)
+        if (ex_pref[i] == p) return 1;
+    return 0;
+}
+
+int mpn_attr_priority(string an)
+{
+    if (an == "MPN") return 1;
+    if (an == "MANUFACTURER_PART_NUMBER" || an == "MANUFACTURER PART NUMBER") return 2;
+    if (an == "MP") return 3;
+    if (an == "MFR_PN" || an == "MFRPN" || an == "MPN1") return 4;
+    if (an == "PART-NUMBER" || an == "PART_NUMBER" || an == "PARTNUMBER") return 5;
+    if (an == "PN") return 6;
+    return 99;
+}

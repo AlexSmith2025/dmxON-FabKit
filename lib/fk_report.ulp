@@ -1,0 +1,497 @@
+// fk_report.ulp — отчёт HTML: оформление и разделы, которые известны до выгрузки Gerber
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+//
+// Отчёт пишется в две фазы. Первая (здесь) пишет весь документ, оставляя строки-метки
+// <!--FK:RENDER-->, <!--FK:ORDER-->, <!--FK:GERBER-->; третья фаза (fk_finish) копирует
+// файл и вставляет на место меток вид платы, параметры заказа и слои Gerber.
+// Русский текст выводится числовыми ссылками (&#1046;) — файл остаётся чистым ASCII.
+
+// ---------------------------------------------------------------- итоги первой фазы
+
+int n_rows = 0, n_attr = 0, n_impd = 0, n_found = 0, n_missing = 0, n_warn = 0, n_att = 0;
+int n_top = 0, n_bot = 0, n_thtc = 0, n_subs = 0, n_subs_av = 0, n_rotfix = 0, n_posfix = 0, n_scr = 0;
+int gc_ok = 0, gc_bad = 0, gc_none = 0;
+real cost_parts = 0, cost_fee = 0;
+int n_ext = 0, n_unpriced = 0;
+
+// ---------------------------------------------------------------- оформление
+
+string RP_CSS =
+    ":root{--ink:#1c2127;--mute:#5f6873;--en:#7d8792;--line:#e4e2dd;--paper:#f6f4ef;--card:#fff;" +
+    "--brand:#88ed77;--teal:#2e7f73;--ok:#3d8a66;--warn:#b07a22;--bad:#b04a3e;--night:#14181d;--night2:#1d232b}" +
+    "*{box-sizing:border-box}html{scroll-behavior:smooth}" +
+    "body{margin:0;font:15px/1.5 'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:var(--ink);background:var(--paper)}" +
+    "a{color:var(--teal);text-decoration:none}a:hover{text-decoration:underline}" +
+    ".en{display:block;color:var(--en);font-size:.82em;font-weight:400;letter-spacing:.01em}" +
+    ".en1{color:var(--en);font-weight:400}" +
+    ".wrap{max-width:1240px;margin:0 auto;padding:0 24px}" +
+    // шапка
+    ".hero{background:radial-gradient(1200px 500px at 85% -10%,#2a3a33 0,transparent 60%),var(--night);color:#eef1f3;padding:34px 0 30px}" +
+    ".brand{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#aab4bd}" +
+    ".brand i{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 12px var(--brand)}" +
+    ".hero h1{font-size:34px;line-height:1.15;margin:10px 0 4px;font-weight:650}" +
+    ".hero h1 .en{color:#9aa6b1;font-size:17px;margin-top:4px}" +
+    ".meta{color:#aeb8c2;font-size:13.5px;margin:10px 0 0}" +
+    ".cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:22px 0 0}" +
+    ".card{background:var(--night2);border:1px solid #2b333c;border-radius:12px;padding:10px 14px;color:#b9c3cc;font-size:12.5px;" +
+    "animation:rise .6s both}" +
+    ".card b{display:block;font-size:24px;color:#f3f5f7;font-weight:650;margin-top:2px}" +
+    ".card .en{color:#7f8b97}.card.ok b{color:#9fdcae}.card.warn b{color:#f0c36a}.card.bad b{color:#f19a8c}" +
+    // навигация
+    "nav.toc{position:sticky;top:0;z-index:5;background:rgba(246,244,239,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}" +
+    "nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:8px;padding-bottom:8px}" +
+    "nav.toc a{white-space:nowrap;padding:6px 11px;border-radius:999px;color:var(--ink);font-size:13px}" +
+    "nav.toc a:hover{background:#e9e6df;text-decoration:none}" +
+    // разделы
+    "section{padding:30px 0 6px;animation:rise .7s both}" +
+    "h2{font-size:22px;margin:0 0 12px;font-weight:650}h2 .en{font-size:14px;margin-top:2px}" +
+    "h3{font-size:16px;margin:20px 0 8px}h3 .en{display:inline;margin-left:8px}" +
+    "p.lead{color:var(--mute);max-width:860px;margin:0 0 14px}" +
+    ".box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 1px 0 rgba(0,0,0,.02)}" +
+    ".grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px}" +
+    // таблицы
+    ".tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}" +
+    "table{border-collapse:collapse;width:100%;font-size:13px}" +
+    "th,td{padding:7px 10px;text-align:left;vertical-align:top;border-bottom:1px solid #eeece7}" +
+    "th{position:sticky;top:0;background:#faf9f6;font-weight:600;font-size:12px;color:#39414a}" +
+    "th .en{font-size:11px}td .en{font-size:11.5px}" +
+    "tbody tr:hover td{background:#fbfaf6}" +
+    "tr.warn td{background:#fdf6e8}tr.miss td{background:#fbeeeb}tr.sub td{background:#eef6f2}" +
+    "td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" +
+    ".pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}" +
+    ".p-basic{background:#e4f2ea;color:#2f6f50}.p-pref{background:#e5eef7;color:#2f5b86}.p-ext{background:#f6ecdc;color:#8a5a12}" +
+    ".p-ok{background:#e4f2ea;color:#2f6f50}.p-warn{background:#f6ecdc;color:#8a5a12}.p-bad{background:#f7e3df;color:#93382d}" +
+    ".note{color:#8a5a12}.small{color:var(--mute);font-size:12px}" +
+    "code{font:12.5px Consolas,monospace;background:#efede7;padding:1px 5px;border-radius:5px}" +
+    // чертежи
+    "svg *{vector-effect:non-scaling-stroke}" +
+    ".brdbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;overflow:auto}" +
+    "svg.brd{width:100%;height:auto;display:block}" +
+    ".brd .ol{fill:#f3f6f1;stroke:#2d3a33;stroke-width:1.4px}.brd .olc{fill:#fff;stroke:#2d3a33;stroke-width:1px}" +
+    ".brd .pd rect,.brd .pd circle{fill:#d9a648;stroke:none}.brd .pd0 rect,.brd .pd0 circle{fill:#e9dcc0;stroke:none}" +
+    ".brd .gx{fill:none;stroke:#4b5560;stroke-width:1px}" +
+    ".brd .e0{opacity:.28}.brd .e1 .pd rect,.brd .e1 .pd circle{fill:#d9573d}.brd .e1 .gx{stroke:#9b2f1d;stroke-width:1.6px}" +
+    ".brd g.e2:hover .pd rect,.brd g.e2:hover .pd circle{fill:#2e7f73}" +
+    ".brd .k1{fill:#b04a3e;stroke:#fff;stroke-width:.8px}" +
+    ".brd text{font-family:'Segoe UI',Arial,sans-serif;text-anchor:middle;fill:#1c2127;paint-order:stroke;stroke:#fff;stroke-width:2.2px;stroke-linejoin:round;font-weight:600}" +
+    ".brd text.lb0{fill:#9aa1a8}.brd text.lb1{fill:#9b2f1d}" +
+    ".fp svg{background:#fff;border:1px solid #ecebe6;border-radius:6px}" +
+    ".ep{fill:#5b8fc7;fill-opacity:.35;stroke:#2f6aa8;stroke-width:1px}.jp{fill:none;stroke:#d7801f;stroke-width:1.5px}" +
+    ".p1e{fill:#1d4f91}.p1j{fill:#d7801f}.oe{stroke:#111;stroke-width:1px;fill:none}.oj{fill:none;stroke:#d7801f;stroke-width:1.5px}" +
+    // вид платы (слои друг на друге)
+    ".boards{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:22px;margin:24px 0 6px}" +
+    ".pcb{margin:0}.pcb figcaption{color:#aeb8c2;font-size:13px;margin-top:8px;text-align:center}" +
+    ".scene{perspective:1400px}" +
+    ".stack{position:relative;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.2,.7,.2,1)}" +
+    ".stack img{position:absolute;inset:0;width:100%;height:100%;transition:transform .9s cubic-bezier(.2,.7,.2,1),opacity .4s;" +
+    "animation:drop .9s both}" +
+    ".stack img:first-child{position:relative;display:block}" +
+    ".pcb.bot .stack{transform:scaleX(-1)}" +
+    ".scene:hover .stack{transform:rotateX(52deg) rotateZ(-24deg) scale(.86)}" +
+    ".pcb.bot .scene:hover .stack{transform:scaleX(-1) rotateX(52deg) rotateZ(24deg) scale(.86)}" +
+    ".scene:hover .stack img:nth-child(2){transform:translateZ(14px)}.scene:hover .stack img:nth-child(3){transform:translateZ(30px)}" +
+    ".scene:hover .stack img:nth-child(4){transform:translateZ(46px)}.scene:hover .stack img:nth-child(5){transform:translateZ(62px)}" +
+    ".scene:hover .stack img:nth-child(6){transform:translateZ(78px)}" +
+    ".stack img:nth-child(2){animation-delay:.12s}.stack img:nth-child(3){animation-delay:.24s}.stack img:nth-child(4){animation-delay:.36s}" +
+    ".stack img:nth-child(5){animation-delay:.48s}.stack img:nth-child(6){animation-delay:.6s}" +
+    ".hint{color:#8d98a3;font-size:12px;text-align:center;margin-top:4px}" +
+    // просмотр слоёв
+    ".lv{display:grid;grid-template-columns:270px 1fr;gap:16px;align-items:start}" +
+    ".lv input{position:absolute;opacity:0;pointer-events:none}" +
+    ".lv-ctl{display:flex;flex-direction:column;gap:4px}" +
+    ".lv-ctl label{display:flex;gap:10px;align-items:center;padding:7px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line);cursor:pointer;font-size:13px;user-select:none;transition:opacity .2s}" +
+    ".lv-ctl label i{width:14px;height:14px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}" +
+    ".lv-ctl label b{font:600 12px Consolas,monospace;width:34px;flex:none}" +
+    ".lv-stage{position:relative;background:#11161b;border-radius:14px;padding:14px;overflow:hidden}" +
+    ".lv-stage .lv-in{position:relative}.lv-stage img{position:absolute;inset:0;width:100%;height:100%;transition:opacity .35s}" +
+    ".lv-stage img.base{position:relative;display:block}.lv-stage img:not(.base){mix-blend-mode:lighten}" +
+    ".gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}" +
+    ".lay{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .25s,box-shadow .25s}" +
+    ".lay:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(20,24,29,.10)}" +
+    ".lay .th{background:#12171c;padding:8px}.lay .th img{display:block;width:100%;height:auto}" +
+    ".lay .tx{padding:9px 12px;font-size:12.5px}.lay .tx b{font:700 13px Consolas,monospace;margin-right:6px}" +
+    // подвал
+    "footer{margin:40px 0 0;padding:22px 0 40px;border-top:1px solid var(--line);color:var(--mute);font-size:12.5px}" +
+    "@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}" +
+    "@keyframes drop{from{opacity:0;transform:translateY(-14px)}to{opacity:1}}" +
+    "@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}" +
+    "@media (max-width:760px){.lv{grid-template-columns:1fr}.hero h1{font-size:26px}.grid2{grid-template-columns:1fr}}" +
+    "@media print{nav.toc{display:none}.hero{background:#fff;color:#000}section{break-inside:avoid-page}}";
+
+// ---------------------------------------------------------------- кусочки разметки
+
+string th2(string ru, string en)
+{
+    return "<th>" + hl(ru, en) + "</th>";
+}
+
+string th2n(string ru, string en)
+{
+    return "<th class=\"num\">" + hl(ru, en) + "</th>";
+}
+
+string h2s(string id, string ru, string en)
+{
+    return "<section id=\"" + id + "\"><div class=\"wrap\"><h2>" + hl(ru, en) + "</h2>";
+}
+
+string sec_end()
+{
+    return "</div></section>\n";
+}
+
+string lead(string ru, string en)
+{
+    return "<p class=\"lead\">" + h(ru) + "<span class=\"en\">" + h(en) + "</span></p>";
+}
+
+string card(string cls, string ru, string en, string val)
+{
+    return "<div class=\"card " + cls + "\">" + h(ru) + "<span class=\"en\">" + h(en) + "</span><b>" + h(val) + "</b></div>";
+}
+
+string pill_type(string t)
+{
+    if (t == "Basic") return "<span class=\"pill p-basic\">Basic</span>";
+    if (t == "Preferred") return "<span class=\"pill p-pref\">Preferred</span>";
+    if (t == "Extended") return "<span class=\"pill p-ext\">Extended</span>";
+    return h(t);
+}
+
+string money(real v)
+{
+    string s;
+    if (v < 0) return "&mdash;";
+    if (v < 0.1) sprintf(s, "$%.4f", v);
+    else sprintf(s, "$%.2f", v);
+    return s;
+}
+
+string desig_sp(string s)
+{
+    return replace_all(s, ",", ", ");
+}
+
+string lcsc_link(string code)
+{
+    if (code == "") return "";
+    return "<a href=\"https://jlcpcb.com/partdetail/" + code + "\" title=\"JLCPCB\">" + code + "</a>";
+}
+
+// ---------------------------------------------------------------- итоги (считаются перед выводом)
+
+void report_totals()
+{
+    int g, e;
+    n_rows = 0; n_attr = 0; n_impd = 0; n_found = 0; n_missing = 0; n_warn = 0; n_att = 0;
+    n_subs = 0; n_subs_av = 0; cost_parts = 0; cost_fee = 0; n_ext = 0; n_unpriced = 0;
+    for (g = 0; g < n_g; g++) {
+        if (g_merged[g]) continue;
+        n_rows++;
+        if (g_src[g] == "атрибут") n_attr++;
+        else if (g_src[g] == "импорт") n_impd++;
+        else if (g_lcsc[g] != "") n_found++;
+        if (g_lcsc[g] == "") n_missing++;
+        if (g_warn(g)) n_warn++;
+        if (g_note[g] != "" || g_lcsc[g] == "") n_att++;
+        if (g_sub_applied[g]) n_subs++;
+        else if (g_sub_code[g] != "") n_subs_av++;
+        if (g_lcsc[g] != "") {
+            int need = g_qty[g] * opt_boards;
+            real u = price_at(g_tiers[g], need);
+            if (u < 0) n_unpriced++;
+            else cost_parts += u * need;
+            if (g_type[g] == "Extended") { n_ext++; cost_fee += fee_usd(); }
+        }
+    }
+    gc_ok = 0; gc_bad = 0; gc_none = 0;
+    for (e = 0; e < n_el; e++) {
+        if (el_mp[e] < 0) gc_none++;
+        else if (mp_clean(el_mp[e])) gc_ok++;
+        else gc_bad++;
+    }
+}
+
+// ---------------------------------------------------------------- отчёт: первая фаза
+
+// pxw — ширина чертежа расстановки в пикселях
+void report_phase1(string path, string base, string stamp)
+{
+    int g, e, q, s;
+    output(path, "wt") {
+        printf("<!DOCTYPE html>\n<html lang=\"ru\">\n<head>\n<meta charset=\"utf-8\">\n");
+        printf("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n");
+        printf("<meta name=\"generator\" content=\"%s\">\n", h(fk_title()));
+        printf("<title>%s</title>\n", h(base + " · " + "Production report"));
+        printf("<style>%s</style>\n</head>\n<body>\n", RP_CSS);
+
+        // ---- шапка
+        printf("<header class=\"hero\"><div class=\"wrap\">\n");
+        printf("<div class=\"brand\"><i></i>%s</div>\n", h(fk_sign()));
+        printf("<h1>%s<span class=\"en\">%s</span></h1>\n", h(base + " — производственный пакет"), h("Production package"));
+        string meta = stamp + " · " + istr(opt_boards) + " " + "плат / boards" + " · ";
+        if (opt_online) meta += "каталог JLCPCB: онлайн / JLCPCB catalogue: online";
+        else meta += "каталог JLCPCB: выключен / JLCPCB catalogue: off";
+        printf("<p class=\"meta\">%s</p>\n", h(meta));
+        printf("<!--FK:RENDER-->\n");
+        printf("<div class=\"cards\">\n");
+        printf("%s\n", card("", "компонентов", "components", istr(n_el)));
+        printf("%s\n", card("", "строк BOM", "BOM lines", istr(n_rows)));
+        printf("%s\n", card("", "сверху / снизу", "top / bottom", istr(n_top) + " / " + istr(n_bot)));
+        printf("%s\n", card("", "из атрибутов", "from attributes", istr(n_attr + n_impd)));
+        printf("%s\n", card("ok", "найдено", "found", istr(n_found)));
+        string cl = "ok";
+        if (n_missing) cl = "bad";
+        printf("%s\n", card(cl, "без номера", "no part number", istr(n_missing)));
+        cl = "ok";
+        if (n_warn) cl = "warn";
+        printf("%s\n", card(cl, "требуют внимания", "need attention", istr(n_warn)));
+        printf("%s\n", card("", "замены", "substitutes", istr(n_subs)));
+        if (opt_online && opt_geo) {
+            printf("%s\n", card("ok", "посадка совпадает", "footprint match", istr(gc_ok)));
+            cl = "ok";
+            if (gc_bad) cl = "warn";
+            printf("%s\n", card(cl, "посадка: замечания", "footprint notes", istr(gc_bad)));
+        }
+        if (opt_online) {
+            printf("%s\n", card("", "детали, оценка", "parts, estimate", money(cost_parts + cost_fee)));
+            printf("%s\n", card("", "на 1 плату", "per board", money((cost_parts + cost_fee) / opt_boards)));
+        }
+        printf("</div>\n</div></header>\n");
+
+        // ---- оглавление
+        printf("<nav class=\"toc\"><div class=\"wrap\">");
+        printf("<a href=\"#order\">%s</a>", hs("Заказ", "Order"));
+        if (opt_gerber) printf("<a href=\"#gerber\">%s</a>", hs("Gerber", "Layers"));
+        printf("<a href=\"#place\">%s</a>", hs("Расстановка", "Placement"));
+        printf("<a href=\"#attention\">%s</a>", hs("Внимание", "Attention"));
+        printf("<a href=\"#subs\">%s</a>", hs("Замены", "Substitutes"));
+        if (opt_online) printf("<a href=\"#cost\">%s</a>", hs("Стоимость", "Cost"));
+        printf("<a href=\"#bom\">BOM</a>");
+        if (opt_online && opt_geo) printf("<a href=\"#fp\">%s</a>", hs("Посадочные места", "Footprints"));
+        printf("<a href=\"#excluded\">%s</a>", hs("Не выгружено", "Excluded"));
+        printf("<a href=\"#diag\">%s</a>", hs("Диагностика", "Diagnostics"));
+        printf("</div></nav>\n");
+
+        printf("<!--FK:ORDER-->\n");
+        if (opt_gerber) printf("<!--FK:GERBER-->\n");
+
+        // ---- расстановка
+        printf("%s", h2s("place", "Расстановка компонентов", "Component placement"));
+        printf("%s\n", lead("Контур платы, площадки, корпуса и обозначения. Красная точка — вывод 1 или катод. Нижняя сторона показана " +
+                            "со стороны пайки (зеркально).",
+                            "Board outline, pads, bodies and designators. Red dot marks pin 1 or the cathode. The bottom side is shown " +
+                            "as seen from the solder side (mirrored)."));
+        ds_fsmin = 0.75; ds_fsmax = 2.2;
+        printf("<h3>%s</h3>\n", hl("Верхняя сторона", "Top side"));
+        printf("<div class=\"brdbox\">%s</div>\n", draw_side(0, "", 1, 1180));
+        if (n_bot > 0) {
+            printf("<h3>%s</h3>\n", hl("Нижняя сторона", "Bottom side"));
+            printf("<div class=\"brdbox\">%s</div>\n", draw_side(1, "", 1, 1180));
+        }
+        printf("%s", sec_end());
+
+        // ---- требуют внимания
+        printf("%s", h2s("attention", "Требуют внимания", "Need attention"));
+        if (n_att == 0) {
+            printf("<p>%s</p>\n", hs("Замечаний нет.", "No issues."));
+        } else {
+            printf("<div class=\"tw\"><table><thead><tr>%s%s%s</tr></thead><tbody>\n",
+                   th2("Обозначения", "Designators"), th2("Номинал", "Value"), th2("Что не так", "Issue"));
+            for (g = 0; g < n_g; g++) {
+                if (g_merged[g] || (g_note[g] == "" && g_lcsc[g] != "")) continue;
+                string ru = g_note[g], en = g_note_en[g];
+                string cls = "warn";
+                if (g_lcsc[g] == "") {
+                    cls = "miss";
+                    if (ru != "") { ru = "без номера; " + ru; en = "no part number; " + en; }
+                    else { ru = "без номера"; en = "no part number"; }
+                }
+                if (g_sub_applied[g]) cls = "sub";
+                printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s<span class=\"en\">%s</span></td></tr>\n",
+                       cls, h(desig_sp(g_desig[g])), h(g_comment[g]), h(ru), h(en));
+            }
+            printf("</tbody></table></div>\n");
+        }
+        printf("%s", sec_end());
+
+        // ---- замены
+        printf("%s", h2s("subs", "Замены (аналоги из каталога JLCPCB)", "Substitutes (JLCPCB catalogue alternatives)"));
+        printf("%s\n", lead("Для деталей, которых нет в каталоге, нет на складе или чей корпус не подходит, ищутся аналоги. " +
+                            "Аналог принимается, только если его посадочное место из библиотеки JLC совпадает с площадками на плате. " +
+                            "Из подходящих выбирается самый дешёвый на весь тираж.",
+                            "Alternatives are searched for parts that are missing, out of stock or have a non-fitting package. " +
+                            "An alternative is accepted only if its JLC library footprint matches the board pads. " +
+                            "The cheapest one for the whole batch wins."));
+        if (n_subs + n_subs_av == 0) {
+            printf("<p>%s</p>\n", hs("Замен не потребовалось.", "No substitutes needed."));
+        } else {
+            printf("<div class=\"tw\"><table><thead><tr>%s%s%s%s%s%s%s</tr></thead><tbody>\n",
+                   th2("Обозначения", "Designators"), th2("Было", "Original"), th2("Замена", "Substitute"),
+                   th2("Причина", "Reason"), th2("Совместимость", "Compatibility"), th2n("Склад", "Stock"), th2("Совмещение", "Overlay"));
+            for (g = 0; g < n_g; g++) {
+                if (g_merged[g] || g_sub_code[g] == "") continue;
+                string was = g_sub_from[g];
+                if (was == "") was = squeeze(g_value[g]);
+                int m = g_sub_mp[g];
+                string comp = "", ov = "";
+                if (m >= 0) {
+                    if (mp_stat[m] == 1) comp = "<span class=\"pill p-ok\">" + hs("по номерам выводов", "pin numbers") + "</span>";
+                    else comp = "<span class=\"pill p-warn\">" + hs("по форме", "by shape") + "</span><span class=\"en\">" +
+                                h("проверить цоколёвку / check pinout") + "</span>";
+                    ov = "<div class=\"fp\">" + svg_pair(m) + "</div>";
+                }
+                string st = "";
+                if (g_sub_applied[g]) st = "<span class=\"pill p-ok\">" + hs("подставлена", "applied") + "</span>";
+                else st = "<span class=\"pill p-warn\">" + hs("не подставлена", "not applied") + "</span>";
+                printf("<tr class=\"sub\"><td>%s</td><td>%s</td><td>%s %s<br>%s<br>%s</td><td>%s<span class=\"en\">%s</span></td><td>%s</td><td class=\"num\">%d</td><td>%s</td></tr>\n",
+                       h(desig_sp(g_desig[g])), h(was), lcsc_link(g_sub_code[g]), pill_type(g_sub_type[g]), h(g_sub_model[g] + " · " + g_sub_pkg[g]),
+                       st, h(g_sub_why[g]), h(g_sub_why_en[g]), comp, g_sub_stock[g], ov);
+            }
+            printf("</tbody></table></div>\n");
+            printf("<p class=\"small\">%s</p>\n", hs("Синее — площадки на плате, оранжевое — посадочное место аналога.",
+                                                       "Blue — board pads, orange — the substitute footprint."));
+        }
+        printf("%s", sec_end());
+
+        // ---- стоимость
+        if (opt_online) {
+            printf("%s", h2s("cost", "Стоимость деталей (оценка)", "Parts cost (estimate)"));
+            printf("%s\n", lead("Цены каталога JLCPCB на момент выгрузки, для " + istr(opt_boards) + " плат, без запаса на потери, " +
+                                "без стоимости платы и монтажа. За каждую уникальную деталь Extended JLCPCB берёт плату за установку катушки (" +
+                                money(fee_usd()) + ").",
+                                "JLCPCB catalogue prices at export time, for " + istr(opt_boards) + " boards, without attrition, " +
+                                "PCB and assembly cost. Each unique Extended part adds a feeder loading fee (" + money(fee_usd()) + ")."));
+            printf("<div class=\"cards\" style=\"grid-template-columns:repeat(auto-fill,minmax(190px,1fr))\">\n");
+            printf("<div class=\"box\">%s<b style=\"display:block;font-size:22px\">%s</b></div>\n", hl("Детали", "Parts"), money(cost_parts));
+            printf("<div class=\"box\">%s<b style=\"display:block;font-size:22px\">%s</b></div>\n", hl("Установка Extended (" + istr(n_ext) + ")", "Extended loading (" + istr(n_ext) + ")"), money(cost_fee));
+            printf("<div class=\"box\">%s<b style=\"display:block;font-size:22px\">%s</b></div>\n", hl("Итого", "Total"), money(cost_parts + cost_fee));
+            printf("<div class=\"box\">%s<b style=\"display:block;font-size:22px\">%s</b></div>\n", hl("На одну плату", "Per board"), money((cost_parts + cost_fee) / opt_boards));
+            printf("</div>\n");
+            if (n_unpriced > 0) printf("<p class=\"note\">%s</p>\n", hs("Без цены в каталоге: " + istr(n_unpriced) + " строк.", "No catalogue price: " + istr(n_unpriced) + " lines."));
+            // самые дорогие строки
+            string ck[];
+            int ci[], nc = 0;
+            for (g = 0; g < n_g; g++) {
+                if (g_merged[g] || g_lcsc[g] == "") continue;
+                real lc = lot_cost(g_tiers[g], g_type[g], g_qty[g] * opt_boards);
+                string kk;
+                sprintf(kk, "%015.4f|%d", 99999999.0 - lc, g);
+                ck[nc] = kk;
+                nc++;
+            }
+            sort(nc, ci, ck);
+            printf("<h3>%s</h3>\n", hl("Что дороже всего", "Most expensive lines"));
+            printf("<div class=\"tw\"><table><thead><tr>%s%s%s%s%s%s%s</tr></thead><tbody>\n",
+                   th2("Обозначения", "Designators"), th2("Деталь", "Part"), th2("Тип", "Type"), th2n("Нужно", "Need"),
+                   th2n("Цена", "Unit"), th2n("Партия", "Lot"), th2n("Доля", "Share"));
+            real tot = cost_parts + cost_fee;
+            for (q = 0; q < nc && q < 12; q++) {
+                string a[];
+                strsplit(a, ck[ci[q]], '|');
+                g = strtol(a[1]);
+                int need = g_qty[g] * opt_boards;
+                real u = price_at(g_tiers[g], need);
+                real lc2 = lot_cost(g_tiers[g], g_type[g], need);
+                string share = "";
+                if (tot > 0) sprintf(share, "%.1f%%", lc2 * 100.0 / tot);
+                printf("<tr><td>%s</td><td>%s %s</td><td>%s</td><td class=\"num\">%d</td><td class=\"num\">%s</td><td class=\"num\">%s</td><td class=\"num\">%s</td></tr>\n",
+                       h(desig_sp(g_desig[g])), lcsc_link(g_lcsc[g]), h(g_model[g]), pill_type(g_type[g]), need, money(u), money(lc2), share);
+            }
+            printf("</tbody></table></div>\n");
+            printf("%s", sec_end());
+        }
+
+        // ---- BOM
+        printf("%s", h2s("bom", "Спецификация (BOM)", "Bill of materials"));
+        printf("<div class=\"tw\"><table><thead><tr><th class=\"num\">#</th>%s%s%s%s%s%s%s%s%s</tr></thead><tbody>\n",
+               th2n("Шт", "Qty"), th2("Номер", "Part #"), th2("Тип", "Type"), th2("Откуда", "Source"), th2("Номинал", "Value"),
+               th2("Корпус", "Package"), th2("В каталоге", "Catalogue"), th2n("Склад", "Stock"), th2("Обозначения и заметки", "Designators & notes"));
+        int row = 0;
+        for (g = 0; g < n_g; g++) {
+            if (g_merged[g]) continue;
+            row++;
+            string rcls = "";
+            if (g_lcsc[g] == "") rcls = " class=\"miss\"";
+            else if (g_sub_applied[g]) rcls = " class=\"sub\"";
+            else if (g_note[g] != "") rcls = " class=\"warn\"";
+            string st = "";
+            if (g_stock[g] >= 0) st = istr(g_stock[g]);
+            string cat = g_model[g];
+            if (g_cpkg[g] != "") cat += " / " + g_cpkg[g];
+            if (g_brand[g] != "") cat += " · " + g_brand[g];
+            string more = h(desig_sp(g_desig[g]));
+            if (g_pkg[g] != g_jpkg[g]) more += "<br><span class=\"small\">" + hs("в библиотеке: " + g_pkg[g], "library: " + g_pkg[g]) + "</span>";
+            if (squeeze(g_value[g]) != g_comment[g]) more += "<br><span class=\"small\">" + hs("на схеме: " + squeeze(g_value[g]), "schematic: " + squeeze(g_value[g])) + "</span>";
+            if (g_note[g] != "") more += "<br><span class=\"note\">" + h(g_note[g]) + "</span><span class=\"en\">" + h(g_note_en[g]) + "</span>";
+            printf("<tr%s><td class=\"num\">%d</td><td class=\"num\">%d</td><td>%s</td><td>%s</td><td>%s<span class=\"en\">%s</span></td><td>%s</td><td>%s</td><td>%s</td><td class=\"num\">%s</td><td>%s</td></tr>\n",
+                   rcls, row, g_qty[g], lcsc_link(g_lcsc[g]), pill_type(g_type[g]), h(g_src[g]), h(src_en(g_src[g])), h(g_comment[g]),
+                   h(g_jpkg[g]), h(cat), st, more);
+        }
+        printf("</tbody></table></div>\n");
+        printf("%s", sec_end());
+
+        // ---- посадочные места
+        if (opt_online && opt_geo) {
+            printf("%s", h2s("fp", "Посадочные места и ориентация", "Footprints and orientation"));
+            printf("%s\n", lead("Синее — площадки на плате, оранжевый контур — посадочное место детали в библиотеке JLC (EasyEDA) после " +
+                                "совмещения. Крестик — начало корпуса на плате, оранжевый кружок — центр детали JLC: он и уходит в CPL. " +
+                                "Точки — вывод 1. По совмещению исправлен поворот у " + istr(n_rotfix) + " и центр у " + istr(n_posfix) + " деталей.",
+                                "Blue — board pads, orange outline — the JLC (EasyEDA) library footprint after alignment. Cross — footprint " +
+                                "origin on the board, orange circle — JLC part centre written to the CPL. Dots mark pin 1. Rotation fixed for " +
+                                istr(n_rotfix) + ", centre for " + istr(n_posfix) + " parts."));
+            printf("<div class=\"tw\"><table><thead><tr>%s%s%s%s%s%s%s</tr></thead><tbody>\n",
+                   th2("Детали", "Parts"), th2("На плате → у JLC", "Board → JLC"), th2("Сверка", "Matched by"), th2n("Поворот", "Rotation"),
+                   th2n("Сдвиг, мм", "Offset, mm"), th2("Итог", "Result"), th2("Вид", "View"));
+            for (int pass = 0; pass < 2; pass++) {
+                for (q = 0; q < n_mp; q++) {
+                    int okp = mp_clean(q);
+                    if ((pass == 0 && okp) || (pass == 1 && !okp)) continue;
+                    string how = hs("по номерам выводов", "pin numbers");
+                    if (!mp_byname[q]) how = hs("по форме", "shape");
+                    string st2 = h(mp_status(q)) + "<span class=\"en\">" + h(mp_status_en(q)) + "</span>";
+                    string nt = mp_notes(q);
+                    if (nt != "") st2 += "<span class=\"note\">" + h(nt) + "</span><span class=\"en\">" + h(mp_notes_en(q)) + "</span>";
+                    string rcl = "";
+                    if (!okp) rcl = " class=\"warn\"";
+                    if (mp_stat[q] == 3 || mp_mir[q]) rcl = " class=\"miss\"";
+                    real sh = sqrt(mp_tx[q] * mp_tx[q] + mp_ty[q] * mp_ty[q]);
+                    printf("<tr%s><td>%s</td><td>%s<br>&rarr; %s</td><td>%s</td><td class=\"num\">%d&deg;</td><td class=\"num\">%.2f</td><td>%s</td><td class=\"fp\">%s</td></tr>\n",
+                           rcl, h(mp_des[q]), h(ef_name[mp_ef[q]]), h(jf_pkg[mp_jf[q]]), how, mp_rot[q], sh, st2, svg_pair(q));
+                }
+            }
+            printf("</tbody></table></div>\n");
+            printf("%s", sec_end());
+        }
+
+        // ---- не выгружено
+        printf("%s", h2s("excluded", "Не выгружено в BOM/CPL", "Not exported to BOM/CPL"));
+        if (n_ex == 0) printf("<p>%s</p>\n", hs("Ничего.", "Nothing."));
+        else {
+            printf("<div class=\"tw\"><table><thead><tr>%s%s%s</tr></thead><tbody>\n",
+                   th2("Обозначение", "Designator"), th2("Корпус", "Package"), th2("Причина", "Reason"));
+            for (q = 0; q < n_ex; q++)
+                printf("<tr><td>%s</td><td>%s</td><td>%s<span class=\"en\">%s</span></td></tr>\n", h(ex_name[q]), h(ex_pkg[q]), h(ex_why[q]), h(ex_why_en[q]));
+            printf("</tbody></table></div>\n");
+        }
+        printf("%s", sec_end());
+
+        // ---- диагностика
+        printf("%s", h2s("diag", "Диагностика", "Diagnostics"));
+        printf("<div class=\"box small\">\n");
+        if (opt_online) {
+            printf("%s<br>\n", hs("Запросов к каталогам: " + istr(n_req) + ", способ: " + net_method + ", без ответа: " + istr(net_empty) + ".",
+                                  "Catalogue requests: " + istr(n_req) + ", method: " + net_method + ", unanswered: " + istr(net_empty) + "."));
+            if (net_diag != "") printf("%s<br>\n", h(net_diag));
+        }
+        if (n_imp > 0 || imp_diag != "")
+            printf("%s<br>\n", hs("Импорт BOM: " + istr(n_imp) + " обозначений. " + imp_diag, "BOM import: " + istr(n_imp) + " designators. " + imp_diag));
+        if (n_scr > 0) printf("%s<br>\n", hs("Записано атрибутов LCSC_PART: " + istr(n_scr) + ".", "LCSC_PART attributes written: " + istr(n_scr) + "."));
+        printf("<pre style=\"white-space:pre-wrap;margin:8px 0 0\">%s</pre>\n", h(log_txt));
+        printf("</div>\n");
+        printf("%s", sec_end());
+
+        printf("<footer><div class=\"wrap\">%s</div></footer>\n", h(fk_sign()));
+        printf("</body>\n</html>\n");
+    }
+}

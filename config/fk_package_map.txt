@@ -1,0 +1,23 @@
+# dmxON FabKit — сопоставление корпусов / package mapping
+#
+# Формат строки / line format:
+#   корпус в библиотеке ; корпус JLC ; поправка поворота
+#   library footprint   ; JLC package ; rotation offset
+#
+#   - корпус в библиотеке — имя footprint, регистр не важен
+#     library footprint name, case-insensitive;
+#   - корпус JLC — как в каталоге JLCPCB (0603, SOIC-8, QFN-24-EP(4x4)...),
+#     можно оставить пустым, если нужна только поправка поворота
+#     JLC package as named in the JLCPCB catalogue, may be empty for a rotation-only line;
+#   - поправка поворота — градусы против часовой, прибавляется к углу на плате
+#     rotation offset in degrees CCW, added to the board angle.
+#
+# Атрибуты детали JLC_PACKAGE и JLC_ROTATION важнее этого файла.
+# Если посадочное место сверено с библиотекой JLC (по умолчанию), поворот берётся из сверки.
+# Part attributes JLC_PACKAGE and JLC_ROTATION override this file.
+# When the footprint is verified against the JLC library (default), the rotation comes from that check.
+#
+# Примеры / examples:
+# L4532P               ; 1812
+# WE-PD2_4532          ; SMD,4.5x3.2mm
+# SOT95P280X145-6N     ; SOT-23-6 ; 180

@@ -1,0 +1,809 @@
+// fk_finish.ulp — третья фаза: Gerber для JLCPCB, превью слоёв, сборка отчёта и документации
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+//
+// Запускается скриптом второй фазы после MANUFACTURING EXPORT и печати листов для ЛУТ:
+//   RUN dmxON_FabKit.ulp -finish <файл состояния>
+// Всё, что знала первая фаза, приходит через файл состояния и заготовки HTML во временной папке.
+
+string fn_out, fn_tmp, fn_base, fn_d1, fn_d2, fn_d3, fn_d4, fn_img, fn_gdir, fn_zip, fn_outline;
+int fn_layers = 0;              // слоёв меди по файлам
+real fn_minw = 0;               // самая узкая дорожка, мм
+int fn_thin = 0;                // штрихов меди тоньше 0.05 мм
+string fn_err = "";             // что не получилось (для итогового сообщения)
+
+// ---------------------------------------------------------------- цвета превью
+
+string layer_rgb(string code)
+{
+    if (code == "GTL") return "#e3a857";
+    if (code == "GBL") return "#6f9fe0";
+    if (code == "G1") return "#c58fd9";
+    if (code == "G2") return "#5fbfaa";
+    if (starts_with(code, "G") && isdigit(code[1])) return "#d98f8f";
+    if (code == "GTS" || code == "GBS") return "#58b483";
+    if (code == "GTP" || code == "GBP") return "#b8bec6";
+    if (code == "GTO" || code == "GBO") return "#f1f1ec";
+    if (code == "GKO") return "#e8dcc0";
+    return "#f0f0f0";
+}
+
+// ---------------------------------------------------------------- Gerber
+
+// имя файла для JLCPCB: <плата>.GTL, <плата>.G1, <плата>.XLN; второй файл сверловки — <плата>_XLN1.XLN
+// размер файла: байты или КБ
+string fsize(int b)
+{
+    if (b < 1024) return istr(b) + " B";
+    return istr((b + 512) / 1024) + " KB";
+}
+
+string gf_jlc_name(int i)
+{
+    if (gf_code[i] != "XLN" && starts_with(gf_code[i], "XLN")) return fn_base + "_" + gf_code[i] + ".XLN";
+    return fn_base + "." + gf_code[i];
+}
+
+int gf_ord[];
+int gs_ap_[], gs_d01_[], gs_d03_[], gs_reg_[];
+real gs_minw_[];
+
+void finish_gerber()
+{
+    int i;
+    string cam = fn_tmp + "/cam";
+    if (!file_exists(fn_tmp + "/cam.zip")) {
+        fn_err += "MANUFACTURING EXPORT: cam.zip not found. ";
+        n_gf = 0;
+        return;
+    }
+    fk_log("Gerber: unpack");
+    shell("mkdir " + qp(cam) + " 2>nul & tar -xf " + qp(fn_tmp + "/cam.zip") + " -C " + qp(cam));
+    shell("dir /s /b /a-d " + qp(cam) + " > " + qp(fn_tmp + "/cam_list.txt"));
+    gerber_classify(fn_tmp + "/cam_list.txt");
+    if (n_gf == 0) { fn_err += "Gerber: no layer files in the export. "; return; }
+
+    // порядок: контур, верх ... низ, сверловка
+    numeric string ok[];
+    for (i = 0; i < n_gf; i++) { string t; sprintf(t, "%03d", gf_order[i]); ok[i] = t; }
+    sort(n_gf, gf_ord, ok);
+
+    // имена JLCPCB и архив
+    fn_gdir = fn_d1 + "/JLCPCB_GERBER";
+    string ud = fn_gdir + "/unpacked";
+    shell("mkdir " + qp(ud) + " 2>nul");
+    string cmd = "", names = "";
+    for (i = 0; i < n_gf; i++) {
+        gf_dst[i] = gf_jlc_name(i);
+        if (cmd != "") cmd += " & ";
+        cmd += "copy /y " + qp(gf_src[i]) + " " + qp(ud + "/" + gf_dst[i]) + " >nul";
+        if (strlen(cmd) > 6000) { shell(cmd); cmd = ""; }
+        names += " \"" + gf_dst[i] + "\"";
+    }
+    if (cmd != "") shell(cmd);
+    fn_zip = fn_gdir + "/" + fn_base + "_Gerber_JLCPCB.zip";
+    shell("tar -a -cf " + qp(fn_zip) + " -C " + qp(ud) + names);
+    for (i = 0; i < n_gf; i++) gf_size[i] = filesize(ud + "/" + gf_dst[i]);
+    if (!file_exists(fn_zip)) fn_err += "Gerber: zip not created. ";
+
+    // превью слоёв
+    fn_img = fn_d2 + "/img";
+    shell("mkdir " + qp(fn_img) + " 2>nul");
+    vb_set(strtod(st_get("bx1")), strtod(st_get("by1")), strtod(st_get("bx2")), strtod(st_get("by2")));
+    fn_layers = 0; fn_minw = 0; fn_thin = 0;
+    for (i = 0; i < n_gf; i++) {
+        string code = gf_code[i];
+        fk_log("Gerber: " + code);
+        if (starts_with(code, "XLN")) {
+            excellon_parse(gf_src[i]);
+            write_drill_svg(fn_img + "/L_" + code + ".svg", "#e9e4d6", "#9aa3ab");
+            gs_ap_[i] = n_tool; gs_d01_[i] = 0; gs_d03_[i] = n_hole; gs_reg_[i] = n_slot; gs_minw_[i] = drill_min();
+            continue;
+        }
+        // превью слоя без масок, на тёмном фоне: годится и для PDF
+        write_flat_svg(gf_src[i], fn_img + "/L_" + code + ".svg", layer_rgb(code), "#12171c");
+        gs_ap_[i] = gs_ap; gs_d01_[i] = gs_d01; gs_d03_[i] = gs_d03; gs_reg_[i] = gs_reg; gs_minw_[i] = gs_minw;
+        if (code == "GTL" || code == "GBL" || (starts_with(code, "G") && isdigit(code[1]))) {
+            fn_layers++;
+            if (gs_minw > 0 && (fn_minw == 0 || gs_minw < fn_minw)) fn_minw = gs_minw;
+            fn_thin += gs_thin;
+        }
+    }
+    // сверловка нужна и для вида платы
+    int dx = gf_find("XLN");
+    if (dx >= 0) excellon_parse(gf_src[dx]);
+
+    // вид платы «как изготовят»: основа, медь, маска, покрытие, шелкография, отверстия
+    string outline = "";
+    if (file_exists(fn_outline)) fileread(outline, fn_outline);
+    outline = trim(outline);
+    string mc = mask_rgb(opt_mask), sc = silk_rgb(opt_silk), fc = finish_rgb(opt_finish);
+    for (int side = 0; side < 2; side++) {
+        string pre = "top", cu = "GTL", mk = "GTS", sk = "GTO";
+        if (side) { pre = "bot"; cu = "GBL"; mk = "GBS"; sk = "GBO"; }
+        int ic = gf_find(cu), im = gf_find(mk), is = gf_find(sk);
+        fk_log("render " + pre);
+        write_substrate_svg(fn_img + "/" + pre + "_1_base.svg", outline, "#b9a46a");
+        if (ic >= 0) write_layer_svg(gf_src[ic], fn_img + "/" + pre + "_2_cu.svg", "#c98b3c");
+        if (im >= 0) write_mask_svg(gf_src[im], fn_img + "/" + pre + "_3_mask.svg", outline, mc);
+        if (ic >= 0 && im >= 0) write_finish_svg(gf_src[ic], gf_src[im], fn_img + "/" + pre + "_4_fin.svg", fc);
+        string msrc = "";
+        if (im >= 0) msrc = gf_src[im];
+        if (is >= 0) write_silk_svg(gf_src[is], msrc, outline, fn_img + "/" + pre + "_5_silk.svg", sc);
+        // тот же вид одним рисунком без масок — для PDF и стартовой страницы
+        string fcu = "", fmk = "", fsk = "";
+        if (ic >= 0) fcu = gf_src[ic];
+        if (im >= 0) fmk = gf_src[im];
+        if (is >= 0) fsk = gf_src[is];
+        write_composite_svg(fn_img + "/" + pre + "_flat.svg", fcu, fmk, fsk, outline, mc, sc, fc, "");
+    }
+    write_drill_svg(fn_img + "/drill_holes.svg", "#0d1014", "#0d1014");
+}
+
+// слои вида платы для стороны: список картинок по порядку
+string RENDER_PARTS[] = { "_1_base", "_2_cu", "_3_mask", "_4_fin", "_5_silk" };
+
+string render_imgs(string pre, string rel)
+{
+    string s = "";
+    for (int k = 0; k < 5; k++) {
+        string f = pre + RENDER_PARTS[k] + ".svg";
+        if (file_exists(fn_img + "/" + f)) s += "<img src=\"" + rel + f + "\" alt=\"\">";
+    }
+    if (file_exists(fn_img + "/drill_holes.svg")) s += "<img src=\"" + rel + "drill_holes.svg\" alt=\"\">";
+    return s;
+}
+
+// ---------------------------------------------------------------- параметры заказа
+
+real JLC_THICK[] = { 0.4, 0.6, 0.8, 1.0, 1.2, 1.6, 2.0 };
+
+string thick_jlc()
+{
+    string t = trim(opt_thick);
+    real v = 0;
+    if (t == "" || strupr(t) == "AUTO") v = strtod(job_val("BoardThickness"));
+    else v = strtod(t);
+    if (v <= 0) v = 1.6;
+    real best = 1.6, bd = 100;
+    for (int i = 0; i < 7; i++) {
+        real d = abs(JLC_THICK[i] - v);
+        if (d < bd) { bd = d; best = JLC_THICK[i]; }
+    }
+    return num(best);
+}
+
+string board_size_txt()
+{
+    real w = strtod(st_get("bx2")) - strtod(st_get("bx1")), hh = strtod(st_get("by2")) - strtod(st_get("by1"));
+    return num(round(w * 100) / 100.0) + " × " + num(round(hh * 100) / 100.0);
+}
+
+string assembly_side()
+{
+    if (st_geti("n_bot") > 0 && st_geti("n_top") > 0) return "Both sides";
+    if (st_geti("n_bot") > 0) return "Bottom side";
+    return "Top side";
+}
+
+string par_row(string ru, string en, string val)
+{
+    return "<tr><td>" + h(ru) + "<span class=\"en\">" + h(en) + "</span></td><td><b>" + h(val) + "</b></td></tr>";
+}
+
+// проверка технологичности против возможностей JLCPCB: строки «класс|русский|английский»
+string dfm_items[];
+int n_dfm = 0;
+
+void dfm_add(string cls, string ru, string en)
+{
+    dfm_items[n_dfm++] = cls + "|" + ru + "|" + en;
+}
+
+void dfm_check()
+{
+    n_dfm = 0;
+    real tmin = 0.10;                       // 1–2 слоя: 0.10 мм (4 mil), многослойные: 0.09 мм
+    if (fn_layers >= 4) tmin = 0.09;
+    if (fn_minw > 0) {
+        string w = num(round(fn_minw * 1000) / 1000.0);
+        if (fn_minw >= 0.127) dfm_add("ok", "ширина линий от " + w + " мм — стандарт", "track width from " + w + " mm — standard");
+        else if (fn_minw >= tmin) dfm_add("warn", "ширина линий от " + w + " мм — на пределе возможностей", "track width from " + w + " mm — at the capability limit");
+        else dfm_add("bad", "ширина линий " + w + " мм меньше допустимой " + num(tmin) + " мм", "track width " + w + " mm is below the " + num(tmin) + " mm minimum");
+    }
+    if (fn_thin > 0)
+        dfm_add("warn", istr(fn_thin) + " штрихов меди тоньше 0.05 мм (графика, логотип) — изготовлены не будут",
+                istr(fn_thin) + " copper strokes thinner than 0.05 mm (artwork, logo) will not be reproduced");
+    if (n_tool > 0) {
+        real dm = drill_min();
+        string d = num(dm);
+        if (dm >= 0.3) dfm_add("ok", "мин. отверстие " + d + " мм — стандарт", "min hole " + d + " mm — standard");
+        else if (dm >= 0.15 && fn_layers >= 4) dfm_add("warn", "мин. отверстие " + d + " мм: допустимо для многослойных, отверстия меньше 0.3 мм могут увеличить цену",
+                                                       "min hole " + d + " mm: fine for multilayer, holes below 0.3 mm may raise the price");
+        else dfm_add("bad", "мин. отверстие " + d + " мм меньше стандартных 0.3 мм для 1–2 слоёв", "min hole " + d + " mm is below the standard 0.3 mm for 1–2 layers");
+    }
+}
+
+string dfm_html()
+{
+    string s = "";
+    for (int i = 0; i < n_dfm; i++) {
+        string a[];
+        strsplit(a, dfm_items[i], '|');
+        string pc = "p-ok", mk = "OK";
+        if (a[0] == "warn") { pc = "p-warn"; mk = "!"; }
+        if (a[0] == "bad") { pc = "p-bad"; mk = "&times;"; }
+        s += "<div style=\"margin:4px 0\"><span class=\"pill " + pc + "\">" + mk + "</span> " + h(a[1]) + " <span class=\"en1\">/ " + h(a[2]) + "</span></div>";
+    }
+    return s;
+}
+
+string order_params()
+{
+    string s = "<table>";
+    s += par_row("Материал", "Base material", "FR-4");
+    s += par_row("Слоёв", "Layers", istr(fn_layers));
+    s += par_row("Размер, мм", "Dimensions, mm", board_size_txt());
+    s += par_row("Количество плат", "PCB qty", istr(opt_boards));
+    s += par_row("Толщина, мм", "PCB thickness, mm", thick_jlc());
+    s += par_row("Цвет маски", "Solder mask colour", opt_mask);
+    s += par_row("Цвет шелкографии", "Silkscreen", opt_silk);
+    s += par_row("Покрытие", "Surface finish", opt_finish);
+    s += par_row("Медь снаружи", "Outer copper weight", "1 oz");
+    if (fn_minw > 0) s += par_row("Мин. ширина линии, мм", "Min track width, mm", num(round(fn_minw * 1000) / 1000.0));
+    if (n_tool > 0) s += par_row("Мин. отверстие, мм", "Min hole size, mm", num(drill_min()));
+    s += par_row("Сторона монтажа", "Assembly side", assembly_side());
+    s += "</table>";
+    return s;
+}
+
+// ---------------------------------------------------------------- разделы отчёта третьей фазы
+
+string rel1 = "../01_JLCPCB_ORDER/";
+
+string sec_render()
+{
+    if (n_gf == 0) return "";
+    string s = "<div class=\"boards\">";
+    s += "<figure class=\"pcb\"><div class=\"scene\"><div class=\"stack\">" + render_imgs("top", "img/") + "</div></div>" +
+         "<figcaption>" + h("Верх") + " · Top</figcaption></figure>";
+    if (gf_find("GBL") >= 0)
+        s += "<figure class=\"pcb bot\"><div class=\"scene\"><div class=\"stack\">" + render_imgs("bot", "img/") + "</div></div>" +
+             "<figcaption>" + h("Низ (вид снизу)") + " · Bottom (as seen from below)</figcaption></figure>";
+    s += "</div><p class=\"hint\">" + h("Наведите курсор — слои раздвинутся") + " · hover to explode the layer stack</p>";
+    return s;
+}
+
+string file_link(string rel, string name, string label)
+{
+    return "<a href=\"" + replace_all(rel + name, " ", "%20") + "\">" + h(label) + "</a>";
+}
+
+string sec_order()
+{
+    string bom = fn_base + "_JLCPCB_BOM.csv", cpl = fn_base + "_JLCPCB_CPL.csv";
+    string s = h2s("order", "Заказ на JLCPCB", "Ordering at JLCPCB");
+    s += "<div class=\"grid2\"><div class=\"box\">";
+    s += "<h3 style=\"margin-top:0\">" + hl("Что загрузить", "What to upload") + "</h3><ol style=\"margin:0;padding-left:20px\">";
+    if (n_gf > 0)
+        s += "<li>" + hs("Плата: архив ", "PCB: archive ") + file_link(rel1 + "JLCPCB_GERBER/", fn_base + "_Gerber_JLCPCB.zip", fn_base + "_Gerber_JLCPCB.zip") +
+             " → jlcpcb.com/quote → Add gerber file</li>";
+    s += "<li>" + hs("Сборка (PCB Assembly): BOM ", "Assembly: BOM ") + file_link(rel1, bom, bom) + "</li>";
+    s += "<li>" + hs("и CPL (координаты) ", "and CPL (pick & place) ") + file_link(rel1, cpl, cpl) + "</li>";
+    s += "<li>" + hs("В предпросмотре JLCPCB проверить поворот деталей из раздела «Внимание».",
+                     "In the JLCPCB preview check rotation of parts listed under Attention.") + "</li>";
+    s += "</ol>";
+    if (n_dfm > 0) s += "<h3>" + hl("Проверка технологичности", "Manufacturability check") + "</h3>" + dfm_html();
+    s += "</div><div class=\"box\"><h3 style=\"margin-top:0\">" + hl("Параметры платы для формы заказа", "PCB parameters for the order form") + "</h3>";
+    s += order_params() + "</div></div>";
+    s += sec_end();
+    return s;
+}
+
+string sec_gerber()
+{
+    if (n_gf == 0) {
+        return h2s("gerber", "Gerber", "Gerber") + "<p class=\"note\">" + hs("Gerber не выгружен: " + fn_err, "Gerber was not exported: " + fn_err) + "</p>" + sec_end();
+    }
+    int i, k;
+    string s = h2s("gerber", "Слои Gerber и сверловка", "Gerber layers and drilling");
+    s += lead("Файлы названы так, как их ждёт JLCPCB (Protel: GTL, GBL, G1…, GTS, GTP, GTO, GKO, XLN). Включайте и выключайте слои слева.",
+              "Files are named the way JLCPCB expects (Protel: GTL, GBL, G1…, GTS, GTP, GTO, GKO, XLN). Toggle layers on the left.");
+    // переключатели слоёв (без скриптов: флажки + CSS)
+    string css = "<style>", ctl = "", inp = "", stg = "";
+    int first = 1;
+    // сцена снизу вверх: нижние слои, внутренние, верхние, затем контур и отверстия поверх всего
+    int st_ord[], n_so = 0;
+    for (k = n_gf - 1; k >= 0; k--) {
+        i = gf_ord[k];
+        if (gf_code[i] != "GKO" && !starts_with(gf_code[i], "XLN")) st_ord[n_so++] = i;
+    }
+    for (k = 0; k < n_gf; k++) if (gf_code[gf_ord[k]] == "GKO") st_ord[n_so++] = gf_ord[k];
+    for (k = 0; k < n_gf; k++) if (starts_with(gf_code[gf_ord[k]], "XLN")) st_ord[n_so++] = gf_ord[k];
+    for (k = 0; k < n_so; k++) {
+        i = st_ord[k];
+        string id = "ly" + istr(k);
+        int on = (gf_code[i] == "GKO" || gf_code[i] == "GTL" || gf_code[i] == "GTO" || gf_code[i] == "XLN");
+        inp += "<input type=\"checkbox\" id=\"" + id + "\"";
+        if (on) inp += " checked";
+        inp += ">";
+        css += "#" + id + ":not(:checked)~.lv-stage .i" + id + "{opacity:0}#" + id + ":not(:checked)~.lv-ctl label[for=" + id + "]{opacity:.45}";
+        // список переключателей — сверху вниз, как слои лежат на плате
+        ctl = "<label for=\"" + id + "\"><i style=\"background:" + layer_rgb(gf_code[i]) + "\"></i><b>" + gf_code[i] + "</b><span>" +
+              h(gf_ru[i]) + "<span class=\"en\">" + h(gf_en[i]) + "</span></span></label>" + ctl;
+        string cls = "i" + id;
+        if (first) { cls += " base"; first = 0; }
+        stg += "<img class=\"" + cls + "\" src=\"img/L_" + gf_code[i] + ".svg\" alt=\"" + gf_code[i] + "\">";
+    }
+    css += "</style>";
+    s += css + "<div class=\"lv\">" + inp + "<div class=\"lv-ctl\">" + ctl + "</div><div class=\"lv-stage\"><div class=\"lv-in\">" + stg + "</div></div></div>";
+
+    // галерея слоёв
+    s += "<h3>" + hl("Все слои по отдельности", "Every layer on its own") + "</h3><div class=\"gal\">";
+    for (k = 0; k < n_gf; k++) {
+        i = gf_ord[k];
+        string st;
+        if (starts_with(gf_code[i], "XLN")) sprintf(st, "%d tools · %d holes", gs_ap_[i], gs_d03_[i]);
+        else sprintf(st, "%d apertures · %d lines · %d flashes · %d regions", gs_ap_[i], gs_d01_[i], gs_d03_[i], gs_reg_[i]);
+        s += "<div class=\"lay\"><div class=\"th\"><img src=\"img/L_" + gf_code[i] + ".svg\" alt=\"\" loading=\"lazy\"></div><div class=\"tx\"><b>" +
+             gf_code[i] + "</b>" + h(gf_ru[i]) + "<span class=\"en\">" + h(gf_en[i]) + "</span><span class=\"small\">" + h(gf_dst[i]) +
+             " · " + fsize(gf_size[i]) + " · " + st + "</span></div></div>";
+    }
+    s += "</div>";
+
+    // сверловка
+    int dx = gf_find("XLN");
+    if (dx >= 0) {
+        excellon_parse(gf_src[dx]);
+        s += "<h3>" + hl("Сверловка", "Drilling") + "</h3><div class=\"grid2\"><div class=\"tw\"><table><thead><tr>" +
+             th2("Инструмент", "Tool") + th2n("Диаметр, мм", "Diameter, mm") + th2n("Отверстий", "Holes") + "</tr></thead><tbody>";
+        for (k = 0; k < n_tool; k++) {
+            string r;
+            sprintf(r, "<tr><td>T%02d</td><td class=\"num\">%.3f</td><td class=\"num\">%d</td></tr>", tl_no[k], tl_d[k], tl_hits[k]);
+            s += r;
+        }
+        string tot;
+        sprintf(tot, "<tr><td><b>%s</b></td><td class=\"num\">min %.3f</td><td class=\"num\"><b>%d</b></td></tr>", h("Итого / Total"), drill_min(), n_hole);
+        s += tot + "</tbody></table></div>";
+        s += "<div class=\"lay\"><div class=\"th\"><img src=\"img/L_XLN.svg\" alt=\"\" style=\"background:#12171c\"></div><div class=\"tx\">" +
+             hs("Карта отверстий", "Drill map") + "</div></div></div>";
+    }
+
+    // файлы
+    s += "<h3>" + hl("Файлы для JLCPCB", "Files for JLCPCB") + "</h3><div class=\"tw\"><table><thead><tr>" + th2("Файл", "File") +
+         th2("Слой", "Layer") + th2("Исходный файл Fusion", "Fusion source") + th2n("Размер", "Size") + "</tr></thead><tbody>";
+    for (k = 0; k < n_gf; k++) {
+        i = gf_ord[k];
+        s += "<tr><td><code>" + h(gf_dst[i]) + "</code></td><td>" + h(gf_ru[i]) + "<span class=\"en\">" + h(gf_en[i]) + "</span></td><td class=\"small\">" +
+             h(filename(gf_src[i])) + "</td><td class=\"num\">" + fsize(gf_size[i]) + "</td></tr>";
+    }
+    s += "</tbody></table></div>";
+    s += sec_end();
+    return s;
+}
+
+// ---------------------------------------------------------------- листы документации третьей фазы
+
+string doc_fabspec()
+{
+    if (n_gf == 0) return "";
+    string ru = "Параметры изготовления платы", en = "PCB fabrication specification";
+    string s = pg_open(ru, en, h("JLCPCB"));
+    s += "<div class=\"area\"><div style=\"display:grid;grid-template-columns:1fr 1fr;gap:6mm\"><div>";
+    s += "<table class=\"t\"><tr><th>" + h("Параметр") + "<span class=\"en\">Parameter</span></th><th>" + h("Значение") + "<span class=\"en\">Value</span></th></tr>";
+    s += "<tr><td>" + h("Материал") + "<span class=\"en\">Material</span></td><td>FR-4</td></tr>";
+    s += "<tr><td>" + h("Слоёв меди") + "<span class=\"en\">Copper layers</span></td><td>" + istr(fn_layers) + "</td></tr>";
+    s += "<tr><td>" + h("Размер, мм") + "<span class=\"en\">Size, mm</span></td><td>" + h(board_size_txt()) + "</td></tr>";
+    s += "<tr><td>" + h("Толщина, мм") + "<span class=\"en\">Thickness, mm</span></td><td>" + thick_jlc() + "</td></tr>";
+    s += "<tr><td>" + h("Медь снаружи") + "<span class=\"en\">Outer copper</span></td><td>1 oz (35 &micro;m)</td></tr>";
+    s += "<tr><td>" + h("Маска / шелкография") + "<span class=\"en\">Mask / silkscreen</span></td><td>" + h(opt_mask + " / " + opt_silk) + "</td></tr>";
+    s += "<tr><td>" + h("Покрытие") + "<span class=\"en\">Surface finish</span></td><td>" + h(opt_finish) + "</td></tr>";
+    if (fn_minw > 0) s += "<tr><td>" + h("Мин. ширина линии") + "<span class=\"en\">Min track</span></td><td>" + num(round(fn_minw * 1000) / 1000.0) + " mm</td></tr>";
+    if (n_tool > 0) s += "<tr><td>" + h("Мин. отверстие") + "<span class=\"en\">Min hole</span></td><td>" + num(drill_min()) + " mm</td></tr>";
+    s += "<tr><td>" + h("Отверстий / инструментов") + "<span class=\"en\">Holes / tools</span></td><td>" + istr(n_hole) + " / " + istr(n_tool) + "</td></tr>";
+    s += "<tr><td>" + h("Количество") + "<span class=\"en\">Quantity</span></td><td>" + istr(opt_boards) + "</td></tr>";
+    s += "<tr><td>" + h("Архив Gerber") + "<span class=\"en\">Gerber archive</span></td><td>" + h(fn_base + "_Gerber_JLCPCB.zip") + "</td></tr>";
+    s += "</table>";
+    if (n_dfm > 0) s += "<div style=\"font-weight:700;margin:3mm 0 1mm\">" + h("Проверка технологичности") + " <span class=\"en\" style=\"font-weight:400\">/ Manufacturability check</span></div><div style=\"font-size:7.6pt\">" + dfm_html() + "</div>";
+    s += "</div><div>";
+    // стек слоёв: одна строка на слой
+    s += "<div style=\"font-weight:700;margin-bottom:1.5mm\">" + h("Стек слоёв") + " <span class=\"en\" style=\"font-weight:400\">/ Layer stack</span></div>";
+    s += "<table class=\"t c\">";
+    int k, i;
+    for (k = 0; k < n_gf; k++) {
+        i = gf_ord[k];
+        if (starts_with(gf_code[i], "XLN") || gf_code[i] == "GKO") continue;
+        s += "<tr><td style=\"width:3mm;background:" + layer_rgb(gf_code[i]) + "\"></td><td><b>" + gf_code[i] + "</b></td><td>" + h(gf_ru[i]) +
+             " <span class=\"en1\">/ " + h(gf_en[i]) + "</span></td><td>" + h(gf_dst[i]) + "</td></tr>";
+    }
+    s += "</table>";
+    // сверловка: три узкие колонки
+    if (n_tool > 0) {
+        s += "<div style=\"font-weight:700;margin:3mm 0 1.5mm\">" + h("Сверловка") + " <span class=\"en\" style=\"font-weight:400\">/ Drilling</span> " +
+             "<span class=\"en\" style=\"font-weight:400\">" + istr(n_hole) + " / " + istr(n_tool) + " T</span></div>";
+        s += "<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:2mm\">";
+        int per = (n_tool + 2) / 3;
+        for (int c = 0; c < 3; c++) {
+            s += "<table class=\"t c\"><tr><th>T</th><th>&Oslash;, mm</th><th>" + h("Шт") + "</th></tr>";
+            for (k = c * per; k < (c + 1) * per && k < n_tool; k++) {
+                string r;
+                sprintf(r, "<tr><td>T%02d</td><td class=\"n\">%.3f</td><td class=\"n\">%d</td></tr>", tl_no[k], tl_d[k], tl_hits[k]);
+                s += r;
+            }
+            s += "</table>";
+        }
+        s += "</div>";
+    }
+    s += "</div></div></div>" + pg_close(ru, en, "—");
+    return s;
+}
+
+string doc_layers()
+{
+    if (n_gf == 0) return "";
+    string s = "";
+    int k = 0, i;
+    int per = 6;
+    int pages = (n_gf + per - 1) / per;
+    for (int p = 0; p < pages; p++) {
+        string ru = "Слои платы", en = "PCB layers";
+        string rt = h("часть / part " + istr(p + 1) + " / " + istr(pages));
+        s += pg_open(ru, en, rt) + "<div class=\"area\"><div class=\"lgrid\">";
+        for (k = p * per; k < (p + 1) * per && k < n_gf; k++) {
+            i = gf_ord[k];
+            s += "<div class=\"lcell\"><div class=\"im\"><img src=\"../02_REPORT/img/L_" + gf_code[i] + ".svg\" alt=\"\"></div><div class=\"tx\"><b>" +
+                 gf_code[i] + "</b> " + h(gf_ru[i]) + " <span class=\"en\">/ " + h(gf_en[i]) + "</span><br><span class=\"en\">" + h(gf_dst[i]) + "</span></div></div>";
+        }
+        s += "</div></div>" + pg_close(ru, en, "—");
+    }
+    return s;
+}
+
+string doc_cover_img()
+{
+    if (n_gf == 0) return "";
+    real w = strtod(st_get("bx2")) - strtod(st_get("bx1")) + 4, hh = strtod(st_get("by2")) - strtod(st_get("by1")) + 4;
+    real mw = 140, mh = 70;
+    real ww = mw;
+    if (hh > 0 && w * mh / hh < ww) ww = w * mh / hh;
+    string s;
+    sprintf(s, "<div class=\"rnd\" style=\"width:%smm\"><div class=\"st\">", f3(ww));
+    s += "<img src=\"../02_REPORT/img/top_flat.svg\" alt=\"\">" + "</div><div class=\"cap\">" + h("Верх") + " · Top</div></div>";
+    return s;
+}
+
+// ---------------------------------------------------------------- сборка файлов из заготовок
+
+// копирует заготовку, заменяя строки-метки готовыми разделами
+void assemble_report(string src, string dst)
+{
+    string lines[];
+    int n = fileread(lines, src);
+    string r_render = asc(sec_render()), r_order = asc(sec_order()), r_gerber = asc(sec_gerber());
+    output(dst, "wt") {
+        for (int i = 0; i < n; i++) {
+            string t = trim(lines[i]);
+            if (t == "<!--FK:RENDER-->") printf("%s\n", r_render);
+            else if (t == "<!--FK:ORDER-->") printf("%s\n", r_order);
+            else if (t == "<!--FK:GERBER-->") printf("%s\n", r_gerber);
+            else printf("%s\n", lines[i]);
+        }
+    }
+}
+
+void assemble_docs(string src, string dst)
+{
+    string lines[];
+    int n = fileread(lines, src);
+    dc_date = st_get("date");
+    string d_fab = asc(doc_fabspec()), d_lay = asc(doc_layers()), d_cov = asc(doc_cover_img());
+    // все листы по порядку: заголовки для содержания
+    string all[];
+    int na = 0, i, k;
+    for (i = 0; i < n; i++) {
+        string t = trim(lines[i]);
+        if (t == "<!--FK:FABSPEC-->") all[na++] = d_fab;
+        else if (t == "<!--FK:LAYERS-->") all[na++] = d_lay;
+        else all[na++] = replace_all(lines[i], "<!--FK:COVERIMG-->", d_cov);
+    }
+    // проход 1: заголовки листов; листы одного раздела («Порядок пайки — шаг …») — одной строкой с диапазоном
+    string tk_ru[], tk_en[];
+    int tk_a[], tk_b[], n_tk = 0;
+    int n_sheets = 0;
+    string dash = " &#8212; ";
+    for (i = 0; i < na; i++) {
+        int p = 0;
+        while (1) {
+            int a = strstr(all[i], "<!--FK:PAGE ", p);
+            if (a < 0) break;
+            int b = strstr(all[i], "-->", a);
+            if (b < 0) break;
+            string tt = strsub(all[i], a + 12, b - a - 12);
+            int bar = strstr(tt, "|");
+            string ru = strsub(tt, 0, bar), en = strsub(tt, bar + 1);
+            int d1 = strstr(ru, dash), d2 = strstr(en, dash);
+            if (d1 > 0) ru = strsub(ru, 0, d1);
+            if (d2 > 0) en = strsub(en, 0, d2);
+            n_sheets++;
+            if (n_tk > 0 && tk_ru[n_tk - 1] == ru) tk_b[n_tk - 1] = n_sheets;
+            else { tk_ru[n_tk] = ru; tk_en[n_tk] = en; tk_a[n_tk] = n_sheets; tk_b[n_tk] = n_sheets; n_tk++; }
+            p = b + 3;
+        }
+    }
+    string toc = "";
+    for (k = 0; k < n_tk; k++) {
+        string nums = istr(tk_a[k]);
+        if (tk_b[k] > tk_a[k]) nums += "&ndash;" + istr(tk_b[k]);
+        toc += "<div><b>" + nums + "</b><span>" + tk_ru[k] + " <span class=\"en\">/ " + tk_en[k] + "</span></span></div>";
+    }
+    int sht = 0;
+    output(dst, "wt") {
+        for (i = 0; i < na; i++) {
+            string s = all[i];
+            if (strstr(s, "<!--FK:TOC-->") >= 0) s = replace_all(s, "<!--FK:TOC-->", toc);
+            s = replace_all(s, "{{SHEETS}}", istr(n_sheets));
+            while (1) {
+                int a = strstr(s, "{{SHEET}}");
+                if (a < 0) break;
+                sht++;
+                s = strsub(s, 0, a) + istr(sht) + strsub(s, a + 9);
+            }
+            printf("%s\n", s);
+        }
+    }
+}
+
+// ---------------------------------------------------------------- PDF через Microsoft Edge
+
+string BROWSERS[] = { "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+                      "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe" };
+
+string edge_exe()
+{
+    for (int i = 0; i < 4; i++)
+        if (file_exists(BROWSERS[i])) return BROWSERS[i];
+    return "";
+}
+
+int html_to_pdf(string html, string pdf)
+{
+    string ex = edge_exe();
+    if (ex == "") { fn_err += "PDF: Microsoft Edge not found. "; return 0; }
+    string prof = fn_tmp + "/edge_profile";
+    system("\"" + to_win(ex) + "\" --headless=new --disable-gpu --no-first-run --no-default-browser-check --user-data-dir=" + qp(prof) +
+           " --no-pdf-header-footer --virtual-time-budget=8000 --print-to-pdf=" + qp(pdf) + " \"" + url_file(html) + "\"");
+    // Edge может вернуть управление раньше, чем допишет файл: ждём, пока размер перестанет расти (до 2 минут)
+    int last = -1;
+    for (int w = 0; w < 120; w++) {
+        if (file_exists(pdf)) {
+            int sz = filesize(pdf);
+            if (sz > 0 && sz == last) break;
+            last = sz;
+        }
+        system("ping -n 2 127.0.0.1");
+    }
+    if (!file_exists(pdf)) { fn_err += "PDF: " + filename(pdf) + " not created. "; return 0; }
+    return 1;
+}
+
+// ---------------------------------------------------------------- листы ЛУТ из Gerber (1:1)
+//
+// Листы строятся из тех же Gerber, что уходят на завод: заливки, вырезы и зазоры — как на плате.
+// Масштаб задаётся в миллиметрах CSS, Edge печатает его без масштабирования.
+
+// формат бумаги под плату (альбомная): ширина и высота, мм
+string tn_paper = "A4";
+real tn_pw = 297, tn_ph = 210;
+
+void toner_paper()
+{
+    tn_paper = "A4"; tn_pw = 297; tn_ph = 210;
+    if (vb_w + 20 > tn_pw || vb_h + 36 > tn_ph) { tn_paper = "A3"; tn_pw = 420; tn_ph = 297; }
+    if (vb_w + 20 > tn_pw || vb_h + 36 > tn_ph) { tn_paper = "A2"; tn_pw = 594; tn_ph = 420; }
+}
+
+// kind: 0 — медь (чёрная, центры отверстий белые), 1 — шелкография, 2 — маска (вскрытия чёрные), 3 — карта сверловки
+void toner_sheet(string html, string pdf, int gi, string ru, string en, int mirror, int kind)
+{
+    int ko = gf_find("GKO");
+    real x = (tn_pw - vb_w) / 2, y = (tn_ph - vb_h) / 2 + 4;
+    string mir_ru = "не зеркально", mir_en = "not mirrored";
+    if (mirror) { mir_ru = "ЗЕРКАЛЬНО"; mir_en = "MIRRORED"; }
+    output(html, "wt") {
+        printf("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>%s</title><style>", h(filename(pdf)));
+        printf("@page{size:%s landscape;margin:0}html,body{margin:0;background:#fff}", tn_paper);
+        printf(".pg{position:relative;width:%smm;height:%smm;overflow:hidden;font:8.5pt Arial,sans-serif;color:#000}", f3(tn_pw), f3(tn_ph));
+        printf(".hd{position:absolute;left:10mm;top:6mm;right:10mm}.hd b{font-size:11pt}.hd span{color:#444}");
+        printf(".bd{position:absolute;left:%smm;top:%smm;width:%smm;height:%smm}", f3(x), f3(y), f3(vb_w), f3(vb_h));
+        printf(".sc{position:absolute;left:10mm;bottom:7mm;width:50mm;height:2.5mm;border:.3mm solid #000;border-top:none}");
+        printf(".sc i{position:absolute;left:52mm;top:-1mm;font-style:normal;white-space:nowrap}");
+        printf("</style></head><body><div class=\"pg\">");
+        printf("<div class=\"hd\"><b>%s</b> &middot; %s &middot; %s<br><span>%s &middot; %s &middot; %s</span></div>",
+               h(ru), h(mir_ru), h(fn_base), h(en), h(mir_en), h("1:1 · " + board_size_txt() + " mm · " + tn_paper + " · " + fk_title()));
+        string tr = "";
+        if (mirror) tr = " style=\"transform:scaleX(-1)\"";
+        printf("<svg class=\"bd\"%s xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"%s %s %s %s\">", tr, f4(vb_x), f4(vb_y), f4(vb_w), f4(vb_h));
+        // без масок: тёмная полярность — чёрная, светлая (вырезы) — белая, фон листа белый
+        printf("<g transform=\"%s\">", vb_flip);
+        if (kind != 3) gerber_body(gf_src[gi], "#000", "#fff");
+        if (ko >= 0) gerber_body(gf_src[ko], "#000", "#fff");
+        printf("</g>");
+        printf("<g transform=\"%s\">", vb_flip);
+        for (int i = 0; i < n_hole; i++) {
+            if (kind == 0) {
+                // метка для сверла: белая точка в центре площадки
+                real r = hl_d[i] * 0.3;
+                if (r < 0.15) r = 0.15;
+                if (r > 0.4) r = 0.4;
+                printf("<circle cx=\"%s\" cy=\"%s\" r=\"%s\" fill=\"#fff\"/>", f4(hl_x[i]), f4(hl_y[i]), f4(r));
+            } else if (kind == 3) {
+                printf("<circle cx=\"%s\" cy=\"%s\" r=\"%s\" fill=\"none\" stroke=\"#000\" stroke-width=\"0.08\"/><circle cx=\"%s\" cy=\"%s\" r=\"0.12\" fill=\"#000\"/>",
+                       f4(hl_x[i]), f4(hl_y[i]), f4(hl_d[i] / 2), f4(hl_x[i]), f4(hl_y[i]));
+            }
+        }
+        printf("</g></svg>");
+        printf("<div class=\"sc\"><i>50 mm &mdash; %s / check the scale</i></div>", h("проверить масштаб"));
+        printf("</div></body></html>\n");
+    }
+    html_to_pdf(html, pdf);
+}
+
+// все листы: медь, шелкография, маска (плёночная УФ-маска), карта сверловки
+int n_toner = 0;
+
+void toner_all()
+{
+    if (n_gf == 0) { fn_err += "Toner: no Gerber. "; return; }
+    shell("mkdir " + qp(fn_d4) + " 2>nul");
+    toner_paper();
+    int dx = gf_find("XLN");
+    if (dx >= 0) excellon_parse(gf_src[dx]);
+    else n_hole = 0;
+    string pre = fn_d4 + "/" + fn_base + "_";
+    string th = fn_tmp + "/toner_";
+    n_toner = 0;
+    int i;
+    i = gf_find("GTL"); if (i >= 0) { toner_sheet(th + "1.html", pre + "01_TOP_COPPER_mirrored.pdf", i, "Медь, верх", "Top copper", 1, 0); n_toner++; }
+    i = gf_find("GBL"); if (i >= 0) { toner_sheet(th + "2.html", pre + "02_BOTTOM_COPPER.pdf", i, "Медь, низ", "Bottom copper", 0, 0); n_toner++; }
+    i = gf_find("GTO"); if (i >= 0 && gf_size[i] > 400) { toner_sheet(th + "3.html", pre + "03_TOP_SILK_mirrored.pdf", i, "Шелкография, верх", "Top silkscreen", 1, 1); n_toner++; }
+    i = gf_find("GBO"); if (i >= 0 && gf_size[i] > 400) { toner_sheet(th + "4.html", pre + "04_BOTTOM_SILK.pdf", i, "Шелкография, низ", "Bottom silkscreen", 0, 1); n_toner++; }
+    i = gf_find("GTS"); if (i >= 0 && gf_size[i] > 400) { toner_sheet(th + "5.html", pre + "05_TOP_SOLDERMASK_UV_mirrored.pdf", i, "Маска (УФ), верх: вскрытия чёрные", "Top solder mask (UV): openings black", 1, 2); n_toner++; }
+    i = gf_find("GBS"); if (i >= 0 && gf_size[i] > 400) { toner_sheet(th + "6.html", pre + "06_BOTTOM_SOLDERMASK_UV.pdf", i, "Маска (УФ), низ: вскрытия чёрные", "Bottom solder mask (UV): openings black", 0, 2); n_toner++; }
+    if (dx >= 0) { toner_sheet(th + "7.html", pre + "07_DRILL_GUIDE.pdf", dx, "Карта сверловки (вид сверху)", "Drill guide (top view)", 0, 3); n_toner++; }
+}
+
+// ---------------------------------------------------------------- ЛУТ: инструкция
+
+string TONER_CSS =
+    "body{font:15px/1.55 'Segoe UI',Arial,sans-serif;color:#1c2127;background:#f6f4ef;margin:0}" +
+    ".w{max-width:860px;margin:0 auto;padding:30px 24px}h1{font-size:26px;margin:0 0 4px}.en{display:block;color:#7d8792;font-size:.85em}" +
+    ".box{background:#fff;border:1px solid #e4e2dd;border-radius:14px;padding:16px 20px;margin:16px 0}" +
+    "li{margin:6px 0}code{background:#efede7;padding:1px 6px;border-radius:5px}b.m{color:#b04a3e}";
+
+void toner_page(string dst)
+{
+    string files[];
+    int n = fileglob(files, fn_d4 + "/*.pdf");
+    output(dst, "wt") {
+        printf("<!DOCTYPE html><html lang=\"ru\"><head><meta charset=\"utf-8\"><title>%s</title><style>%s</style></head><body><div class=\"w\">",
+               h(fn_base + " · Toner transfer"), TONER_CSS);
+        printf("<h1>%s<span class=\"en\">Toner transfer prints, scale 1:1</span></h1>", h("Листы для ЛУТ, масштаб 1:1"));
+        printf("<div class=\"box\"><ol>");
+        printf("<li>%s<span class=\"en\">Print on a laser printer at 100%% / Actual size. Never use Fit to page.</span></li>",
+               h("Печатать на лазерном принтере в масштабе 100% («Фактический размер»). «Вписать в страницу» не включать."));
+        printf("<li>%s<span class=\"en\">Check the scale with a ruler: the bar at the bottom of each sheet is 50 mm, the board outline is %s mm.</span></li>",
+               h("Проверить масштаб линейкой: шкала внизу листа — 50 мм, контур платы " + board_size_txt() + " мм."), h(board_size_txt()));
+        printf("<li>%s<span class=\"en\">Sheets are built from the same Gerber files the factory gets: copper pours, clearances and cut-outs are exact. White dots mark drill centres.</span></li>",
+               h("Листы построены из тех же Gerber, что уходят на завод: заливки, зазоры и вырезы — точные. Белые точки — центры отверстий для сверла."));
+        printf("<li>%s<span class=\"en\">TOP sheets are already mirrored: after ironing the image reads correctly on the board.</span></li>",
+               h("Листы TOP уже зеркальные: после переноса утюгом изображение на плате читается правильно."));
+        printf("<li>%s<span class=\"en\">BOTTOM sheets are printed as seen from the top &mdash; this is already the correct mirror for the bottom side.</span></li>",
+               h("Листы BOTTOM напечатаны как вид сверху — для нижней стороны это и есть нужное зеркало."));
+        printf("<li>%s<span class=\"en\">Align the two sides through the drill holes (DRILL sheet), drill first if needed.</span></li>",
+               h("Стороны совмещать по отверстиям (лист DRILL); при необходимости сначала просверлить."));
+        printf("<li>%s<span class=\"en\">Paper: glossy/photo or transfer film; iron 160&ndash;180 &deg;C.</span></li>",
+               h("Бумага: глянцевая/фото или термотрансферная плёнка; утюг 160–180 °C."));
+        if (fn_layers > 2) printf("<li><b class=\"m\">%s</b><span class=\"en\">The board has %d copper layers: inner layers cannot be made at home, the sheets are for reference only.</span></li>",
+               h("У платы " + istr(fn_layers) + " слоя меди: внутренние слои дома не изготовить, листы — для справки."), fn_layers);
+        printf("</ol></div><div class=\"box\"><b>%s</b> <span class=\"en\" style=\"display:inline\">/ Files</span><ul>", h("Файлы"));
+        for (int i = 0; i < n; i++) printf("<li><a href=\"%s\">%s</a></li>", replace_all(filename(files[i]), " ", "%20"), h(filename(files[i])));
+        printf("</ul></div><p class=\"en\">%s</p></div></body></html>\n", h(fk_sign()));
+    }
+}
+
+// ---------------------------------------------------------------- стартовая страница
+
+string IDX_CSS =
+    "body{margin:0;font:15px/1.5 'Segoe UI',Arial,sans-serif;background:#14181d;color:#e9edf0}" +
+    ".w{max-width:980px;margin:0 auto;padding:38px 24px}.brand{font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:#9aa6b1;display:flex;gap:9px;align-items:center}" +
+    ".brand i{width:9px;height:9px;border-radius:50%;background:#88ed77;box-shadow:0 0 10px #88ed77}" +
+    "h1{font-size:32px;margin:10px 0 2px}.en{display:block;color:#8d98a3;font-size:.85em}" +
+    ".g{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:26px}" +
+    "a.c{display:block;background:#1d232b;border:1px solid #2b333c;border-radius:16px;padding:18px 20px;color:#e9edf0;text-decoration:none;transition:transform .25s,border-color .25s;animation:r .6s both}" +
+    "a.c:hover{transform:translateY(-3px);border-color:#88ed77}a.c b{display:block;font-size:17px;margin-bottom:4px}" +
+    "a.c small{color:#8d98a3}.n{font:700 12px Consolas,monospace;color:#88ed77}" +
+    ".rnd{position:relative;margin:26px 0 0;max-width:720px}.rnd img{position:absolute;inset:0;width:100%;height:100%}.rnd img:first-child{position:relative;display:block}" +
+    "@keyframes r{from{opacity:0;transform:translateY(8px)}}footer{color:#6f7a85;font-size:12px;margin-top:34px}";
+
+string idx_card(string href, string no, string ru, string en, string sub)
+{
+    return "<a class=\"c\" href=\"" + replace_all(href, " ", "%20") + "\"><span class=\"n\">" + no + "</span><b>" + h(ru) + "<span class=\"en\">" + h(en) +
+           "</span></b><small>" + h(sub) + "</small></a>";
+}
+
+void index_page(string dst)
+{
+    output(dst, "wt") {
+        printf("<!DOCTYPE html><html lang=\"ru\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
+        printf("<title>%s</title><style>%s</style></head><body><div class=\"w\">", h(fn_base + " · FabKit"), IDX_CSS);
+        printf("<div class=\"brand\"><i></i>%s</div>", h(fk_sign()));
+        printf("<h1>%s<span class=\"en\">%s</span></h1>", h(fn_base), h("Производственный пакет / Production package · " + st_get("date")));
+        if (n_gf > 0) printf("<div class=\"rnd\"><img src=\"02_REPORT/img/top_flat.svg\" alt=\"\"></div>");
+        printf("<div class=\"g\">");
+        if (n_gf > 0) printf("%s", idx_card("01_JLCPCB_ORDER/JLCPCB_GERBER/" + fn_base + "_Gerber_JLCPCB.zip", "01", "Gerber для JLCPCB", "Gerber for JLCPCB",
+                                            fn_base + "_Gerber_JLCPCB.zip"));
+        printf("%s", idx_card("01_JLCPCB_ORDER/" + fn_base + "_JLCPCB_BOM.csv", "01", "BOM для сборки", "Assembly BOM", fn_base + "_JLCPCB_BOM.csv"));
+        printf("%s", idx_card("01_JLCPCB_ORDER/" + fn_base + "_JLCPCB_CPL.csv", "01", "CPL (координаты)", "CPL (pick & place)", fn_base + "_JLCPCB_CPL.csv"));
+        printf("%s", idx_card("02_REPORT/" + fn_base + "_Report.html", "02", "Отчёт", "Report", "BOM, цены, замены, слои / BOM, prices, substitutes, layers"));
+        if (opt_docs) {
+            string d = "03_ASSEMBLY_DOCS/" + fn_base + "_Assembly_A4.pdf";
+            if (!file_exists(fn_out + "/" + d)) d = "03_ASSEMBLY_DOCS/" + fn_base + "_Assembly_A4.html";
+            printf("%s", idx_card(d, "03", "Документация A4", "A4 documentation", "чертежи, порядок пайки, ключи / drawings, soldering order, keys"));
+        }
+        if (opt_toner) printf("%s", idx_card("04_TONER_TRANSFER_1to1/HOW_TO_PRINT.html", "04", "ЛУТ 1:1", "Toner transfer 1:1", "PDF слоёв / layer PDFs"));
+        printf("</div><footer>%s</footer></div></body></html>\n", h(fk_sign()));
+    }
+}
+
+// ---------------------------------------------------------------- вход третьей фазы
+
+void finish_main(string stfile)
+{
+    st_load(stfile);
+    fn_out = st_get("outdir"); fn_tmp = st_get("tmp"); fn_base = st_get("base");
+    fn_d1 = fn_out + "/01_JLCPCB_ORDER"; fn_d2 = fn_out + "/02_REPORT"; fn_d3 = fn_out + "/03_ASSEMBLY_DOCS"; fn_d4 = fn_out + "/04_TONER_TRANSFER_1to1";
+    fn_outline = fn_tmp + "/outline.txt";
+    opt_gerber = st_geti("gerber"); opt_docs = st_geti("docs"); opt_toner = st_geti("toner"); opt_pdf = st_geti("pdf");
+    opt_open = st_geti("open"); batch_mode = st_geti("batch"); opt_boards = st_geti("boards");
+    opt_mask = st_get("mask"); opt_silk = st_get("silk"); opt_finish = st_get("finish"); opt_thick = st_get("thick");
+    tb_product = st_get("tb_product"); tb_docno = st_get("tb_docno"); tb_company = st_get("tb_company"); tb_designer = st_get("tb_designer");
+    tb_checker = st_get("tb_checker"); tb_approver = st_get("tb_approver"); tb_customer = st_get("tb_customer"); tb_rev = st_get("tb_rev"); tb_note = st_get("tb_note");
+    log_txt = "";
+    n_gf = 0;
+
+    // листам ЛУТ тоже нужны Gerber
+    if (opt_gerber || opt_toner) finish_gerber();
+    dfm_check();
+
+    if (opt_toner) {
+        fk_log("toner 1:1");
+        toner_all();
+        toner_page(fn_d4 + "/HOW_TO_PRINT.html");
+    }
+
+    fk_log("report");
+    shell("mkdir " + qp(fn_d2) + " 2>nul");
+    assemble_report(fn_tmp + "/report_p1.html", fn_d2 + "/" + fn_base + "_Report.html");
+
+    if (opt_docs) {
+        fk_log("A4 docs");
+        shell("mkdir " + qp(fn_d3) + " 2>nul");
+        string dh = fn_d3 + "/" + fn_base + "_Assembly_A4.html";
+        assemble_docs(fn_tmp + "/docs_p1.html", dh);
+        if (opt_pdf) {
+            fk_log("PDF");
+            html_to_pdf(dh, fn_d3 + "/" + fn_base + "_Assembly_A4.pdf");
+        }
+    }
+
+    index_page(fn_out + "/index.html");
+    output(fn_out + "/" + FK_MARKER, "wt") printf("%s\n%s\n", fk_title(), st_get("date"));
+    if (!st_geti("keep_tmp")) shell("rmdir /s /q " + qp(fn_tmp));
+
+    if (opt_open && !batch_mode) system("explorer.exe \"" + to_win(fn_out) + "\"");
+    if (batch_mode) return;
+    string msg = st_get("summary");
+    if (n_gf > 0) msg += "\n\nGerber: " + istr(n_gf) + " " + "files, " + istr(fn_layers) + " copper layers";
+    if (fn_err != "") msg += "\n\n" + fn_err;
+    msg += "\n\n" + replace_all(fn_out, "\\", "/");
+    dlgMessageBox(msg, "OK");
+}

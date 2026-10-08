@@ -1,0 +1,142 @@
+// fk_lookup.ulp — подбор номера для строки BOM
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+
+// ---------------------------------------------------------------- подбор для строки BOM
+
+// резистор или конденсатор по номиналу, корпусу и напряжению
+int param_pick(int g, int need)
+{
+    if (g_kind[g] == 'R') return pick_resistor(g_pval[g], g_jpkg[g], need);
+    real vmin = opt_minv;
+    if (g_volt[g] > vmin) vmin = g_volt[g];
+    int found = pick_capacitor(g_pval[g], g_jpkg[g], vmin, need);
+    if (found && pk_volt != "") pk_model += " " + pk_volt;
+    return found;
+}
+
+void lookup_group(int g)
+{
+    int need = g_qty[g] * opt_boards;
+    int k = g_kind[g];
+    int found = 0;
+    int param = ((k == 'R' || k == 'C') && g_parsed[g] && is_chip(g_jpkg[g]));
+
+    if (g_lcsc[g] != "") {
+        g_src[g] = "атрибут";
+        if (!opt_online) return;
+        // в первом проходе заранее просим и подбор по номиналу — пригодится, если номер неверный
+        if (net_mode == 0 && param && opt_fixattr) param_pick(g, need);
+        int vc = verify_code(g_lcsc[g]);
+        if (vc < 0) {
+            if (net_mode == 1) add_note(g, "нет ответа от JLCPCB, номер не проверен", "no answer from JLCPCB, part number not verified");
+            return;
+        }
+        if (vc == 0) {
+            add_note(g, "номер " + g_lcsc[g] + " не найден в каталоге JLCPCB", g_lcsc[g] + " is not in the JLCPCB catalogue");
+            return;
+        }
+        g_take_pk(g);
+        string vvolt = pk_volt;
+        int vstock = pk_stock;
+
+        // не пассив: модель из каталога должна быть похожа на номинал
+        if (!param && squeeze(g_value[g]) != "" && pk_model != "") {
+            build_cands(g_value[g], "");
+            int same = (n_cand == 0);
+            string mk = mpn_key(pk_model);
+            for (int i = 0; i < n_cand; i++) {
+                string ck = mpn_key(cand[i]);
+                if (strstr(mk, ck) >= 0 || strstr(ck, mk) >= 0) same = 1;
+            }
+            if (!same) add_note(g, "проверить: " + g_lcsc[g] + " = " + pk_model + ", а номинал " + squeeze(g_value[g]),
+                             "check: " + g_lcsc[g] + " = " + pk_model + ", but the value is " + squeeze(g_value[g]));
+        }
+
+        // номер из атрибута против номинала на схеме
+        string bad = "", bad_en = "";
+        if (k == 'R' && g_parsed[g] && pk_res != "") {
+            if (parse_value(ascii_only(pk_res), 'R') && !same_value(pv_value, g_pval[g])) {
+                bad = g_lcsc[g] + " = " + fmt_value(pv_value, 'R') + ", а номинал " + fmt_value(g_pval[g], 'R');
+                bad_en = g_lcsc[g] + " = " + fmt_value(pv_value, 'R') + ", but the value is " + fmt_value(g_pval[g], 'R');
+            }
+        }
+        if (k == 'C' && g_parsed[g] && pk_cap != "") {
+            if (parse_value(ascii_only(pk_cap), 'C') && !same_value(pv_value, g_pval[g])) {
+                bad = g_lcsc[g] + " = " + fmt_value(pv_value, 'C') + ", а номинал " + fmt_value(g_pval[g], 'C');
+                bad_en = g_lcsc[g] + " = " + fmt_value(pv_value, 'C') + ", but the value is " + fmt_value(g_pval[g], 'C');
+            }
+        }
+        if (k == 'C' && vvolt != "" && g_volt[g] > 0) {
+            real v = volts_in(ascii_only(vvolt));
+            if (v > 0 && v < g_volt[g]) {
+                if (bad != "") { bad += "; "; bad_en += "; "; }
+                bad += g_lcsc[g] + " на " + num(v) + " В, нужно " + num(g_volt[g]) + " В";
+                bad_en += g_lcsc[g] + " is rated " + num(v) + " V, " + num(g_volt[g]) + " V required";
+            }
+        }
+        if (bad != "" && param && opt_fixattr) {
+            string old = g_lcsc[g];
+            if (param_pick(g, need)) {
+                g_take_pk(g);
+                g_src[g] = "по номиналу";
+                add_note(g, "ВНИМАНИЕ: в атрибуте " + bad + " — заменён на " + g_lcsc[g] + " по номиналу",
+                            "WARNING: attribute " + bad_en + " — replaced with " + g_lcsc[g] + " by value");
+                if (pk_stock < need) add_note(g, "склад " + istr(pk_stock) + " < нужно " + istr(need), "stock " + istr(pk_stock) + " < needed " + istr(need));
+                return;
+            }
+            add_note(g, "ВНИМАНИЕ: " + bad + "; по номиналу замена не найдена, оставлен " + old,
+                        "WARNING: " + bad_en + "; no replacement by value, kept " + old);
+        } else if (bad != "") {
+            add_note(g, "ВНИМАНИЕ: " + bad, "WARNING: " + bad_en);
+        }
+        if (vstock < need) add_note(g, "склад " + istr(vstock) + " < нужно " + istr(need), "stock " + istr(vstock) + " < needed " + istr(need));
+        return;
+    }
+
+    if (!opt_online) {
+        g_src[g] = "-";
+        return;
+    }
+
+    if (param) {
+        found = param_pick(g, need);
+        if (found) g_src[g] = "по номиналу";
+    }
+
+    if (!found) {
+        int i, n_valc = 0;
+        // у пассива по номиналу номер изготовителя берём только из атрибута
+        if (param) build_cands("", g_mpn[g]);
+        else build_cands(g_value[g], g_mpn[g]);
+        for (i = 0; i < n_cand; i++)
+            if (!cand_attr[i]) n_valc++;
+        for (i = 0; i < n_cand && !found; i++) {
+            int m = pick_mpn(cand[i], need);
+            if (!m) continue;
+            // номинал сам похож на номер детали, а нашёлся только атрибут MPN —
+            // скорее всего атрибут остался от другой детали: только подсказываем
+            if (cand_attr[i] && n_valc > 0) {
+                add_note(g, "по номиналу не найден; атрибут MPN " + cand[i] + " = " + pk_code + " (" + pk_model +
+                            ") не подставлен: номинал указывает на другую деталь",
+                         "not found by value; MPN attribute " + cand[i] + " = " + pk_code + " (" + pk_model +
+                            ") not used: the value points to a different part");
+                break;
+            }
+            found = 1;
+            g_src[g] = "по номеру";
+            if (m == 2) {
+                g_src[g] = "по началу номера";
+                add_note(g, "в каталоге " + pk_model + " (проверить суффикс)", "catalogue has " + pk_model + " (check the suffix)");
+            }
+            if (cand_attr[i] && squeeze(g_value[g]) != "")
+                add_note(g, "номер взят по атрибуту MPN " + cand[i], "part number taken from MPN attribute " + cand[i]);
+        }
+    }
+
+    if (!found) {
+        g_src[g] = "не найден";
+        return;
+    }
+    g_take_pk(g);
+    if (pk_stock < need) add_note(g, "склад " + istr(pk_stock) + " < нужно " + istr(need), "stock " + istr(pk_stock) + " < needed " + istr(need));
+}

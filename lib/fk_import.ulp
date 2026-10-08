@@ -1,0 +1,315 @@
+// fk_import.ulp — импорт готовой BOM JLCPCB: обозначение -> номер LCSC
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+//
+// Понимает:
+//   * файл со страницы заказа JLCPCB («Download Selected Parts List») — .xlsx или .csv;
+//   * любую BOM в CSV/TSV, где есть столбец обозначений и столбец номеров LCSC/JLCPCB;
+//   * BOM, выгруженную самим FabKit;
+//   * текст, скопированный со страницы заказа (блоки «Basic C57112 / System / R1,R2»).
+// Номера из импорта главнее атрибутов LCSC_PART на плате.
+
+int n_imp = 0;
+string imp_des[], imp_code[];
+string imp_diag = "";            // что прочитано (для отчёта)
+int imp_rows = 0, imp_cut = 0;   // строк с номером; обрезанных списков («R1,R2...»)
+
+void imp_add(string des, string code)
+{
+    des = strupr(trim(des));
+    if (des == "" || code == "") return;
+    if (ends_with(des, "...") || ends_with(des, "…")) { imp_cut++; return; }
+    for (int i = 0; i < n_imp; i++) {
+        if (imp_des[i] == des) { imp_code[i] = code; return; }
+    }
+    imp_des[n_imp] = des;
+    imp_code[n_imp] = code;
+    n_imp++;
+}
+
+// «R1,R2, R5;R7» -> по одному
+void imp_add_list(string list, string code)
+{
+    string a[];
+    list = replace_all(list, ";", ",");
+    list = replace_all(list, " ", ",");
+    int n = strsplit(a, list, ',');
+    for (int i = 0; i < n; i++) imp_add(a[i], code);
+}
+
+string imp_lookup(string des)
+{
+    des = strupr(des);
+    for (int i = 0; i < n_imp; i++)
+        if (imp_des[i] == des) return imp_code[i];
+    return "";
+}
+
+// номер LCSC в ячейке: C12345 (можно с текстом вокруг: «Basic C57112»)
+string imp_code_in(string s)
+{
+    s = strupr(trim(s));
+    int i = 0, n = strlen(s);
+    while (i < n) {
+        if (s[i] == 'C' && (i == 0 || !isalnum(s[i - 1])) && i + 1 < n && isdigit(s[i + 1])) {
+            int j = i + 1;
+            while (j < n && isdigit(s[j])) j++;
+            if (j - i - 1 >= 2 && (j == n || !isalnum(s[j]))) return strsub(s, i, j - i);
+        }
+        i++;
+    }
+    return "";
+}
+
+// ---------------------------------------------------------------- таблица (общая для CSV и XLSX)
+
+string xt_cell[];                // ячейки построчно: xt_cell[r * XT_W + c]
+int xt_rows = 0, XT_W = 40;
+
+void xt_clear()
+{
+    xt_rows = 0;
+}
+
+void xt_set(int r, int c, string v)
+{
+    if (c >= XT_W) return;
+    while (xt_rows <= r) {
+        for (int k = 0; k < XT_W; k++) xt_cell[xt_rows * XT_W + k] = "";
+        xt_rows++;
+    }
+    xt_cell[r * XT_W + c] = v;
+}
+
+string xt_get(int r, int c)
+{
+    if (r >= xt_rows || c >= XT_W) return "";
+    return xt_cell[r * XT_W + c];
+}
+
+// найти шапку и столбцы, затем перенести пары в импорт
+void xt_take()
+{
+    int r, c, hr = -1, cd = -1, cc = -1;
+    for (r = 0; r < xt_rows && r < 30 && hr < 0; r++) {
+        for (c = 0; c < XT_W; c++) {
+            string v = strupr(trim(xt_get(r, c)));
+            if (strstr(v, "DESIGNATOR") >= 0 && cd < 0) { cd = c; hr = r; }
+        }
+    }
+    if (hr < 0) { imp_diag += "no Designator column; "; return; }
+    for (c = 0; c < XT_W; c++) {
+        string v = strupr(trim(xt_get(hr, c)));
+        if (strstr(v, "LCSC") >= 0 || strstr(v, "JLCPCB PART") >= 0 || v == "PART #" || strstr(v, "PART NUMBER") >= 0 && strstr(v, "MANUF") < 0) {
+            if (cc < 0) cc = c;
+        }
+    }
+    // столбца с названием нет — ищем тот, где больше всего значений вида C12345
+    if (cc < 0) {
+        int best = 0;
+        for (c = 0; c < XT_W; c++) {
+            if (c == cd) continue;
+            int cnt = 0;
+            for (r = hr + 1; r < xt_rows; r++)
+                if (imp_code_in(xt_get(r, c)) != "") cnt++;
+            if (cnt > best) { best = cnt; cc = c; }
+        }
+    }
+    if (cc < 0) { imp_diag += "no LCSC column; "; return; }
+    for (r = hr + 1; r < xt_rows; r++) {
+        string code = imp_code_in(xt_get(r, cc));
+        if (code == "") continue;
+        imp_add_list(xt_get(r, cd), code);
+        imp_rows++;
+    }
+}
+
+// ---------------------------------------------------------------- CSV / TSV
+
+void csv_line(int r, string s, char sep)
+{
+    int c = 0, i = 0, n = strlen(s), quoted = 0;
+    string cur = "";
+    while (i < n) {
+        char ch = s[i];
+        if (quoted) {
+            if (ch == '"') {
+                if (i + 1 < n && s[i + 1] == '"') { cur += "\""; i++; }
+                else quoted = 0;
+            } else cur += ch;
+        } else if (ch == '"') {
+            quoted = 1;
+        } else if (ch == sep) {
+            xt_set(r, c, cur);
+            c++;
+            cur = "";
+        } else cur += ch;
+        i++;
+    }
+    xt_set(r, c, cur);
+}
+
+void import_csv(string path)
+{
+    string lines[];
+    int n = fileread(lines, path);
+    if (n <= 0) return;
+    // разделитель — самый частый из , ; табуляции в первых строках
+    int nc = 0, ns = 0, nt = 0, i, k;
+    for (i = 0; i < n && i < 10; i++) {
+        string ln = lines[i];
+        for (k = 0; ln[k]; k++) {
+            if (ln[k] == ',') nc++;
+            else if (ln[k] == ';') ns++;
+            else if (ln[k] == '\t') nt++;
+        }
+    }
+    char sep = ',';
+    if (ns > nc && ns >= nt) sep = ';';
+    else if (nt > nc && nt > ns) sep = '\t';
+    xt_clear();
+    for (i = 0; i < n; i++) csv_line(i, lines[i], sep);
+    xt_take();
+}
+
+// ---------------------------------------------------------------- XLSX (распаковка штатным tar.exe Windows)
+
+string xml_unent(string s)
+{
+    return unh(replace_all(s, "&apos;", "'"));
+}
+
+// текст всех <t>…</t> внутри куска XML
+string xml_text(string s)
+{
+    string r = "";
+    int p = 0;
+    while (1) {
+        int a = strstr(s, "<t", p);
+        if (a < 0) break;
+        int gt = strstr(s, ">", a);
+        if (gt < 0) break;
+        // <t> или <t xml:space=...>, но не <tc…>
+        if (s[a + 2] != '>' && s[a + 2] != ' ') { p = a + 2; continue; }
+        if (s[gt - 1] == '/') { p = gt + 1; continue; }
+        int b = strstr(s, "</t>", gt);
+        if (b < 0) break;
+        r += strsub(s, gt + 1, b - gt - 1);
+        p = b + 4;
+    }
+    return xml_unent(r);
+}
+
+string xml_attr(string tag, string name)
+{
+    int p = strstr(tag, " " + name + "=\"");
+    if (p < 0) return "";
+    p += strlen(name) + 3;
+    int e = strstr(tag, "\"", p);
+    if (e < 0) return "";
+    return strsub(tag, p, e - p);
+}
+
+void import_xlsx(string path, string tmpdir)
+{
+    string dir = tmpdir + "/xlsx";
+    shell("rmdir /s /q " + qp(dir) + " 2>nul & mkdir " + qp(dir));
+    shell("tar -xf " + qp(path) + " -C " + qp(dir));
+    string ss = "", sh = "";
+    if (file_exists(dir + "/xl/sharedStrings.xml")) fileread(ss, dir + "/xl/sharedStrings.xml");
+    if (!file_exists(dir + "/xl/worksheets/sheet1.xml")) { imp_diag += "xlsx: sheet1.xml not found; "; return; }
+    fileread(sh, dir + "/xl/worksheets/sheet1.xml");
+
+    string sst[];
+    int n_s = 0, p = 0;
+    while (1) {
+        int a = strstr(ss, "<si>", p);
+        if (a < 0) break;
+        int b = strstr(ss, "</si>", a);
+        if (b < 0) break;
+        sst[n_s++] = xml_text(strsub(ss, a, b - a));
+        p = b + 5;
+    }
+
+    xt_clear();
+    p = 0;
+    while (1) {
+        int a = strstr(sh, "<c ", p);
+        if (a < 0) break;
+        int gt = strstr(sh, ">", a);
+        if (gt < 0) break;
+        string tag = strsub(sh, a, gt - a + 1);
+        string ref = xml_attr(tag, "r"), ty = xml_attr(tag, "t");
+        string v = "";
+        int endc;
+        if (sh[gt - 1] == '/') endc = gt + 1;
+        else {
+            endc = strstr(sh, "</c>", gt);
+            if (endc < 0) break;
+            string body = strsub(sh, gt + 1, endc - gt - 1);
+            if (ty == "inlineStr") v = xml_text(body);
+            else {
+                int va = strstr(body, "<v>"), vb = strstr(body, "</v>");
+                if (va >= 0 && vb > va) v = strsub(body, va + 3, vb - va - 3);
+                if (ty == "s") {
+                    int si = strtol(v);
+                    if (si >= 0 && si < n_s) v = sst[si];
+                    else v = "";
+                } else v = xml_unent(v);
+            }
+            endc += 4;
+        }
+        // A1 -> столбец 0, строка 0
+        int col = 0, k = 0;
+        while (k < strlen(ref) && isalpha(ref[k])) { col = col * 26 + (toupper(ref[k]) - 'A' + 1); k++; }
+        int row = strtol(strsub(ref, k)) - 1;
+        if (col > 0 && row >= 0) xt_set(row, col - 1, v);
+        p = endc;
+    }
+    xt_take();
+}
+
+// ---------------------------------------------------------------- текст со страницы заказа JLCPCB
+
+// блоки: «MPN» / «Basic C57112» / «System» / «C4,C6,C7,C8» / количество / …
+void import_page_text(string path)
+{
+    string lines[];
+    int n = fileread(lines, path);
+    for (int i = 0; i < n; i++) {
+        string s = trim(lines[i]);
+        string u = strupr(s);
+        if (!(starts_with(u, "BASIC ") || starts_with(u, "EXTENDED ") || starts_with(u, "PREFERRED "))) continue;
+        string code = imp_code_in(s);
+        if (code == "") continue;
+        int k = i + 1;
+        while (k < n && trim(lines[k]) == "") k++;
+        string w = strupr(trim(lines[k]));
+        if (w == "SYSTEM" || w == "CUSTOMER") {
+            k++;
+            while (k < n && trim(lines[k]) == "") k++;
+        }
+        if (k < n) {
+            imp_add_list(trim(lines[k]), code);
+            imp_rows++;
+        }
+    }
+}
+
+// ---------------------------------------------------------------- вход
+
+int import_bom(string path, string tmpdir)
+{
+    n_imp = 0; imp_rows = 0; imp_cut = 0; imp_diag = "";
+    path = replace_all(trim(path), "\\", "/");
+    if (path == "") return 0;
+    if (!file_exists(path)) { imp_diag = "file not found"; return 0; }
+    string ext = strlwr(fileext(path));
+    if (ext == ".xlsx") import_xlsx(path, tmpdir);
+    else {
+        // текст со страницы заказа: блоки «Basic C57112 / System / R1,R2»; иначе — таблица CSV/TSV
+        import_page_text(path);
+        if (n_imp == 0) import_csv(path);
+    }
+    if (imp_cut > 0) imp_diag += istr(imp_cut) + " truncated designator lists skipped; ";
+    return n_imp;
+}

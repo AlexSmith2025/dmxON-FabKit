@@ -1,0 +1,468 @@
+// fk_docs.ulp — документация для ручной сборки: листы A4 с рамкой и штампом
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+//
+// Каждый лист — блок .page 297×210 мм (A4, альбомная) с рамкой (поле подшивки 20 мм) и штампом.
+// Поля штампа заполняются из диалога и правятся прямо в браузере (contenteditable);
+// небольшой скрипт повторяет правку на всех листах, без скрипта всё видно как есть.
+// Номера листов: {{SHEET}} / {{SHEETS}}, содержание: <!--FK:TOC-->, заголовки листов —
+// метки <!--FK:PAGE ru|en-->; всё это заполняет третья фаза.
+
+string DC_CSS =
+    "@page{size:A4 landscape;margin:0}" +
+    "*{box-sizing:border-box}html,body{margin:0}body{background:#7d848c;font:9pt/1.35 'Segoe UI',Arial,sans-serif;color:#111}" +
+    ".bar{position:sticky;top:0;z-index:9;background:#14181d;color:#dfe5ea;font-size:12px;padding:8px 16px;display:flex;gap:14px;align-items:center}" +
+    ".bar i{width:9px;height:9px;border-radius:50%;background:#88ed77;display:inline-block}" +
+    ".bar .en{color:#8f9aa5}" +
+    ".page{width:297mm;height:210mm;margin:8mm auto;background:#fff;position:relative;overflow:hidden;box-shadow:0 3px 18px rgba(0,0,0,.35);break-after:page;page-break-after:always}" +
+    ".page:last-of-type{break-after:auto;page-break-after:auto}" +
+    ".frm{position:absolute;left:20mm;top:5mm;right:5mm;bottom:5mm;border:.5mm solid #111}" +
+    ".hd{position:absolute;left:5mm;right:5mm;top:3mm;height:10mm;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:.35mm solid #111;padding-bottom:1.2mm}" +
+    ".hd h1{font-size:13pt;margin:0;font-weight:700}.hd h1 span{font-size:9.5pt;color:#555;font-weight:400;margin-left:3mm}" +
+    ".hd .r{font-size:8pt;color:#555;text-align:right}" +
+    ".area{position:absolute;left:5mm;right:5mm;top:16mm;bottom:44mm}" +
+    ".area.full{bottom:4mm}" +
+    ".ctr{display:flex;align-items:center;justify-content:center;height:100%}" +
+    ".en{color:#5c636b}" +
+    // штамп
+    ".tb{position:absolute;right:0;bottom:0;width:185mm;height:40mm;display:grid;" +
+    "grid-template-columns:20mm 27mm 18mm 70mm 25mm 25mm;grid-template-rows:repeat(8,5mm);border-top:.5mm solid #111;border-left:.5mm solid #111;background:#fff}" +
+    ".tb .c{border-right:.25mm solid #111;border-bottom:.25mm solid #111;padding:.3mm 1mm;overflow:hidden;line-height:1.05}" +
+    ".tb .k{display:block;font-size:5.2pt;color:#555;white-space:nowrap}" +
+    ".tb .v{display:block;font-size:8pt;font-weight:600;white-space:nowrap;overflow:hidden}" +
+    ".tb .v.big{font-size:11.5pt;font-weight:700;margin-top:.6mm}" +
+    ".tb .v.mid{font-size:9.5pt;font-weight:700;white-space:normal}" +
+    ".tb .v.sm{font-size:7pt;font-weight:600;white-space:normal}" +
+    ".tb .brand{font-size:6pt;color:#555;display:flex;align-items:center;gap:1.5mm}" +
+    ".tb .brand i{width:2mm;height:2mm;border-radius:50%;background:#3d8a66;display:inline-block}" +
+    "[contenteditable]{outline:none}[contenteditable]:hover,[contenteditable]:focus{background:#fff7d6}" +
+    ".tr{position:absolute;left:0;bottom:0;width:87mm;height:40mm;border-top:.25mm solid #111;padding:1.5mm 2mm;font-size:6.4pt;line-height:1.25}" +
+    ".tr b{font-size:7pt}.tr ol{margin:.8mm 0 0;padding-left:4mm}.tr li{margin:0 0 .4mm}" +
+    // чертежи
+    "svg *{vector-effect:non-scaling-stroke}" +
+    ".brd .ol{fill:#fbfbf8;stroke:#111;stroke-width:1.1px}.brd .olc{fill:#fff;stroke:#111;stroke-width:.8px}" +
+    ".brd .pd rect,.brd .pd circle{fill:#c9c9c9;stroke:none}.brd .pd0 rect,.brd .pd0 circle{fill:#e6e6e6;stroke:none}" +
+    ".brd .gx{fill:none;stroke:#333;stroke-width:.7px}" +
+    ".brd .e0{opacity:.35}.brd .e1 .pd rect,.brd .e1 .pd circle{fill:#d9573d}.brd .e1 .gx{stroke:#8f2a1a;stroke-width:1.2px}" +
+    ".brd .k1{fill:#c0392b;stroke:#fff;stroke-width:.5px}" +
+    ".brd text{font-family:'Segoe UI',Arial,sans-serif;text-anchor:middle;fill:#111;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round;font-weight:600}" +
+    ".brd text.lb0{fill:#9a9a9a;font-weight:400}.brd text.lb1{fill:#8f2a1a}" +
+    // таблицы
+    "table.t{border-collapse:collapse;width:100%;font-size:7.4pt}" +
+    "table.t th,table.t td{border:.2mm solid #555;padding:.6mm 1.2mm;text-align:left;vertical-align:top}" +
+    "table.t th{background:#efefea;font-size:6.8pt}table.t th .en,table.t td .en{display:block;font-weight:400;font-size:6pt}" +
+    "table.t td.n{text-align:right;white-space:nowrap}table.t.c td,table.t.c th{padding:.3mm 1.2mm;font-size:6.9pt}" +
+    ".en1{color:#5c636b}" +
+    // шаги
+    ".step{display:grid;grid-template-columns:172mm 1fr;gap:4mm;height:100%}" +
+    ".step .dw{display:flex;align-items:center;justify-content:center;border:.2mm solid #ccc}" +
+    ".stk .dw{display:flex;justify-content:center;border:.2mm solid #ccc;padding:1mm;margin-bottom:2mm}" +
+    ".tip{background:#f3f6f1;border-left:1mm solid #3d8a66;padding:1.5mm 2.5mm;margin:0 0 2mm;font-size:7.6pt}" +
+    // ключи
+    ".keys{display:grid;grid-template-columns:repeat(6,1fr);gap:2.5mm}" +
+    ".key{border:.2mm solid #999;border-radius:1.5mm;padding:1.2mm;height:30.5mm;display:flex;flex-direction:column}" +
+    ".key svg{flex:1;width:100%;min-height:0}.key .d{font-size:8pt;font-weight:700}.key .s{font-size:6.2pt;color:#333;line-height:1.15}" +
+    // титул
+    ".cover{display:grid;grid-template-columns:1.25fr 1fr;gap:7mm;height:100%}" +
+    ".cover h2{font-size:24pt;margin:2mm 0 0;line-height:1.05}.cover h2 span{display:block;font-size:12pt;color:#555;font-weight:400;margin-top:1.5mm}" +
+    ".cover .sub{font-size:10pt;margin:3mm 0 4mm;color:#333}" +
+    ".facts{border-collapse:collapse;font-size:8pt;width:100%}.facts td{padding:.8mm 1.5mm;border-bottom:.2mm solid #ddd}.facts td:first-child{color:#555;width:48%}" +
+    ".toc{font-size:8pt;columns:1}.toc div{display:flex;gap:2mm;border-bottom:.2mm dotted #bbb;padding:.6mm 0}.toc b{width:13mm;flex:none}" +
+    ".rnd{position:relative;background:#14181d;border-radius:2mm;padding:3mm}.rnd .st{position:relative}" +
+    ".rnd img{position:absolute;inset:0;width:100%;height:100%}.rnd img:first-child{position:relative;display:block}" +
+    ".rnd.b .st{transform:scaleX(-1)}.rnd .cap{color:#c9d1d8;font-size:7pt;text-align:center;margin-top:1.5mm}" +
+    ".lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}" +
+    ".lcell{border:.2mm solid #999;border-radius:1.5mm;overflow:hidden}.lcell .im{background:#14181d;padding:1.5mm}" +
+    ".lcell .im img{display:block;width:100%;height:auto}.lcell .tx{padding:1mm 1.5mm;font-size:7pt}.lcell .tx b{font-family:Consolas,monospace}" +
+    ".pill{display:inline-block;padding:0 1.6mm;border-radius:2mm;font-weight:700;font-size:6.6pt}.p-ok{background:#e4f2ea;color:#2f6f50}" +
+    ".p-warn{background:#f6ecdc;color:#8a5a12}.p-bad{background:#f7e3df;color:#93382d}" +
+    "@media print{body{background:#fff}.page{margin:0;box-shadow:none}.bar{display:none}[contenteditable]:hover{background:none}}";
+
+// синхронизация полей штампа между листами (необязательная надстройка)
+string DC_JS =
+    "document.addEventListener('input',function(e){var t=e.target,f=t&&t.getAttribute&&t.getAttribute('data-f');if(!f)return;" +
+    "var a=document.querySelectorAll('[data-f=\"'+f+'\"]');for(var i=0;i<a.length;i++)if(a[i]!==t)a[i].textContent=t.textContent;});";
+
+string dc_date = "";            // дата в штампе
+
+// ---------------------------------------------------------------- лист и штамп
+
+string tb_cell(string area, string kru, string ken, string field, string val, string cls)
+{
+    string ed = "";
+    if (field != "") ed = " contenteditable=\"true\" data-f=\"" + field + "\"";
+    string lab = "";
+    if (kru != "") lab = "<span class=\"k\">" + h(kru) + " / " + h(ken) + "</span>";
+    return "<div class=\"c\" style=\"grid-area:" + area + "\">" + lab + "<span class=\"v " + cls + "\"" + ed + ">" + h(val) + "</span></div>";
+}
+
+string title_block(string sru, string sen, string scale)
+{
+    string s = "<div class=\"tb\">";
+    s += tb_cell("1/1/3/4", "Организация", "Company", "company", tb_company, "mid");
+    s += tb_cell("3/1/4/2", "Разраб.", "Designed", "", "", "");
+    s += tb_cell("3/2/4/3", "", "", "designer", tb_designer, "sm");
+    s += tb_cell("3/3/4/4", "Дата", "Date", "date", dc_date, "sm");
+    s += tb_cell("4/1/5/2", "Пров.", "Checked", "", "", "");
+    s += tb_cell("4/2/5/4", "", "", "checker", tb_checker, "sm");
+    s += tb_cell("5/1/6/2", "Утв.", "Approved", "", "", "");
+    s += tb_cell("5/2/6/4", "", "", "approver", tb_approver, "sm");
+    s += tb_cell("6/1/7/2", "Заказчик", "Customer", "", "", "");
+    s += tb_cell("6/2/7/4", "", "", "customer", tb_customer, "sm");
+    s += tb_cell("7/1/9/4", "Примечание", "Note", "note", tb_note, "sm");
+    s += tb_cell("1/4/3/5", "Обозначение", "Document No.", "docno", tb_docno, "big");
+    s += tb_cell("3/4/6/5", "Изделие", "Product", "product", tb_product, "mid");
+    s += "<div class=\"c\" style=\"grid-area:6/4/9/5\"><span class=\"k\">" + h("Лист") + " / Sheet</span><span class=\"v mid\">" + h(sru) +
+         "</span><span class=\"v sm en\">" + h(sen) + "</span></div>";
+    s += tb_cell("1/5/3/6", "Ред.", "Rev", "rev", tb_rev, "big");
+    s += tb_cell("1/6/3/7", "Масштаб", "Scale", "", scale, "big");
+    s += "<div class=\"c\" style=\"grid-area:3/5/5/6\"><span class=\"k\">" + h("Лист") + " / Sheet</span><span class=\"v big\">{{SHEET}}</span></div>";
+    s += "<div class=\"c\" style=\"grid-area:3/6/5/7\"><span class=\"k\">" + h("Листов") + " / Sheets</span><span class=\"v big\">{{SHEETS}}</span></div>";
+    s += tb_cell("5/5/7/6", "Формат", "Format", "", "A4", "mid");
+    s += tb_cell("5/6/7/7", "Партия", "Batch", "", istr(opt_boards), "mid");
+    s += "<div class=\"c brand\" style=\"grid-area:7/5/9/7\"><i></i>" + h(fk_sign()) + "</div>";
+    s += "</div>";
+    return s;
+}
+
+// начало листа; full = без штампа снизу на всю высоту (штамп всё равно рисуется поверх)
+string pg_open(string ru, string en, string right)
+{
+    string s = "<!--FK:PAGE " + h(ru) + "|" + h(en) + "-->\n<div class=\"page\"><div class=\"frm\">";
+    s += "<div class=\"hd\"><h1>" + h(ru) + "<span>" + h(en) + "</span></h1><div class=\"r\">" + right + "</div></div>";
+    return s;
+}
+
+string pg_close(string ru, string en, string scale)
+{
+    return title_block(ru, en, scale) + "</div></div>\n";
+}
+
+// технические требования (левый нижний угол чертежа сборки)
+string tech_req()
+{
+    string s = "<div class=\"tr\"><b>" + h("Технические требования") + "</b> <span class=\"en\">/ Technical requirements</span><ol>";
+    s += "<li>" + h("Монтаж и приёмка — по IPC-A-610, класс 2.") + " <span class=\"en\">Assembly and acceptance per IPC-A-610, class 2.</span></li>";
+    s += "<li>" + h("Позиционные обозначения — по схеме; ключ (точка) — вывод 1 или катод.") + " <span class=\"en\">Reference designators per schematic; dot marks pin 1 or cathode.</span></li>";
+    s += "<li>" + h("Порядок пайки — по листам «Порядок пайки». Отмыть флюс после пайки.") + " <span class=\"en\">Soldering order per the Soldering sheets. Clean flux residue.</span></li>";
+    s += "<li>" + h("Компоненты, чувствительные к ESD, — с защитой от статики.") + " <span class=\"en\">Handle ESD-sensitive parts with ESD protection.</span></li>";
+    s += "</ol></div>";
+    return s;
+}
+
+// ---------------------------------------------------------------- масштаб
+
+real STD_SCALES[] = { 10, 5, 4, 2.5, 2, 1, 0.5, 0.4, 0.25, 0.2, 0.1 };
+
+real pick_scale(real w, real hh, real aw, real ah)
+{
+    for (int i = 0; i < 11; i++)
+        if (w * STD_SCALES[i] <= aw && hh * STD_SCALES[i] <= ah) return STD_SCALES[i];
+    return 0.1;
+}
+
+string scale_txt(real s)
+{
+    if (s >= 1) return num(s) + ":1";
+    return "1:" + num(1.0 / s);
+}
+
+// чертёж стороны в масштабе sc (мм на мм) с подписями нужного размера на бумаге
+string draw_scaled(int bottom, string sel, int labels, real sc)
+{
+    real W = (bb_x2 - bb_x1) + 6, H = (bb_y2 - bb_y1) + 6;
+    sprintf(ds_wh, "width:%smm;height:%smm", f3(W * sc), f3(H * sc));
+    ds_fsmin = 1.25 / sc;
+    ds_fsmax = 2.6 / sc;
+    string s = draw_side(bottom, sel, labels, 1000);
+    ds_wh = "";
+    ds_fsmin = 0.55; ds_fsmax = 2.2;
+    return s;
+}
+
+// ---------------------------------------------------------------- миниатюра элемента (ключ)
+
+string el_thumb(int e)
+{
+    real mg = max(el_bx2[e] - el_bx1[e], el_by2[e] - el_by1[e]) * 0.12 + 0.3;
+    real x0 = el_bx1[e] - mg, x1 = el_bx2[e] + mg, y0 = el_by1[e] - mg, y1 = el_by2[e] + mg;
+    real W = x1 - x0, H = y1 - y0;
+    string s, tr;
+    if (el_bottom[e]) sprintf(tr, "matrix(-1 0 0 -1 %s %s)", f3(x1), f3(y1));
+    else sprintf(tr, "matrix(1 0 0 -1 %s %s)", f3(-x0), f3(y1));
+    sprintf(s, "<svg class=\"brd\" viewBox=\"0 0 %s %s\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g transform=\"%s\">",
+            f3(W), f3(H), tr);
+    s += "<g class=\"e1\"><g class=\"pd\">" + el_pads[e] + "</g>";
+    if (el_gfx[e] != "") s += "<path class=\"gx\" d=\"" + el_gfx[e] + "\"/>";
+    s += el_circ[e] + "</g>";
+    if (el_has_p1[e]) {
+        string t;
+        real r = max(W, H) * 0.05;
+        sprintf(t, "<circle class=\"k1\" cx=\"%s\" cy=\"%s\" r=\"%s\"/>", f3(el_p1x[e]), f3(el_p1y[e]), f3(r));
+        s += t;
+    }
+    s += "</g></svg>";
+    return s;
+}
+
+// ---------------------------------------------------------------- листы первой фазы
+
+int dc_pages = 0;
+
+void docs_page_assembly(int bottom)
+{
+    real aw = 262, ah = 136;
+    real W = (bb_x2 - bb_x1) + 6, H = (bb_y2 - bb_y1) + 6;
+    real sc = pick_scale(W, H, aw, ah);
+    string ru = "Сборочный чертёж — верхняя сторона", en = "Assembly drawing — top side";
+    if (bottom) { ru = "Сборочный чертёж — нижняя сторона (вид со стороны пайки)"; en = "Assembly drawing — bottom side (solder-side view)"; }
+    int cnt = 0;
+    for (int e = 0; e < n_el; e++) if (el_bottom[e] == bottom) cnt++;
+    printf("%s", pg_open(ru, en, h(istr(cnt) + " компонентов / components")));
+    printf("<div class=\"area\"><div class=\"ctr\">%s</div></div>", draw_scaled(bottom, "", 1, sc));
+    printf("%s", tech_req());
+    printf("%s", pg_close(ru, en, scale_txt(sc)));
+    dc_pages++;
+}
+
+// одна строка списка шага: одинаковые номинал+корпус вместе
+string sl_key[];
+int sl_idx[];
+
+void docs_steps()
+{
+    int s, e, i, k;
+    // шаги без деталей пропускаются, оставшиеся нумеруются подряд
+    int n_steps = 0, stepno = 0;
+    for (s = 1; s <= STEP_N; s++) {
+        int has = 0;
+        for (e = 0; e < n_el; e++) if (el_step[e] == s) has = 1;
+        n_steps += has;
+    }
+    // широкая плата — чертёж сверху на всю ширину, таблица под ним; иначе — рядом
+    real W = (bb_x2 - bb_x1) + 6, H = (bb_y2 - bb_y1) + 6;
+    real sc_side = pick_scale(W, H, 170, 130), sc_stack = pick_scale(W, H, 262, 80);
+    int stack = (sc_stack > sc_side);
+    real sc = sc_side;
+    // строк на колонку таблицы (компактная строка ~3.6 мм), колонок на листе, символов обозначений в строке
+    int budget = int((130 - 17) / 3.6), ncol = 1, wrap = 16;
+    if (stack) {
+        sc = sc_stack;
+        budget = int((134 - H * sc - 17) / 3.6);
+        if (budget < 4) budget = 4;
+        ncol = 2;
+        wrap = 24;
+    }
+    for (s = 1; s <= STEP_N; s++) {
+        int n = 0, any_bot = 0, any_top = 0;
+        for (e = 0; e < n_el; e++) {
+            if (el_step[e] != s) continue;
+            n++;
+            if (el_bottom[e]) any_bot = 1; else any_top = 1;
+        }
+        if (n == 0) continue;
+        stepno++;
+        int bottom = (any_bot && !any_top);
+        // группы: ключ «номинал|корпус»
+        numeric string gk[];
+        string gdes[], gval[], gpkg[], gkey_ru[], gkey_en[];
+        int gq[], ng = 0;
+        for (e = 0; e < n_el; e++) {
+            if (el_step[e] != s) continue;
+            string key = el_comment[e] + "|" + el_jpkg[e];
+            int f = -1;
+            for (k = 0; k < ng; k++) if (gk[k] == key) { f = k; break; }
+            if (f < 0) {
+                f = ng++;
+                gk[f] = key; gdes[f] = ""; gval[f] = el_comment[e]; gpkg[f] = el_jpkg[e]; gq[f] = 0; gkey_ru[f] = ""; gkey_en[f] = "";
+            }
+            if (gdes[f] != "") gdes[f] += ", ";
+            gdes[f] += el_name[e];
+            gq[f]++;
+            if (needs_key(e) && el_has_p1[e]) {
+                string kr = key_where_ru(e), ke = key_where_en(e);
+                if (el_p1cat[e]) { kr = "катод " + kr; ke = "cathode " + ke; }
+                else { kr = "вывод 1 " + kr; ke = "pin 1 " + ke; }
+                if (gq[f] == 1) { gkey_ru[f] = kr; gkey_en[f] = ke; }
+                else if (gkey_ru[f] != kr) { gkey_ru[f] = "см. чертёж"; gkey_en[f] = "see drawing"; }
+            }
+        }
+        int ord[];
+        sort(ng, ord, gk);
+        // разбивка на листы: до ncol колонок по budget строк (длинные списки обозначений занимают больше)
+        int from = 0, prt = 0;
+        while (from < ng) {
+            int cut[];                       // границы колонок
+            int to = from, c;
+            for (c = 0; c < ncol; c++) {
+                int lines = 0, c0 = to;
+                while (to < ng) {
+                    int ln = 1 + strlen(gdes[ord[to]]) / wrap;
+                    if (lines + ln > budget && to > c0) break;
+                    lines += ln;
+                    to++;
+                }
+                cut[c] = to;
+            }
+            prt++;
+            string sel = "|";
+            for (i = from; i < to; i++) {
+                string a[];
+                int na = strsplit(a, replace_all(gdes[ord[i]], " ", ""), ',');
+                for (k = 0; k < na; k++) sel += a[k] + "|";
+            }
+            string ru = "Порядок пайки — шаг " + istr(stepno) + " из " + istr(n_steps);
+            string en = "Soldering order — step " + istr(stepno) + " of " + istr(n_steps);
+            string rt = h(istr(n) + " шт / pcs");
+            if (prt > 1 || to < ng) rt += " &middot; " + h("часть / part " + istr(prt));
+            printf("%s", pg_open(ru, en, rt));
+            string tip = "<div class=\"tip\"><b>" + h(step_ru(s)) + "</b> <span class=\"en1\">/ " + h(step_en(s)) + "</span><br>" + h(step_tip_ru(s)) +
+                         " <span class=\"en1\">/ " + h(step_tip_en(s)) + "</span></div>";
+            if (stack) printf("<div class=\"area\"><div class=\"stk\"><div class=\"dw\">%s</div>%s", draw_scaled(bottom, sel, 0, sc), tip);
+            else printf("<div class=\"area\"><div class=\"step\"><div class=\"dw\">%s</div><div>%s", draw_scaled(bottom, sel, 0, sc), tip);
+            printf("<div style=\"display:grid;grid-template-columns:repeat(%d,1fr);gap:3mm;align-items:start\">", ncol);
+            int c_from = from;
+            for (c = 0; c < ncol; c++) {
+                if (cut[c] <= c_from) break;
+                printf("<table class=\"t c\"><tr><th>%s <span class=\"en1\">/ Qty</span></th><th>%s <span class=\"en1\">/ Designators</span></th><th>%s <span class=\"en1\">/ Value</span></th><th>%s <span class=\"en1\">/ Package</span></th><th>%s <span class=\"en1\">/ Key</span></th></tr>",
+                       h("Шт"), h("Обозначения"), h("Номинал"), h("Корпус"), h("Ключ"));
+                for (i = c_from; i < cut[c]; i++) {
+                    k = ord[i];
+                    string kk = "";
+                    if (gkey_ru[k] != "") kk = h(gkey_ru[k]) + " <span class=\"en1\">/ " + h(gkey_en[k]) + "</span>";
+                    printf("<tr><td class=\"n\">%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>", gq[k], h(gdes[k]), h(gval[k]), h(gpkg[k]), kk);
+                }
+                printf("</table>");
+                c_from = cut[c];
+            }
+            printf("</div>");
+            if (stack) printf("</div></div>");
+            else printf("</div></div></div>");
+            printf("%s", pg_close(ru, en, scale_txt(sc)));
+            dc_pages++;
+            from = to;
+        }
+    }
+}
+
+void docs_keys()
+{
+    int e, n = 0, i;
+    int list[];
+    numeric string kk[];
+    int ord[];
+    for (e = 0; e < n_el; e++) {
+        if (!needs_key(e) || !el_has_p1[e]) continue;
+        kk[n] = el_name[e];
+        list[n] = e;
+        n++;
+    }
+    if (n == 0) return;
+    sort(n, ord, kk);
+    int per = 24;
+    for (int from = 0; from < n; from += per) {
+        string ru = "Ключи и полярность", en = "Pin 1 and polarity keys";
+        string rt = h(istr(n) + " шт / pcs");
+        printf("%s", pg_open(ru, en, rt));
+        printf("<div class=\"area\"><div class=\"keys\">");
+        for (i = from; i < from + per && i < n; i++) {
+            e = list[ord[i]];
+            string mk_ru = "вывод 1", mk_en = "pin 1";
+            if (el_p1cat[e]) { mk_ru = "катод"; mk_en = "cathode"; }
+            string side = "";
+            if (el_bottom[e]) side = " &middot; " + h("снизу / bottom");
+            string pn = el_comment[e];
+            int g = el_group[e];
+            if (g >= 0 && g_model[g] != "") pn = g_model[g];
+            printf("<div class=\"key\"><div class=\"d\">%s%s</div>%s<div class=\"s\">%s<br>%s: %s<br><span class=\"en\">%s: %s</span></div></div>",
+                   h(el_name[e]), side, el_thumb(e), h(pn + " · " + el_jpkg[e]), h(mk_ru), h(key_where_ru(e)), h(mk_en), h(key_where_en(e)));
+        }
+        printf("</div></div>");
+        printf("%s", pg_close(ru, en, "—"));
+        dc_pages++;
+    }
+}
+
+void docs_bom()
+{
+    int g, row = 0;
+    int list[], n = 0;
+    for (g = 0; g < n_g; g++) if (!g_merged[g]) list[n++] = g;
+    int from = 0, prt = 0;
+    while (from < n) {
+        int lines = 0, to = from;
+        while (to < n) {
+            int ln = 1 + strlen(g_desig[list[to]]) / 46;
+            if (g_model[list[to]] != "" && strlen(g_model[list[to]]) > 26) ln++;
+            if (lines + ln > 24 && to > from) break;
+            lines += ln;
+            to++;
+        }
+        prt++;
+        string ru = "Спецификация (BOM)", en = "Bill of materials";
+        printf("%s", pg_open(ru, en, h("часть / part " + istr(prt))));
+        printf("<div class=\"area\"><table class=\"t\"><tr><th>#</th><th>%s<span class=\"en\">Designators</span></th><th>%s<span class=\"en\">Qty</span></th><th>%s<span class=\"en\">Value</span></th><th>%s<span class=\"en\">Package</span></th><th>%s<span class=\"en\">Part number</span></th><th>%s<span class=\"en\">Manufacturer</span></th><th>LCSC</th><th>%s<span class=\"en\">Type</span></th></tr>",
+               h("Обозначения"), h("Шт"), h("Номинал"), h("Корпус"), h("Номер детали"), h("Производитель"), h("Тип"));
+        for (int i = from; i < to; i++) {
+            g = list[i];
+            row++;
+            string pkg = g_jpkg[g];
+            if (g_cpkg[g] != "" && g_cpkg[g] != "-") pkg = g_cpkg[g];
+            printf("<tr><td class=\"n\">%d</td><td>%s</td><td class=\"n\">%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>",
+                   row, h(desig_sp(g_desig[g])), g_qty[g], h(g_comment[g]), h(pkg), h(g_model[g]), h(g_brand[g]), h(g_lcsc[g]), h(g_type[g]));
+        }
+        printf("</table></div>");
+        printf("%s", pg_close(ru, en, "—"));
+        dc_pages++;
+        from = to;
+    }
+}
+
+// титульный лист: вид платы и содержание вставляет третья фаза
+void docs_cover(string base, int n_layers, string stamp)
+{
+    string ru = "Титульный лист", en = "Cover sheet";
+    printf("%s", pg_open(ru, en, h(stamp)));
+    printf("<div class=\"area\"><div class=\"cover\"><div>");
+    printf("<h2 contenteditable=\"true\" data-f=\"product\">%s</h2>", h(tb_product));
+    printf("<div class=\"sub\">%s<br><span class=\"en\">%s</span></div>", h("Комплект документации для изготовления и сборки печатного узла"),
+           h("Manufacturing and assembly documentation package"));
+    printf("<!--FK:COVERIMG-->");
+    printf("</div><div>");
+    printf("<table class=\"facts\">");
+    printf("<tr><td>%s<span class=\"en\"> / Board</span></td><td><b>%s</b></td></tr>", h("Плата"), h(base));
+    printf("<tr><td>%s<span class=\"en\"> / Size</span></td><td>%s</td></tr>", h("Размер, мм"), h(num(round((bb_x2 - bb_x1) * 100) / 100.0) + " × " + num(round((bb_y2 - bb_y1) * 100) / 100.0)));
+    printf("<tr><td>%s<span class=\"en\"> / Copper layers</span></td><td>%d</td></tr>", h("Слоёв меди"), n_layers);
+    printf("<tr><td>%s<span class=\"en\"> / Components</span></td><td>%d (%s %d, %s %d)</td></tr>", h("Компонентов"), n_el, h("верх / top"), n_top, h("низ / bottom"), n_bot);
+    printf("<tr><td>%s<span class=\"en\"> / Unique parts</span></td><td>%d</td></tr>", h("Позиций BOM"), n_rows);
+    printf("<tr><td>%s<span class=\"en\"> / Through-hole</span></td><td>%d</td></tr>", h("Выводных"), n_thtc);
+    printf("<tr><td>%s<span class=\"en\"> / Batch</span></td><td>%d</td></tr>", h("Плат в партии"), opt_boards);
+    printf("</table>");
+    printf("<div style=\"margin-top:4mm;font-weight:700\">%s <span class=\"en\" style=\"font-weight:400\">/ Contents</span></div>", h("Содержание"));
+    printf("<div class=\"toc\"><!--FK:TOC--></div>");
+    printf("</div></div></div>");
+    printf("%s", pg_close(ru, en, "—"));
+    dc_pages++;
+}
+
+// весь документ первой фазы
+void docs_phase1(string path, string base, int n_layers, string stamp)
+{
+    int e;
+    for (e = 0; e < n_el; e++) el_step[e] = calc_step(e);
+    output(path, "wt") {
+        printf("<!DOCTYPE html>\n<html lang=\"ru\">\n<head>\n<meta charset=\"utf-8\">\n");
+        printf("<meta name=\"generator\" content=\"%s\">\n", h(fk_title()));
+        printf("<title>%s</title>\n<style>%s</style>\n</head>\n<body>\n", h(base + " · Assembly documentation A4"), DC_CSS);
+        printf("<div class=\"bar\"><i></i><span>%s <span class=\"en\">/ Title block fields are editable here, then Ctrl+P &rarr; Save as PDF (A4 landscape, margins: none)</span></span></div>\n",
+               h("Поля штампа можно править прямо здесь, затем Ctrl+P → Сохранить как PDF (A4 альбомная, поля: нет)"));
+        docs_cover(base, n_layers, stamp);
+        printf("<!--FK:FABSPEC-->\n");
+        printf("<!--FK:LAYERS-->\n");
+        docs_page_assembly(0);
+        if (n_bot > 0) docs_page_assembly(1);
+        docs_steps();
+        docs_keys();
+        docs_bom();
+        printf("<script>%s</script>\n</body>\n</html>\n", DC_JS);
+    }
+}

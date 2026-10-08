@@ -1,0 +1,474 @@
+// fk_net.ulp — сеть: кэш запросов, netget/curl, JSON, поиск в каталогах
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+
+// ---------------------------------------------------------------- сеть и JSON
+
+// Подбор идёт в два прохода: первый только собирает запросы, затем все они
+// выполняются разом (встроенный netget/netpost или один вызов curl.exe),
+// второй проход берёт ответы из кэша.
+int net_mode = 0;          // 0 = сбор запросов, 1 = ответы из кэша
+int n_req = 0;
+string req_url[], req_body[], req_resp[];
+string net_method = "";
+string net_diag = "";
+int net_empty = 0;
+string net_buf;
+
+string fetch(string url, string body)
+{
+    int i;
+    for (i = 0; i < n_req; i++)
+        if (req_url[i] == url && req_body[i] == body) break;
+    if (net_mode == 0) {
+        if (i == n_req) {
+            req_url[n_req] = url;
+            req_body[n_req] = body;
+            req_resp[n_req] = "";
+            n_req++;
+        }
+        return "";
+    }
+    if (i == n_req) return "";
+    return req_resp[i];
+}
+
+int native_fetch(int i)
+{
+    string r = "";
+    int rc;
+    if (req_body[i] == "") rc = netget(r, req_url[i], NET_TIMEOUT);
+    else rc = netpost(r, req_url[i], req_body[i], NET_TIMEOUT, "application/json");
+    net_buf = r;
+    return rc;
+}
+
+string net_code(int rc)
+{
+    string s = "код " + istr(rc) + ", ответ " + istr(strlen(net_buf)) + " симв";
+    if (rc < 0) s += ", " + neterror();
+    return s;
+}
+
+string resp_file(string dir, int i)
+{
+    string s;
+    sprintf(s, "%s/r%04d.json", dir, i);
+    return s;
+}
+
+int net_native = -1;       // -1 ещё не проверяли, 1 = netget/netpost работают, 0 = curl.exe
+
+// Выполняет запросы с номера from до конца. extra — доп. ключи curl (ограничение частоты).
+void run_requests(string tmpdir, int from, string extra)
+{
+    int i, rc;
+    int pg = -1, pp = -1;
+    string r;
+
+    if (net_native < 0) {
+        // проба встроенных функций: один GET и один POST
+        net_native = 1;
+        for (i = from; i < n_req; i++) {
+            if (req_body[i] == "" && pg < 0) pg = i;
+            if (req_body[i] != "" && pp < 0) pp = i;
+        }
+        if (pg >= 0) {
+            status("JLCPCB: проверка netget...");
+            rc = native_fetch(pg);
+            if (rc > 0 && strstr(net_buf, "{") >= 0) req_resp[pg] = net_buf;
+            else { net_native = 0; net_diag += "netget: " + net_code(rc) + ". "; }
+        }
+        if (net_native && pp >= 0) {
+            status("JLCPCB: проверка netpost...");
+            rc = native_fetch(pp);
+            if (rc > 0 && strstr(net_buf, "\"code\":200") >= 0) req_resp[pp] = net_buf;
+            else { net_native = 0; net_diag += "netpost: " + net_code(rc) + ". "; }
+        }
+    }
+
+    // пакет с ограничением частоты (EasyEDA) всегда через curl: браузерный User-Agent там отклоняют
+    if (net_native && extra == "") {
+        net_method = "встроенный netget/netpost";
+        for (i = from; i < n_req; i++) {
+            if (req_resp[i] != "") continue;
+            string msg;
+            sprintf(msg, "JLCPCB: запрос %d из %d", i + 1, n_req);
+            status(msg);
+            rc = native_fetch(i);
+            if (rc > 0) req_resp[i] = net_buf;
+        }
+    } else {
+        // запасной путь: curl.exe из Windows 10/11, все запросы одним вызовом
+        if (extra == "") net_method = "curl.exe";
+        for (i = from; i < n_req; i++) req_resp[i] = "";
+        string cfg = tmpdir + "/requests_" + istr(from) + ".cfg";
+        output(cfg, "wt") {
+            for (i = from; i < n_req; i++) {
+                if (i > from) printf("next\n");
+                printf("max-time = 40\n");
+                printf("url = \"%s\"\n", cfg_quote(req_url[i]));
+                if (req_body[i] != "") {
+                    printf("header = \"Content-Type: application/json\"\n");
+                    printf("data = \"%s\"\n", cfg_quote(req_body[i]));
+                }
+                printf("output = \"%s\"\n", cfg_quote(resp_file(tmpdir, i)));
+            }
+        }
+        status("JLCPCB: " + istr(n_req - from) + " запросов через curl...");
+        rc = system("curl.exe -s --create-dirs --parallel --parallel-max 4 " + extra + " -K \"" + to_win(cfg) + "\"");
+        string found[];
+        for (i = from; i < n_req; i++) {
+            string f = resp_file(tmpdir, i);
+            if (fileglob(found, f) > 0) {
+                r = "";
+                fileread(r, f);
+                req_resp[i] = r;
+            }
+        }
+        net_diag += "curl: код выхода " + istr(rc) + ". ";
+    }
+
+    net_empty = 0;
+    for (i = 0; i < n_req; i++)
+        if (strstr(req_resp[i], "{") < 0) net_empty++;
+}
+
+string json_val(string obj, string key)
+{
+    string pat = "\"" + key + "\":";
+    int p = strstr(obj, pat);
+    if (p < 0) return "";
+    p += strlen(pat);
+    while (obj[p] == ' ') p++;
+    if (obj[p] == '"') {
+        string r = "";
+        p++;
+        while (obj[p] && obj[p] != '"') {
+            if (obj[p] == '\\') {
+                r += obj[p];
+                p++;
+                if (!obj[p]) break;
+            }
+            r += obj[p];
+            p++;
+        }
+        return r;
+    }
+    int e = p;
+    while (obj[e] && obj[e] != ',' && obj[e] != '}' && obj[e] != ']') e++;
+    return trim(strsub(obj, p, e - p));
+}
+
+// значение характеристики из списка attributes каталога JLC
+string jlc_attr(string obj, string name)
+{
+    string pat = "\"attribute_name_en\":\"" + name + "\",\"attribute_value_name\":\"";
+    int p = strstr(obj, pat);
+    if (p < 0) return "";
+    p += strlen(pat);
+    int e = strstr(obj, "\"", p);
+    if (e < 0) return "";
+    return strsub(obj, p, e - p);
+}
+
+string it[];
+int n_it;
+
+void split_items(string s, string marker)
+{
+    n_it = 0;
+    int p = strstr(s, marker);
+    while (p >= 0) {
+        int q = strstr(s, marker, p + 1);
+        if (q < 0) {
+            it[n_it++] = strsub(s, p);
+            break;
+        }
+        it[n_it++] = strsub(s, p, q - p);
+        p = q;
+    }
+}
+
+int type_rank(string t)
+{
+    if (t == "Basic") return 3;
+    if (t == "Preferred") return 2;
+    return 1;
+}
+
+// ---------------------------------------------------------------- цены
+
+// ступени цен в виде "1:7.7625,10:6.6669,30:6.0150"
+string price_tiers(string item)
+{
+    string out = "";
+    int p = strstr(item, "\"componentPrices\":[");
+    if (p < 0) return "";
+    int e = strstr(item, "]", p);
+    if (e < 0) return "";
+    string seg = strsub(item, p, e - p);
+    int s = strstr(seg, "\"startNumber\":");
+    while (s >= 0) {
+        int ns = strstr(seg, "\"startNumber\":", s + 1);
+        string one;
+        if (ns < 0) one = strsub(seg, s);
+        else one = strsub(seg, s, ns - s);
+        string a = json_val(one, "startNumber"), pr = json_val(one, "productPrice");
+        if (a != "" && pr != "") {
+            if (out != "") out += ",";
+            out += a + ":" + pr;
+        }
+        s = ns;
+    }
+    return out;
+}
+
+// цена за штуку при заказе qty штук, $; -1 если неизвестна
+real price_at(string tiers, int qty)
+{
+    if (tiers == "") return -1.0;
+    string parts[], kv[];
+    int n = strsplit(parts, tiers, ',');
+    real best = -1.0;
+    int bstart = -1;
+    for (int i = 0; i < n; i++) {
+        if (strsplit(kv, parts[i], ':') < 2) continue;
+        int st = strtol(kv[0]);
+        real pr = strtod(kv[1]);
+        if (best < 0) { best = pr; bstart = st; }
+        if (st <= qty && st >= bstart) { best = pr; bstart = st; }
+    }
+    return best;
+}
+
+// стоимость партии: штуки + плата за установку катушки Extended
+real lot_cost(string tiers, string ty, int need)
+{
+    real u = price_at(tiers, need);
+    if (u < 0) u = 0;
+    real c = u * need;
+    if (opt_basic && ty == "Extended") c += fee_usd();
+    return c;
+}
+
+// ступень склада и точности: чем больше, тем лучше
+int rank_code(int stock, string ty, int need, int fit)
+{
+    int c = 0;
+    if (stock >= need) c += 400;
+    else if (stock > 0) c += 200;
+    c += fit * 10;
+    return c;
+}
+
+// a лучше b? ступень → стоимость → склад
+int better_pick(int ca, real costa, int sta, int cb, real costb, int stb)
+{
+    if (ca != cb) return ca > cb;
+    if (costa < costb - 0.0001) return 1;
+    if (costa > costb + 0.0001) return 0;
+    return sta > stb;
+}
+
+// ---------------------------------------------------------------- результат поиска
+
+string pk_code, pk_model, pk_pkg, pk_type, pk_res, pk_cap, pk_volt, pk_tiers, pk_cat, pk_brand;
+int pk_stock;
+
+void pk_clear()
+{
+    pk_code = ""; pk_model = ""; pk_pkg = ""; pk_type = "";
+    pk_res = ""; pk_cap = ""; pk_volt = ""; pk_tiers = ""; pk_cat = ""; pk_brand = "";
+    pk_stock = 0;
+}
+
+// поиск в каталоге JLCPCB, результаты в r_*
+string r_code[], r_model[], r_pkg[], r_type[], r_res[], r_cap[], r_volt[], r_tiers[], r_cat[], r_brand[];
+int r_stock[];
+int n_r;
+
+int jlc_search(string keyword, int pagesize)
+{
+    n_r = 0;
+    string body = "{\"keyword\":\"" + json_escape(ascii_only(keyword)) + "\",\"currentPage\":1,\"pageSize\":" + istr(pagesize) + "}";
+    string r = fetch(JLC_API, body);
+    if (r == "" || strstr(r, "\"code\":200") < 0) return -1;
+    split_items(r, "{\"componentId\":");
+    for (int i = 0; i < n_it; i++) {
+        r_code[n_r]  = json_val(it[i], "componentCode");
+        r_model[n_r] = json_val(it[i], "componentModelEn");
+        r_pkg[n_r]   = json_val(it[i], "componentSpecificationEn");
+        r_stock[n_r] = strtol(json_val(it[i], "stockCount"));
+        string lt = json_val(it[i], "componentLibraryType");
+        string pf = json_val(it[i], "preferredComponentFlag");
+        r_type[n_r] = "Extended";
+        if (lt == "base") r_type[n_r] = "Basic";
+        else if (pf == "true") r_type[n_r] = "Preferred";
+        r_res[n_r]   = jlc_attr(it[i], "Resistance");
+        r_cap[n_r]   = jlc_attr(it[i], "Capacitance");
+        r_volt[n_r]  = jlc_attr(it[i], "Voltage Rating");
+        r_tiers[n_r] = price_tiers(it[i]);
+        r_cat[n_r]   = json_val(it[i], "componentTypeEn");
+        r_brand[n_r] = json_val(it[i], "componentBrandEn");
+        if (r_code[n_r] != "") n_r++;
+    }
+    return n_r;
+}
+
+void take_r(int i)
+{
+    pk_code = r_code[i]; pk_model = r_model[i]; pk_pkg = r_pkg[i]; pk_type = r_type[i];
+    pk_stock = r_stock[i]; pk_res = r_res[i]; pk_cap = r_cap[i]; pk_volt = r_volt[i];
+    pk_tiers = r_tiers[i]; pk_cat = r_cat[i]; pk_brand = r_brand[i];
+}
+
+// номер из каталога отличается вставкой 1–2 символов: 25AA02E48T-I/SN против 25AA02E48-I/SN,
+// RTL8305NB-VB-CG против RTL8305NB-CG (ключи без дефисов)
+int near_mpn(string mk, string qk)
+{
+    int dl = strlen(mk) - strlen(qk);
+    if (dl < 1 || dl > 2 || strlen(qk) < 6) return 0;
+    int d = 0;
+    while (qk[d] && mk[d] == qk[d]) d++;
+    if (d < 4) return 0;
+    return strsub(mk, 0, d) + strsub(mk, d + dl) == qk;
+}
+
+// 1 = точное совпадение номера, 2 = номер в каталоге длиннее (суффикс упаковки), 0 = нет.
+// Склад важнее точности: CD74HC14M без остатка проигрывает CD74HC14M96 на складе;
+// при равных — дешевле с учётом платы за Extended.
+int pick_mpn(string q, int need)
+{
+    pk_clear();
+    string qk = mpn_key(q);
+    if (jlc_search(q, 10) <= 0) return 0;
+    int best = -1, bc = 0, bm = 0;
+    real bcost = 0;
+    for (int i = 0; i < n_r; i++) {
+        string mk = mpn_key(r_model[i]);
+        int m = 0;
+        if (mk == qk) m = 1;
+        else if (starts_with(mk, qk) && strlen(mk) > strlen(qk)) m = 2;
+        else if (near_mpn(mk, qk)) m = 2;
+        if (!m) continue;
+        int c = rank_code(r_stock[i], r_type[i], need, m == 1);
+        real cost = lot_cost(r_tiers[i], r_type[i], need);
+        int better = 0;
+        if (best < 0) better = 1;
+        else better = better_pick(c, cost, r_stock[i], bc, bcost, r_stock[best]);
+        if (better) {
+            best = i;
+            bc = c;
+            bm = m;
+            bcost = cost;
+        }
+    }
+    if (best < 0) return 0;
+    take_r(best);
+    return bm;
+}
+
+// 1 = найден, 0 = нет в каталоге, -1 = нет ответа
+int verify_code(string code)
+{
+    pk_clear();
+    int n = jlc_search(code, 5);
+    if (n < 0) return -1;
+    if (n == 0) return 0;
+    for (int i = 0; i < n_r; i++) {
+        if (r_code[i] == code) {
+            take_r(i);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+string js_type(string item)
+{
+    if (json_val(item, "is_basic") == "true") return "Basic";
+    if (json_val(item, "is_preferred") == "true") return "Preferred";
+    return "Extended";
+}
+
+string js_tiers(string item)
+{
+    string p = json_val(item, "price1");
+    if (p == "" || p == "null") return "";
+    return "1:" + p;
+}
+
+void take_js(string item)
+{
+    pk_code  = "C" + json_val(item, "lcsc");
+    pk_model = json_val(item, "mfr");
+    pk_pkg   = json_val(item, "package");
+    pk_stock = strtol(json_val(item, "stock"));
+    pk_type  = js_type(item);
+    pk_volt = json_val(item, "voltage_rating");
+    if (pk_volt == "null") pk_volt = "";
+    if (pk_volt != "") pk_volt += "V";
+    pk_tiers = js_tiers(item);
+}
+
+int pick_resistor(real ohms, string pkg, int need)
+{
+    pk_clear();
+    string r = fetch(JLCSEARCH + "/resistors/list.json?resistance=" + num(ohms) + "&package=" + pkg, "");
+    if (r == "") return 0;
+    split_items(r, "{\"lcsc\":");
+    int best = -1, bc = 0, bs = 0;
+    real bcost = 0;
+    for (int i = 0; i < n_it; i++) {
+        string ts = json_val(it[i], "tolerance_fraction");
+        int fit = 1;
+        if (ts != "null" && ts != "" && strtod(ts) > 0.0101) fit = 0;
+        int st = strtol(json_val(it[i], "stock"));
+        string ty = js_type(it[i]);
+        int c = rank_code(st, ty, need, fit);
+        real cost = lot_cost(js_tiers(it[i]), ty, need);
+        int better = 0;
+        if (best < 0) better = 1;
+        else better = better_pick(c, cost, st, bc, bcost, bs);
+        if (better) {
+            best = i; bc = c; bs = st; bcost = cost;
+        }
+    }
+    if (best < 0) return 0;
+    take_js(it[best]);
+    pk_res = fmt_value(ohms, 'R');
+    return 1;
+}
+
+int pick_capacitor(real farads, string pkg, real vmin, int need)
+{
+    pk_clear();
+    string r = fetch(JLCSEARCH + "/capacitors/list.json?capacitance=" + num_small(farads) + "&package=" + pkg, "");
+    if (r == "") return 0;
+    split_items(r, "{\"lcsc\":");
+    int best = -1, bc = 0, bs = 0;
+    real bcost = 0;
+    for (int i = 0; i < n_it; i++) {
+        // напряжение обязано быть известно и не ниже нужного (у трети позиций его нет)
+        string vs = json_val(it[i], "voltage_rating");
+        if (vs == "null" || vs == "") continue;
+        if (strtod(vs) < vmin) continue;
+        int fit = 0;
+        string tc = strupr(json_val(it[i], "temperature_coefficient"));
+        if (strstr(tc, "Y5V") < 0 && strstr(tc, "Z5U") < 0) fit += 1;
+        int st = strtol(json_val(it[i], "stock"));
+        string ty = js_type(it[i]);
+        int c = rank_code(st, ty, need, fit);
+        real cost = lot_cost(js_tiers(it[i]), ty, need);
+        int better = 0;
+        if (best < 0) better = 1;
+        else better = better_pick(c, cost, st, bc, bcost, bs);
+        if (better) {
+            best = i; bc = c; bs = st; bcost = cost;
+        }
+    }
+    if (best < 0) return 0;
+    take_js(it[best]);
+    pk_cap = fmt_value(farads, 'C');
+    return 1;
+}

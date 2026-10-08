@@ -1,0 +1,244 @@
+// fk_subs.ulp — замены (аналоги) для деталей, которых нет у JLCPCB или нет на складе
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+//
+// Порядок: какие строки нуждаются в замене → поиск кандидатов (укороченный номер,
+// категория + шаг + число выводов) → посадочные места кандидатов из EasyEDA →
+// сверка с площадками на плате → самый дешёвый совместимый.
+
+// разъёмы и выводные: совпадение по форме допустимо (нумерация в библиотеках бывает разной)
+int is_connector_like(string des, int tht)
+{
+    string p = des_prefix(des);
+    if (tht) return 1;
+    return p == "J" || p == "X" || p == "P" || p == "CN" || p == "CON" || p == "XS" || p == "XP" ||
+           p == "K" || p == "SW" || p == "S" || p == "BT" || p == "F";
+}
+
+// почему строке нужна замена; "" — не нужна (английский текст — в sr_en)
+string sr_en = "";
+
+string sub_reason(int g)
+{
+    sr_en = "";
+    if (g_merged[g]) return "";
+    int need = g_qty[g] * opt_boards;
+    int k = g_kind[g];
+    if ((k == 'R' || k == 'C') && g_parsed[g] && is_chip(g_jpkg[g])) return "";   // пассив подобран по номиналу
+    if (g_lcsc[g] == "") { sr_en = "not in the JLCPCB catalogue"; return "нет в каталоге JLCPCB"; }
+    if (g_stock[g] >= 0 && g_stock[g] < need) {
+        sr_en = "stock " + istr(g_stock[g]) + " of " + istr(need);
+        return "на складе " + istr(g_stock[g]) + " из " + istr(need);
+    }
+    int e = g_first[g];
+    if (el_mp[e] >= 0) {
+        int m = el_mp[e];
+        if (mp_mir[m] || mp_stat[m] == 3) { sr_en = "footprint does not fit"; return "посадочное место не подходит"; }
+    }
+    return "";
+}
+
+// укороченные номера: SN74LVC1G14DCKTE4 -> SN74LVC1G14; LAN8742A-CZ -> LAN8742A
+string core_cuts[];
+int n_core;
+
+void make_cores(string mpn)
+{
+    n_core = 0;
+    string s = strupr(trim(mpn));
+    if (strlen(s) < 6) return;
+    int i;
+    // по последнему разделителю
+    for (i = strlen(s) - 1; i >= 5; i--) {
+        if (s[i] == '-' || s[i] == '/' || s[i] == '_' || s[i] == ' ') {
+            core_cuts[n_core++] = strsub(s, 0, i);
+            break;
+        }
+    }
+    // по границам «цифра → буква» с конца
+    for (i = strlen(s) - 2; i >= 4 && n_core < 3; i--) {
+        if (isdigit(s[i]) && isalpha(s[i + 1])) {
+            string c = strsub(s, 0, i + 1);
+            int dup = 0;
+            for (int k = 0; k < n_core; k++)
+                if (core_cuts[k] == c) dup = 1;
+            if (!dup && strlen(c) >= 5) core_cuts[n_core++] = c;
+        }
+    }
+}
+
+// шаг выводов и число выводов посадочного места на плате
+real fp_pitch(int ef)
+{
+    real best = 1000000.0;
+    for (int i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++) {
+        for (int j = i + 1; j < ef_first[ef] + ef_n[ef]; j++) {
+            real dx = ep_x[i] - ep_x[j], dy = ep_y[i] - ep_y[j];
+            real d = sqrt(dx * dx + dy * dy);
+            if (d > 0.2 && d < best) best = d;
+        }
+    }
+    if (best > 100000.0) return 0;
+    return best;
+}
+
+int fp_pins(int ef)
+{
+    string seen = "|";
+    int n = 0;
+    for (int i = ef_first[ef]; i < ef_first[ef] + ef_n[ef]; i++) {
+        if (ep_uname[i] == "") continue;
+        if (strstr(seen, "|" + ep_uname[i] + "|") < 0) {
+            seen += ep_uname[i] + "|";
+            n++;
+        }
+    }
+    return n;
+}
+
+// ключевые слова поиска для строки g
+string sk_word[], sk_core[];
+int n_sk;
+
+void sub_keywords(int g)
+{
+    n_sk = 0;
+    string base = g_model[g];
+    if (base == "") {
+        build_cands(g_value[g], g_mpn[g]);
+        if (n_cand > 0) base = cand[0];
+    }
+    if (base != "") {
+        make_cores(base);
+        for (int i = 0; i < n_core && n_sk < 3; i++) {
+            sk_word[n_sk] = core_cuts[i];
+            sk_core[n_sk] = mpn_key(core_cuts[i]);
+            n_sk++;
+        }
+    }
+    int ef = g_ef[g];
+    int e = g_first[g];
+    if (ef >= 0 && is_connector_like(el_name[e], el_tht[e])) {
+        string cat = g_cat[g];
+        real pt = fp_pitch(ef);
+        int pins = fp_pins(ef);
+        string w = cat;
+        if (w == "") w = "connector";
+        if (pt > 0) w += " " + num(round(pt * 100) / 100.0) + "mm";
+        if (pins > 0) w += " " + istr(pins) + "P";
+        sk_word[n_sk] = w;
+        sk_core[n_sk] = "";          // по категории: семейство не проверяется, решает посадочное место
+        n_sk++;
+    }
+}
+
+// кандидаты всех строк (плоский список)
+int n_sc = 0;
+string sc_code[], sc_model[], sc_pkg[], sc_type[], sc_tiers[], sc_cat[];
+int sc_stock[], sc_g[];
+
+int sc_has(int g, string code)
+{
+    for (int i = 0; i < n_sc; i++)
+        if (sc_g[i] == g && sc_code[i] == code) return 1;
+    return 0;
+}
+
+// проход: в режиме сбора регистрирует запросы, в режиме ответа собирает кандидатов
+void sub_collect(int g)
+{
+    int need = g_qty[g] * opt_boards;
+    sub_keywords(g);
+    for (int w = 0; w < n_sk; w++) {
+        if (jlc_search(sk_word[w], 20) <= 0) continue;
+        for (int i = 0; i < n_r; i++) {
+            if (r_code[i] == g_lcsc[g] || r_stock[i] < need) continue;
+            if (sk_core[w] != "") {
+                if (!starts_with(mpn_key(r_model[i]), sk_core[w])) continue;
+            } else if (g_cat[g] != "" && r_cat[i] != "" && r_cat[i] != g_cat[g]) continue;
+            if (sc_has(g, r_code[i])) continue;
+            sc_code[n_sc] = r_code[i]; sc_model[n_sc] = r_model[i]; sc_pkg[n_sc] = r_pkg[i];
+            sc_type[n_sc] = r_type[i]; sc_tiers[n_sc] = r_tiers[i]; sc_cat[n_sc] = r_cat[i];
+            sc_stock[n_sc] = r_stock[i]; sc_g[n_sc] = g;
+            n_sc++;
+        }
+    }
+}
+
+// оставить не больше 6 самых дешёвых кандидатов на строку
+void sub_trim()
+{
+    int i, j, cnt;
+    for (int g = 0; g < n_g; g++) {
+        cnt = 0;
+        for (i = 0; i < n_sc; i++) if (sc_g[i] == g) cnt++;
+        while (cnt > 6) {
+            int worst = -1;
+            real wc = -1.0;
+            int need = g_qty[g] * opt_boards;
+            for (i = 0; i < n_sc; i++) {
+                if (sc_g[i] != g) continue;
+                real c = lot_cost(sc_tiers[i], sc_type[i], need);
+                if (c > wc) { wc = c; worst = i; }
+            }
+            if (worst < 0) break;
+            sc_g[worst] = -1;
+            cnt--;
+        }
+    }
+}
+
+// выбор замены по результатам сверки посадочных мест
+void sub_choose(int g, string why, string why_en)
+{
+    int e = g_first[g];
+    int ef = g_ef[g];
+    if (ef < 0) return;
+    int conn = is_connector_like(el_name[e], el_tht[e]);
+    string pre = des_prefix(el_name[e]);
+    int polar = 1;
+    if (pre == "R" || pre == "RN" || pre == "RA" || pre == "L" || pre == "FB" || pre == "F") polar = 0;
+    int need = g_qty[g] * opt_boards;
+    int best = -1, bmp = -1;
+    real bcost = 0;
+    for (int i = 0; i < n_sc; i++) {
+        if (sc_g[i] != g) continue;
+        int jf = find_jf(sc_code[i]);
+        if (jf < 0 || !jf_ok[jf]) continue;
+        int m = get_mp(ef, jf, polar);
+        int ok = 0;
+        if (!mp_mir[m] && !mp_miss[m]) {
+            if (mp_stat[m] == 1) ok = 1;
+            else if (conn && mp_stat[m] == 4) ok = 1;      // разъём: по форме совпадает
+        }
+        if (!ok) continue;
+        real cost = lot_cost(sc_tiers[i], sc_type[i], need);
+        if (best < 0 || cost < bcost) { best = i; bcost = cost; bmp = m; }
+    }
+    if (best < 0) {
+        add_note(g, "замена не найдена: среди аналогов в наличии нет совместимого посадочного места",
+                 "no substitute: no in-stock alternative has a compatible footprint");
+        return;
+    }
+    g_sub_code[g] = sc_code[best]; g_sub_model[g] = sc_model[best]; g_sub_pkg[g] = sc_pkg[best];
+    g_sub_type[g] = sc_type[best]; g_sub_tiers[g] = sc_tiers[best]; g_sub_stock[g] = sc_stock[best];
+    g_sub_mp[g] = bmp; g_sub_why[g] = why; g_sub_why_en[g] = why_en;
+    g_sub_from[g] = g_lcsc[g];
+    if (opt_alt) {
+        g_sub_applied[g] = 1;
+        // прежние замечания относились к исходной детали
+        g_note[g] = ""; g_note_en[g] = "";
+        string was = g_lcsc[g];
+        if (was == "") was = squeeze(g_value[g]);
+        g_lcsc[g] = sc_code[best]; g_model[g] = sc_model[best]; g_cpkg[g] = sc_pkg[best]; g_type[g] = sc_type[best];
+        g_stock[g] = sc_stock[best]; g_tiers[g] = sc_tiers[best];
+        g_src[g] = "замена";
+        string nt = "ЗАМЕНА: " + was + " → " + sc_code[best] + " " + sc_model[best] + " (" + why + "); посадочное место ";
+        string ne = "SUBSTITUTE: " + was + " → " + sc_code[best] + " " + sc_model[best] + " (" + why_en + "); footprint ";
+        if (mp_stat[bmp] == 1) { nt += "совпадает по номерам выводов"; ne += "matches by pin numbers"; }
+        else { nt += "совпадает по форме — проверить цоколёвку и ответную часть"; ne += "matches by shape — check the pinout and the mating part"; }
+        add_note(g, nt, ne);
+    } else {
+        add_note(g, "есть совместимая замена " + sc_code[best] + " " + sc_model[best] + " (не подставлена, включите замены в настройках)",
+                 "compatible substitute " + sc_code[best] + " " + sc_model[best] + " available (not applied, enable substitutes in the settings)");
+    }
+}

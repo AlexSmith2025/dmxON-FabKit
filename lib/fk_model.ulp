@@ -1,0 +1,86 @@
+// fk_model.ulp — данные платы и строк BOM
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+
+// ---------------------------------------------------------------- данные платы
+
+int n_el = 0;
+string el_name[], el_value[], el_pkg[], el_jpkg[], el_lcsc[], el_mpn[], el_comment[], el_rotsrc[];
+real el_x[], el_y[], el_cx[], el_cy[], el_angle[], el_rotofs[], el_pval[], el_volt[];
+int el_bottom[], el_tht[], el_mixed[], el_kind[], el_parsed[], el_group[];
+
+int n_ex = 0;
+string ex_name[], ex_pkg[], ex_why[], ex_why_en[];
+
+numeric string gkey[], gname[];
+int gidx[];
+
+int n_g = 0;
+string g_desig[], g_comment[], g_value[], g_pkg[], g_jpkg[], g_lcsc[], g_lcsc_attr[], g_mpn[];
+string g_src[], g_model[], g_cpkg[], g_type[], g_note[], g_note_en[], g_tiers[], g_cat[], g_brand[];
+int g_qty[], g_first[], g_kind[], g_parsed[], g_stock[], g_merged[];
+real g_pval[], g_volt[];
+
+// замена (аналог) для строки: найденная и проверенная по посадочному месту
+string g_sub_code[], g_sub_model[], g_sub_pkg[], g_sub_type[], g_sub_tiers[], g_sub_why[], g_sub_why_en[], g_sub_from[];
+int g_sub_stock[], g_sub_mp[], g_sub_applied[];
+
+// посадочное место первого элемента строки (индекс ef) — для поиска замен
+int g_ef[];
+
+void g_take_pk(int g)
+{
+    g_lcsc[g] = pk_code; g_model[g] = pk_model; g_cpkg[g] = pk_pkg; g_type[g] = pk_type; g_stock[g] = pk_stock;
+    g_tiers[g] = pk_tiers; g_cat[g] = pk_cat; g_brand[g] = pk_brand;
+}
+
+void g_clear_result(int g)
+{
+    g_src[g] = ""; g_model[g] = ""; g_cpkg[g] = ""; g_type[g] = ""; g_note[g] = ""; g_note_en[g] = "";
+    g_tiers[g] = ""; g_cat[g] = ""; g_brand[g] = "";
+    g_stock[g] = -1;
+    g_sub_code[g] = ""; g_sub_model[g] = ""; g_sub_pkg[g] = ""; g_sub_type[g] = ""; g_sub_tiers[g] = "";
+    g_sub_why[g] = ""; g_sub_why_en[g] = ""; g_sub_from[g] = ""; g_sub_stock[g] = 0; g_sub_mp[g] = -1; g_sub_applied[g] = 0;
+}
+
+// цена строки за штуку и за весь тираж (без платы за Extended), $
+real g_unit_price(int g)
+{
+    int need = g_qty[g] * opt_boards;
+    return price_at(g_tiers[g], need);
+}
+
+// замечание к строке BOM: по-русски и по-английски
+void add_note(int g, string ru, string en)
+{
+    if (g_note[g] != "") { g_note[g] += "; "; g_note_en[g] += "; "; }
+    g_note[g] += ru;
+    g_note_en[g] += en;
+}
+
+// есть ли среди замечаний предупреждение
+int g_warn(int g)
+{
+    return strstr(g_note[g], "ВНИМАНИЕ") >= 0 || strstr(g_note[g], "склад") >= 0 || g_src[g] == "по началу номера";
+}
+
+// откуда номер: ключ (русский) -> подпись по-английски
+string src_en(string s)
+{
+    if (s == "атрибут") return "attribute";
+    if (s == "импорт") return "imported BOM";
+    if (s == "по номиналу") return "by value";
+    if (s == "по номеру") return "by part number";
+    if (s == "по началу номера") return "by number prefix";
+    if (s == "замена") return "substitute";
+    if (s == "не найден") return "not found";
+    if (s == "-") return "-";
+    return s;
+}
+
+string sort_desig(string list)
+{
+    numeric string a[];
+    int n = strsplit(a, list, ',');
+    sort(n, a);
+    return strjoin(a, ',');
+}
