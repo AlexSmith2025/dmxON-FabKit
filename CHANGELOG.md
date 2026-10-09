@@ -8,6 +8,19 @@ New feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.0.2 — 2026-10-09
+
+**Исправлено / Fixed**
+
+- Проверка технологичности: слои, выходящие за контур платы (медь — ошибка; шелкография, маска, паста — предупреждение с величиной выхода).
+  Manufacturability check: layers extending beyond the board outline (copper — error; silkscreen, mask, paste — warning with the overshoot).
+- Шкала на листах ЛУТ — ровно 50 мм с учётом толщины линий (было 50.5 мм). Масштаб листов проверен измерением: контур 198 × 74 мм.
+  The toner-sheet scale bar is exactly 50 mm including line width (was 50.5 mm). Sheet scale verified by measurement: outline 198 × 74 mm.
+- Инструкция ЛУТ: исправлен не-ASCII символ в английском тексте.
+  Toner instructions: a non-ASCII character in the English text fixed.
+
+---
+
 ## 2.0.1 — 2026-10-08
 
 **Исправлено / Fixed**

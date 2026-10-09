@@ -101,6 +101,8 @@ int gs_d01, gs_d03, gs_reg, gs_lp, gs_ap, gs_arc;
 real gs_minw;                   // самая узкая апертура штрихов (D01) от 0.05 мм, мм
 int gs_thin;                    // штрихов тоньше 0.05 мм (графика, логотипы: изготовитель их не воспроизведёт)
 real gs_curw;
+real gs_ex1, gs_ey1, gs_ex2, gs_ey2;     // границы нарисованного (центры штрихов и вспышек), мм
+int gs_eset;
 
 int ln_hx, ln_hy, ln_hi, ln_hj, ln_d, ln_g;
 real ln_x, ln_y, ln_i, ln_j;
@@ -253,7 +255,7 @@ void gerber_body(string path, string fg, string bg)
     string lines[];
     int n = fileread(lines, path);
     gb_div = 10000.0; gb_unit = 1.0; gb_n_ap = 0;
-    gs_d01 = 0; gs_d03 = 0; gs_reg = 0; gs_lp = 0; gs_ap = 0; gs_arc = 0; gs_minw = 0; gs_thin = 0; gs_curw = 0;
+    gs_d01 = 0; gs_d03 = 0; gs_reg = 0; gs_lp = 0; gs_ap = 0; gs_arc = 0; gs_minw = 0; gs_thin = 0; gs_curw = 0; gs_eset = 0;
     int interp = 1, region = 0, dark = 1, cur = -1, last_d = 2, in_am = 0, i;
     int rstarted = 0;
     real cx = 0, cy = 0, nx, ny;
@@ -324,6 +326,13 @@ void gerber_body(string path, string fg, string bg)
         int d = ln_d;
         if (d < 0) d = last_d;
         last_d = d;
+        if (d == 1 || d == 3) {
+            if (!gs_eset) { gs_ex1 = nx; gs_ex2 = nx; gs_ey1 = ny; gs_ey2 = ny; gs_eset = 1; }
+            if (nx < gs_ex1) gs_ex1 = nx;
+            if (nx > gs_ex2) gs_ex2 = nx;
+            if (ny < gs_ey1) gs_ey1 = ny;
+            if (ny > gs_ey2) gs_ey2 = ny;
+        }
         string seg;
         if (d == 1) {
             if (interp == 1) seg = "L" + f4(nx) + " " + f4(ny);

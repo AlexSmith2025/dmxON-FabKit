@@ -58,7 +58,7 @@ string gf_jlc_name(int i)
 
 int gf_ord[];
 int gs_ap_[], gs_d01_[], gs_d03_[], gs_reg_[];
-real gs_minw_[];
+real gs_minw_[], gs_over_[];      // gs_over_ — насколько слой выходит за контур платы, мм
 
 void finish_gerber()
 {
@@ -122,6 +122,12 @@ void finish_gerber()
         // превью слоя без масок, на тёмном фоне: годится и для PDF
         write_flat_svg(gf_src[i], fn_img + "/L_" + code + ".svg", layer_rgb(code), "#12171c");
         gs_ap_[i] = gs_ap; gs_d01_[i] = gs_d01; gs_d03_[i] = gs_d03; gs_reg_[i] = gs_reg; gs_minw_[i] = gs_minw;
+        gs_over_[i] = 0;
+        if (gs_eset) {
+            real bx1 = strtod(st_get("bx1")), by1 = strtod(st_get("by1")), bx2 = strtod(st_get("bx2")), by2 = strtod(st_get("by2"));
+            gs_over_[i] = max(max(bx1 - gs_ex1, gs_ex2 - bx2), max(by1 - gs_ey1, gs_ey2 - by2));
+            if (gs_over_[i] < 0) gs_over_[i] = 0;
+        }
         if (code == "GTL" || code == "GBL" || (starts_with(code, "G") && isdigit(code[1]))) {
             fn_layers++;
             if (gs_minw > 0 && (fn_minw == 0 || gs_minw < fn_minw)) fn_minw = gs_minw;
@@ -233,6 +239,16 @@ void dfm_check()
     if (fn_thin > 0)
         dfm_add("warn", istr(fn_thin) + " штрихов меди тоньше 0.05 мм (графика, логотип) — изготовлены не будут",
                 istr(fn_thin) + " copper strokes thinner than 0.05 mm (artwork, logo) will not be reproduced");
+    // слои за контуром платы: медь — ошибка, остальное изготовитель обрежет
+    for (int gi = 0; gi < n_gf; gi++) {
+        string c = gf_code[gi];
+        if (starts_with(c, "XLN") || c == "GKO" || gs_over_[gi] <= 0.3) continue;
+        string ov = num(round(gs_over_[gi] * 10) / 10.0);
+        if (c == "GTL" || c == "GBL" || (starts_with(c, "G") && isdigit(c[1])))
+            dfm_add("bad", gf_ru[gi] + ": медь выходит за контур платы на " + ov + " мм", gf_en[gi] + ": copper extends " + ov + " mm beyond the board outline");
+        else
+            dfm_add("warn", gf_ru[gi] + ": выходит за контур на " + ov + " мм — изготовитель обрежет", gf_en[gi] + ": extends " + ov + " mm beyond the outline — the fab will clip it");
+    }
     if (n_tool > 0) {
         real dm = drill_min();
         string d = num(dm);
@@ -626,7 +642,7 @@ void toner_sheet(string html, string pdf, int gi, string ru, string en, int mirr
         printf(".pg{position:relative;width:%smm;height:%smm;overflow:hidden;font:8.5pt Arial,sans-serif;color:#000}", f3(tn_pw), f3(tn_ph));
         printf(".hd{position:absolute;left:10mm;top:6mm;right:10mm}.hd b{font-size:11pt}.hd span{color:#444}");
         printf(".bd{position:absolute;left:%smm;top:%smm;width:%smm;height:%smm}", f3(x), f3(y), f3(vb_w), f3(vb_h));
-        printf(".sc{position:absolute;left:10mm;bottom:7mm;width:50mm;height:2.5mm;border:.3mm solid #000;border-top:none}");
+        printf(".sc{position:absolute;left:10mm;bottom:7mm;width:50mm;height:2.5mm;box-sizing:border-box;border:.3mm solid #000;border-top:none}");
         printf(".sc i{position:absolute;left:52mm;top:-1mm;font-style:normal;white-space:nowrap}");
         printf("</style></head><body><div class=\"pg\">");
         printf("<div class=\"hd\"><b>%s</b> &middot; %s &middot; %s<br><span>%s &middot; %s &middot; %s</span></div>",
@@ -714,7 +730,7 @@ void toner_page(string dst)
                h("Стороны совмещать по отверстиям (лист DRILL); при необходимости сначала просверлить."));
         printf("<li>%s<span class=\"en\">Paper: glossy/photo or transfer film; iron 160&ndash;180 &deg;C.</span></li>",
                h("Бумага: глянцевая/фото или термотрансферная плёнка; утюг 160–180 °C."));
-        if (fn_layers > 2) printf("<li><b class=\"m\">%s</b><span class=\"en\">The board has %d copper layers: at home only double-sided boards can be made — these sheets cover the outer layers only (for reference or a simplified prototype).</span></li>",
+        if (fn_layers > 2) printf("<li><b class=\"m\">%s</b><span class=\"en\">The board has %d copper layers: at home only double-sided boards can be made &mdash; these sheets cover the outer layers only (for reference or a simplified prototype).</span></li>",
                h("У платы " + istr(fn_layers) + " слоя меди: дома делаются только двусторонние платы — листы только для внешних слоёв (для справки или упрощённого макета)."), fn_layers);
         printf("</ol></div><div class=\"box\"><b>%s</b> <span class=\"en\" style=\"display:inline\">/ Files</span><ul>", h("Файлы"));
         for (int i = 0; i < n; i++) printf("<li><a href=\"%s\">%s</a></li>", replace_all(filename(files[i]), " ", "%20"), h(filename(files[i])));

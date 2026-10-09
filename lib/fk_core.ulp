@@ -4,8 +4,8 @@
 // ---------------------------------------------------------------- продукт
 
 string FK_NAME    = "dmxON FabKit";
-string FK_VERSION = "2.0.1";              // при каждой переделке поднимать (см. CHANGELOG.md)
-string FK_DATE    = "2026-10-08";
+string FK_VERSION = "2.0.2";              // при каждой переделке поднимать (см. CHANGELOG.md)
+string FK_DATE    = "2026-10-09";
 string FK_AUTHOR  = "dmxON by AlexSmith";
 string FK_YEAR    = "2026";
 string FK_ID      = "dmxon_fabkit";       // префикс настроек в eaglerc

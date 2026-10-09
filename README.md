@@ -3,7 +3,7 @@
 **Полный производственный пакет JLCPCB из платы Fusion Electronics — одной командой.**
 **A complete JLCPCB production package from a Fusion Electronics board — in one run.**
 
-`v2.0.1` · 2026-10-08 · **dmxON by AlexSmith 2026** · [лицензия / license](LICENSE.md)
+`v2.0.2` · 2026-10-09 · **dmxON by AlexSmith 2026** · [лицензия / license](LICENSE.md)
 
 ---
 
