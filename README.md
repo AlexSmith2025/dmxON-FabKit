@@ -3,7 +3,7 @@
 **Полный производственный пакет JLCPCB из платы Fusion Electronics — одной командой.**
 **A complete JLCPCB production package from a Fusion Electronics board — in one run.**
 
-`v2.0.2` · 2026-10-09 · **dmxON by AlexSmith 2026** · [лицензия / license](LICENSE.md)
+`v2.0.3` · 2026-10-12 · **dmxON by AlexSmith 2026** · [лицензия / license](LICENSE.md)
 
 ---
 
@@ -174,6 +174,13 @@ RUN dmxON_FabKit.ulp -batch <папка/folder> [-offline] [-boards N] [-import 
 Details — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). In short: phase 1 (ULP) analyses the board and writes BOM/CPL and drafts, phase 2 (Fusion commands) runs `MANUFACTURING EXPORT`, phase 3 (the same ULP with `-finish`) builds Gerber, previews, report, documentation and toner sheets.
 
 История версий / Changelog — [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## Правила JLCPCB / JLCPCB rules
+
+Правила DRC под JLCPCB для плат на 2, 4, 6 и 8 слоёв и настройщик платы (стек и толщина JLCPCB, классы цепей, предварительная проверка, DRC) — отдельный проект [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules). Запустите его до разводки и перед выгрузкой: толщина платы и цвет маски сами попадут в диалог FabKit.
+JLCPCB DRC rules for 2, 4, 6 and 8-layer boards and a board setup (JLCPCB stack and thickness, net classes, pre-flight check, DRC) live in a separate project, [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules). Run it before routing and before export: the board thickness and mask colour land in the FabKit dialog automatically.
 
 ---
 

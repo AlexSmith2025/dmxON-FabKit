@@ -8,6 +8,15 @@ New feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.0.3 — 2026-10-12
+
+**Документация / Documentation**
+
+- README: ссылка на сопутствующий проект [dmxON JLC Rules](https://github.com/AlexSmith2025/dmxON-JLC-Rules) — правила JLCPCB для 2, 4, 6 и 8 слоёв и настройщик платы.
+  README: a link to the companion project dmxON JLC Rules — JLCPCB rules for 2, 4, 6 and 8 layers and a board setup.
+
+---
+
 ## 2.0.2 — 2026-10-09
 
 **Исправлено / Fixed**
