@@ -1,0 +1,396 @@
+en	ru	es	de	pl
+1:1 toner-transfer sheets (PDF)	Листы 1:1 для ЛУТ (PDF)	Hojas 1:1 para transferencia de tóner (PDF)	1:1-Blätter für Tonertransfer (PDF)	Arkusze 1:1 do termotransferu (PDF)
+A4 documentation	Документация A4	Documentación A4	A4-Dokumentation	Dokumentacja A4
+A4 documentation for manual assembly	Документация A4 для ручной сборки	Documentación A4 para montaje manual	A4-Dokumentation für die Handbestückung	Dokumentacja A4 do montażu ręcznego
+About	Инфо	Acerca de	Info	O programie
+Align the two sides through the drill holes (DRILL sheet), drill first if needed.	Стороны совмещать по отверстиям (лист DRILL); при необходимости сначала просверлить.	Alinee las dos caras mediante los taladros (hoja DRILL); si hace falta, taladre primero.	Beide Seiten über die Bohrungen ausrichten (Blatt DRILL), bei Bedarf zuerst bohren.	Obie strony wyrównaj według otworów (arkusz DRILL); w razie potrzeby najpierw wywierć.
+Already installed — «Install» updates the files.	Уже установлено — «Установить» обновит файлы.	Ya instalado — «Instalar» actualiza los archivos.	Bereits installiert — «Installieren» aktualisiert die Dateien.	Już zainstalowano — «Zainstaluj» zaktualizuje pliki.
+Alternatives are searched for parts that are missing, out of stock or have a non-fitting package. An alternative is accepted only if its JLC library footprint matches the board pads. The cheapest one for the whole batch wins.	Для деталей, которых нет в каталоге, нет на складе или чей корпус не подходит, ищутся аналоги. Аналог принимается, только если его посадочное место из библиотеки JLC совпадает с площадками на плате. Из подходящих выбирается самый дешёвый на весь тираж.	Se buscan alternativas para las piezas que faltan, sin stock o con un encapsulado que no encaja. Una alternativa solo se acepta si su huella de la biblioteca JLC coincide con los pads de la placa. Gana la más barata para todo el lote.	Für fehlende, nicht vorrätige oder nicht passende Bauteile werden Alternativen gesucht. Eine Alternative wird nur übernommen, wenn ihr Footprint aus der JLC-Bibliothek zu den Pads der Platine passt. Die günstigste für die gesamte Charge gewinnt.	Dla części brakujących, niedostępnych w magazynie lub z niepasującą obudową szukane są zamienniki. Zamiennik jest przyjmowany tylko wtedy, gdy jego footprint z biblioteki JLC pasuje do padów płytki. Wygrywa najtańszy dla całej partii.
+and CPL (pick & place)	и CPL (координаты)	y CPL (pick & place)	und CPL (Bestückungsdaten)	i CPL (pick & place)
+applied	подставлена	aplicado	übernommen	zastosowany
+Apply cheaper compatible substitutes for missing parts	Подставлять дешёвые совместимые замены отсутствующих деталей	Aplicar sustitutos compatibles más baratos para piezas faltantes	Günstigere kompatible Ersatzteile für fehlende Teile einsetzen	Stosuj tańsze zgodne zamienniki brakujących części
+Approved	Утв.	Aprobó	Freigegeben	Zatwierdził
+Approved by	Утвердил	Aprobado por	Freigegeben von	Zatwierdził
+Assembly and acceptance per IPC-A-610, class 2.	Монтаж и приёмка — по IPC-A-610, класс 2.	Montaje y aceptación según IPC-A-610, clase 2.	Bestückung und Abnahme nach IPC-A-610, Klasse 2.	Montaż i odbiór wg IPC-A-610, klasa 2.
+Assembly BOM	BOM для сборки	BOM de montaje	Bestückungs-BOM	BOM do montażu
+Assembly documentation A4	Документация для сборки A4	Documentación de montaje A4	Bestückungsdokumentation A4	Dokumentacja montażowa A4
+Assembly drawing — bottom side (solder-side view)	Сборочный чертёж — нижняя сторона (вид со стороны пайки)	Plano de montaje — cara inferior (vista desde el lado de soldadura)	Bestückungsplan — Unterseite (Ansicht von der Lötseite)	Rysunek montażowy — strona dolna (widok od strony lutowania)
+Assembly drawing — top side	Сборочный чертёж — верхняя сторона	Plano de montaje — cara superior	Bestückungsplan — Oberseite	Rysunek montażowy — strona górna
+Assembly side	Сторона монтажа	Cara de montaje	Bestückungsseite	Strona montażu
+assembly variant: do not place	вариант сборки: не устанавливать	variante de montaje: no montar	Bestückungsvariante: nicht bestücken	wariant montażu: nie montować
+Assembly: BOM	Сборка (PCB Assembly): BOM	Montaje (PCB Assembly): BOM	Bestückung (PCB Assembly): BOM	Montaż (PCB Assembly): BOM
+Attention	Внимание	Atención	Achtung	Uwaga
+attribute	атрибут	atributo	Attribut	atrybut
+Attribute part number contradicts the value — reselect	Номер в атрибуте не совпал с номиналом — подобрать заново	El número del atributo contradice el valor — volver a seleccionar	Teilenummer im Attribut widerspricht dem Wert — neu auswählen	Numer w atrybucie nie zgadza się z wartością — dobierz ponownie
+attribute {0} — replaced with {1} by value	в атрибуте {0} — заменён на {1} по номиналу	atributo {0} — sustituido por {1} según el valor	Attribut {0} — nach Wert durch {1} ersetzt	atrybut {0} — zastąpiony przez {1} według wartości
+Base material	Материал	Material base	Basismaterial	Materiał bazowy
+Batch	Партия	Lote	Charge	Partia
+Bill of materials	Спецификация (BOM)	Lista de materiales (BOM)	Stückliste (BOM)	Wykaz elementów (BOM)
+Blue — board pads, orange outline — the JLC (EasyEDA) library footprint after alignment. Cross — footprint origin on the board, orange circle — JLC part centre written to the CPL. Dots mark pin 1. Rotation fixed for {0}, centre for {1} parts.	Синее — площадки на плате, оранжевый контур — посадочное место детали в библиотеке JLC (EasyEDA) после совмещения. Крестик — начало корпуса на плате, оранжевый кружок — центр детали JLC: он и уходит в CPL. Точки — вывод 1. По совмещению исправлен поворот деталей: {0}, центр: {1}.	Azul — pads de la placa; contorno naranja — huella de la biblioteca JLC (EasyEDA) tras la alineación. Cruz — origen de la huella en la placa; círculo naranja — centro de la pieza JLC, que se escribe en el CPL. Los puntos marcan el pin 1. Rotación corregida en {0} piezas, centro en {1}.	Blau — Pads der Platine, orange Kontur — Footprint aus der JLC-Bibliothek (EasyEDA) nach dem Abgleich. Kreuz — Footprint-Ursprung auf der Platine, oranger Kreis — Bauteilmitte bei JLC, die ins CPL geschrieben wird. Punkte markieren Pin 1. Drehung korrigiert bei {0} Teilen, Mitte bei {1}.	Niebieskie — pady płytki, pomarańczowy obrys — footprint z biblioteki JLC (EasyEDA) po dopasowaniu. Krzyżyk — początek footprintu na płytce, pomarańczowe kółko — środek części JLC zapisywany do CPL. Kropki oznaczają pin 1. Poprawiono obrót części: {0}, środek: {1}.
+Blue — board pads, orange — the substitute footprint.	Синее — площадки на плате, оранжевое — посадочное место аналога.	Azul — pads de la placa, naranja — huella del sustituto.	Blau — Pads der Platine, orange — Footprint des Ersatzteils.	Niebieskie — pady płytki, pomarańczowe — footprint zamiennika.
+Board	Плата	Placa	Platine	Płytka
+Board outline	Контур платы	Contorno de la placa	Platinenkontur	Obrys płytki
+Board outline, pads, bodies and designators. Red dot marks pin 1 or the cathode. The bottom side is shown as seen from the solder side (mirrored).	Контур платы, площадки, корпуса и обозначения. Красная точка — вывод 1 или катод. Нижняя сторона показана со стороны пайки (зеркально).	Contorno de la placa, pads, cuerpos y designadores. El punto rojo marca el pin 1 o el cátodo. La cara inferior se muestra vista desde el lado de soldadura (espejada).	Platinenkontur, Pads, Gehäuse und Bezeichner. Der rote Punkt markiert Pin 1 oder die Kathode. Die Unterseite ist von der Lötseite aus gesehen (gespiegelt).	Obrys płytki, pady, obudowy i oznaczenia. Czerwona kropka oznacza pin 1 lub katodę. Strona dolna pokazana od strony lutowania (lustrzanie).
+board package {0} but the part is {1}	на плате корпус {0}, а деталь {1}	en la placa el encapsulado es {0}, pero la pieza es {1}	Gehäuse auf der Platine {0}, das Bauteil ist aber {1}	na płytce obudowa {0}, a część to {1}
+Board → JLC	На плате → у JLC	Placa → JLC	Platine → JLC	Płytka → JLC
+Boards in the order	Плат в заказе	Placas en el pedido	Platinen in der Bestellung	Płytek w zamówieniu
+BOM import: {0} designators.	Импорт BOM, обозначений: {0}.	Importación de BOM: {0} designadores.	BOM-Import: {0} Bezeichner.	Import BOM, oznaczeń: {0}.
+BOM lines	Строк BOM	Líneas de BOM	BOM-Zeilen	Pozycje BOM
+BOM, prices, substitutes, layers	BOM, цены, замены, слои	BOM, precios, sustitutos, capas	BOM, Preise, Ersatzteile, Lagen	BOM, ceny, zamienniki, warstwy
+bottom	снизу	abajo	unten	na dole
+Bottom (as seen from below)	Низ (вид снизу)	Inferior (vista desde abajo)	Unterseite (von unten gesehen)	Spód (widok od dołu)
+Bottom copper	Медь, низ	Cobre inferior	Kupfer unten	Miedź dolna
+Bottom paste (stencil)	Паста (трафарет), низ	Pasta inferior (plantilla)	Lotpaste unten (Schablone)	Pasta dolna (szablon)
+BOTTOM sheets are printed as seen from the top — this is already the correct mirror for the bottom side.	Листы BOTTOM напечатаны как вид сверху — для нижней стороны это и есть нужное зеркало.	Las hojas BOTTOM se imprimen vistas desde arriba — para la cara inferior ese ya es el espejo correcto.	BOTTOM-Blätter sind von oben gesehen gedruckt — für die Unterseite ist das bereits die richtige Spiegelung.	Arkusze BOTTOM są drukowane w widoku z góry — dla strony dolnej to właśnie właściwe lustro.
+Bottom side	Нижняя сторона	Cara inferior	Unterseite	Strona dolna
+Bottom side: SMD parts	Нижняя сторона: SMD-компоненты	Cara inferior: componentes SMD	Unterseite: SMD-Bauteile	Strona dolna: elementy SMD
+Bottom silkscreen	Шелкография, низ	Serigrafía inferior	Bestückungsdruck unten	Opisy (sitodruk) dolne
+Bottom solder mask	Паяльная маска, низ	Máscara de soldadura inferior	Lötstoppmaske unten	Maska lutownicza dolna
+Bottom solder mask (UV): openings black	Маска (УФ), низ: вскрытия чёрные	Máscara inferior (UV): aperturas en negro	Lötstoppmaske unten (UV): Öffnungen schwarz	Maska dolna (UV): otwarcia czarne
+bottom-left	слева снизу	abajo a la izquierda	unten links	na dole po lewej
+bottom-right	справа снизу	abajo a la derecha	unten rechts	na dole po prawej
+bottom-side part: check rotation in the JLCPCB preview	деталь снизу: поворот проверить в предпросмотре JLCPCB	pieza en la cara inferior: comprobar la rotación en la vista previa de JLCPCB	Bauteil auf der Unterseite: Drehung in der JLCPCB-Vorschau prüfen	część na stronie dolnej: sprawdź obrót w podglądzie JLCPCB
+Browse…	Обзор…	Examinar…	Durchsuchen…	Przeglądaj…
+Build package	Создать пакет	Crear paquete	Paket erstellen	Utwórz pakiet
+Bulky SMD: electrolytics, power inductors, SMD connectors	Крупные SMD: электролиты, силовые дроссели, SMD-разъёмы	SMD voluminosos: electrolíticos, inductores de potencia, conectores SMD	Große SMD: Elkos, Leistungsdrosseln, SMD-Steckverbinder	Duże SMD: elektrolity, dławiki mocy, złącza SMD
+by number prefix	по началу номера	por prefijo del número	nach Nummernpräfix	wg początku numeru
+by part number	по номеру	por número de pieza	nach Teilenummer	wg numeru części
+by shape	по форме	por forma	nach Form	wg kształtu
+by value	по номиналу	por valor	nach Wert	wg wartości
+Cancel	Отмена	Cancelar	Abbrechen	Anuluj
+Cannot copy the files to:	Не удалось скопировать файлы в:	No se pueden copiar los archivos a:	Dateien können nicht kopiert werden nach:	Nie można skopiować plików do:
+Cannot create the folder:	Не удалось создать папку:	No se puede crear la carpeta:	Ordner kann nicht erstellt werden:	Nie można utworzyć folderu:
+Cannot find the user folder.	Не удалось определить папку пользователя.	No se encuentra la carpeta del usuario.	Benutzerordner nicht gefunden.	Nie znaleziono folderu użytkownika.
+Catalogue	В каталоге	Catálogo	Katalog	Katalog
+catalogue has {0} (check the suffix)	в каталоге {0} (проверить суффикс)	en el catálogo: {0} (comprobar el sufijo)	im Katalog: {0} (Suffix prüfen)	w katalogu: {0} (sprawdź sufiks)
+Catalogue requests: {0}, method: {1}, unanswered: {2}.	Запросов к каталогам: {0}, способ: {1}, без ответа: {2}.	Consultas al catálogo: {0}, método: {1}, sin respuesta: {2}.	Katalogabfragen: {0}, Methode: {1}, ohne Antwort: {2}.	Zapytania do katalogów: {0}, metoda: {1}, bez odpowiedzi: {2}.
+cathode	катод	cátodo	Kathode	katoda
+center	в центре	centro	Mitte	środek
+check the pinout	проверить цоколёвку	comprobar el pinout	Pinbelegung prüfen	sprawdź wyprowadzenia
+check the scale	проверить масштаб	comprobar la escala	Maßstab prüfen	sprawdź skalę
+Check the scale with a ruler: the bar at the bottom of each sheet is 50 mm, the board outline is {0} mm.	Проверить масштаб линейкой: шкала внизу листа — 50 мм, контур платы {0} мм.	Compruebe la escala con una regla: la barra al pie de cada hoja mide 50 mm, el contorno de la placa {0} mm.	Maßstab mit einem Lineal prüfen: Der Balken unten auf jedem Blatt ist 50 mm lang, die Platinenkontur {0} mm.	Sprawdź skalę linijką: pasek na dole arkusza ma 50 mm, obrys płytki {0} mm.
+check: {0}, but the value is {1}	проверить: {0}, а номинал {1}	comprobar: {0}, pero el valor es {1}	prüfen: {0}, aber der Wert ist {1}	sprawdź: {0}, a wartość to {1}
+Checked	Пров.	Revisó	Geprüft	Sprawdził
+Checked by	Проверил	Revisado por	Geprüft von	Sprawdził
+checking	проверка	comprobando	Prüfung	sprawdzanie
+Clear it? «No» — create a new dated folder.	Очистить её? «Нет» — создать новую папку с датой.	¿Vaciarla? «No» — crear una carpeta nueva con fecha.	Leeren? «Nein» — einen neuen Ordner mit Datum anlegen.	Wyczyścić go? «Nie» — utwórz nowy folder z datą.
+Company	Организация	Empresa	Firma	Firma
+Compatibility	Совместимость	Compatibilidad	Kompatibilität	Zgodność
+compatible substitute {0} available (not applied, enable substitutes in the settings)	есть совместимая замена {0} (не подставлена, включите замены в настройках)	hay un sustituto compatible {0} (no aplicado; active los sustitutos en los ajustes)	kompatibles Ersatzteil {0} verfügbar (nicht übernommen, Ersatzteile in den Einstellungen aktivieren)	dostępny zgodny zamiennik {0} (nie zastosowany, włącz zamienniki w ustawieniach)
+Component placement	Расстановка компонентов	Colocación de componentes	Bauteilplatzierung	Rozmieszczenie elementów
+components	компонентов	componentes	Bauteile	elementy
+Components	Компонентов	Componentes	Bauteile	Elementy
+Contents	Содержание	Contenido	Inhalt	Spis treści
+copper extends {0} mm beyond the board outline	медь выходит за контур платы на {0} мм	el cobre sobresale {0} mm del contorno de la placa	Kupfer ragt {0} mm über die Platinenkontur hinaus	miedź wychodzi {0} mm poza obrys płytki
+Copper layers	Слоёв меди	Capas de cobre	Kupferlagen	Warstwy miedzi
+Copying the code, modification and commercial use are not permitted.	Копирование кода, изменение и коммерческое использование запрещены.	No se permite copiar el código, modificarlo ni usarlo comercialmente.	Kopieren des Codes, Änderung und kommerzielle Nutzung sind nicht gestattet.	Kopiowanie kodu, modyfikacja i użycie komercyjne są zabronione.
+Cost	Стоимость	Coste	Kosten	Koszt
+Cover sheet	Титульный лист	Portada	Deckblatt	Strona tytułowa
+CPL (pick & place)	CPL (координаты)	CPL (pick & place)	CPL (Bestückungsdaten)	CPL (pick & place)
+CPL at pad centre when the footprint is not verified	CPL по центру площадок, если посадочное место не сверено	CPL en el centro de los pads si la huella no está verificada	CPL in der Pad-Mitte, wenn der Footprint nicht geprüft ist	CPL w środku padów, gdy footprint nie jest sprawdzony
+Customer	Заказчик	Cliente	Kunde	Klient
+Date	Дата	Fecha	Datum	Data
+Designator	Обозначение	Designador	Bezeichner	Oznaczenie
+designator in the skip list	обозначение из списка исключений	designador en la lista de exclusión	Bezeichner in der Ausschlussliste	oznaczenie z listy wykluczeń
+Designators	Обозначения	Designadores	Bezeichner	Oznaczenia
+Designators & notes	Обозначения и заметки	Designadores y notas	Bezeichner und Hinweise	Oznaczenia i uwagi
+Designed	Разраб.	Diseñó	Entworfen	Projektował
+Designed by	Разработал	Diseñado por	Entworfen von	Projektował
+Diagnostics	Диагностика	Diagnóstico	Diagnose	Diagnostyka
+Diameter, mm	Диаметр, мм	Diámetro, mm	Durchmesser, mm	Średnica, mm
+differs	отличается	difiere	weicht ab	różni się
+Dimensions, mm	Размер, мм	Dimensiones, mm	Abmessungen, mm	Wymiary, mm
+DNP / JLC_EXCLUDE attribute	атрибут DNP / JLC_EXCLUDE	atributo DNP / JLC_EXCLUDE	Attribut DNP / JLC_EXCLUDE	atrybut DNP / JLC_EXCLUDE
+Document No.	Обозначение	N.º de documento	Dokument-Nr.	Nr dokumentu
+does not fit	не подходит	no encaja	passt nicht	nie pasuje
+Done. Restart Fusion — {0} will appear in Automation → Run ULP.	Готово. Перезапустите Fusion — {0} появится в Automation → Run ULP.	Listo. Reinicie Fusion — {0} aparecerá en Automation → Run ULP.	Fertig. Fusion neu starten — {0} erscheint unter Automation → Run ULP.	Gotowe. Uruchom ponownie Fusion — {0} pojawi się w Automation → Run ULP.
+Drawing title block (this board)	Штамп чертежей (для этой платы)	Cajetín del plano (esta placa)	Schriftfeld der Zeichnung (diese Platine)	Tabliczka rysunku (ta płytka)
+drawings, soldering order, keys	чертежи, порядок пайки, ключи	planos, orden de soldadura, marcas	Zeichnungen, Lötreihenfolge, Markierungen	rysunki, kolejność lutowania, klucze
+Drill (plated + non-plated)	Сверловка (металлизированные и нет)	Taladrado (metalizado y no metalizado)	Bohrungen (durchkontaktiert und nicht)	Wiercenie (metalizowane i niemetalizowane)
+Drill guide (top view)	Карта сверловки (вид сверху)	Guía de taladrado (vista superior)	Bohrplan (Draufsicht)	Mapa wiercenia (widok z góry)
+Drill map	Карта отверстий	Mapa de taladros	Bohrplan	Mapa otworów
+Drilling	Сверловка	Taladrado	Bohrungen	Wiercenie
+EasyEDA model could not be parsed	не разобрать модель EasyEDA	no se pudo leer el modelo de EasyEDA	EasyEDA-Modell nicht lesbar	nie udało się odczytać modelu EasyEDA
+Every layer on its own	Все слои по отдельности	Cada capa por separado	Jede Lage einzeln	Każda warstwa osobno
+Excluded	Не выгружено	Excluido	Ausgeschlossen	Pominięte
+Extended feeder fee, $	Плата за катушку Extended, $	Tarifa de alimentador Extended, $	Feeder-Gebühr Extended, $	Opłata za podajnik Extended, $
+Extended loading ({0})	Установка Extended ({0})	Carga de Extended ({0})	Extended-Rüstgebühr ({0})	Załadunek Extended ({0})
+extends {0} mm beyond the outline — the fab will clip it	выходит за контур на {0} мм — изготовитель обрежет	sobresale {0} mm del contorno — el fabricante lo recortará	ragt {0} mm über die Kontur hinaus — der Hersteller schneidet es ab	wychodzi {0} mm poza obrys — producent to przytnie
+FabKit is free. If it saved you time or money, please support new versions.	FabKit бесплатный. Если он сэкономил вам время или деньги — поддержите новые версии.	FabKit es gratuito. Si le ha ahorrado tiempo o dinero, apoye las nuevas versiones.	FabKit ist kostenlos. Wenn es Ihnen Zeit oder Geld gespart hat, unterstützen Sie bitte neue Versionen.	FabKit jest darmowy. Jeśli zaoszczędził Ci czas lub pieniądze, wesprzyj nowe wersje.
+Fields can also be edited later right in the documentation HTML.	Поля можно поправить и потом — прямо в HTML документации.	Los campos también se pueden editar después, directamente en el HTML de la documentación.	Die Felder lassen sich auch später direkt im HTML der Dokumentation bearbeiten.	Pola można też poprawić później, bezpośrednio w HTML dokumentacji.
+File	Файл	Archivo	Datei	Plik
+File numbers override attributes. Reads «Download Selected Parts List» and any CSV/XLSX with Designator and LCSC.	Номера из файла главнее атрибутов. Понимает «Download Selected Parts List», любую CSV/XLSX с Designator и LCSC.	Los números del archivo tienen prioridad sobre los atributos. Lee «Download Selected Parts List» y cualquier CSV/XLSX con Designator y LCSC.	Nummern aus der Datei haben Vorrang vor Attributen. Liest «Download Selected Parts List» und jede CSV/XLSX mit Designator und LCSC.	Numery z pliku mają pierwszeństwo przed atrybutami. Czyta «Download Selected Parts List» i dowolny CSV/XLSX z kolumnami Designator i LCSC.
+Files	Файлы	Archivos	Dateien	Pliki
+Files are named the way JLCPCB expects (Protel: GTL, GBL, G1…, GTS, GTP, GTO, GKO, XLN). Toggle layers on the left.	Файлы названы так, как их ждёт JLCPCB (Protel: GTL, GBL, G1…, GTS, GTP, GTO, GKO, XLN). Включайте и выключайте слои слева.	Los archivos llevan los nombres que espera JLCPCB (Protel: GTL, GBL, G1…, GTS, GTP, GTO, GKO, XLN). Active y desactive capas a la izquierda.	Die Dateien sind so benannt, wie JLCPCB sie erwartet (Protel: GTL, GBL, G1…, GTS, GTP, GTO, GKO, XLN). Lagen links ein- und ausschalten.	Pliki mają nazwy, jakich oczekuje JLCPCB (Protel: GTL, GBL, G1…, GTS, GTP, GTO, GKO, XLN). Warstwy włączasz i wyłączasz po lewej.
+Files for JLCPCB	Файлы для JLCPCB	Archivos para JLCPCB	Dateien für JLCPCB	Pliki dla JLCPCB
+File…	Файл…	Archivo…	Datei…	Plik…
+Fine-pitch ICs (QFN, QFP, pitch ≤ 0.65 mm)	Микросхемы с мелким шагом (QFN, QFP, шаг ≤ 0.65 мм)	CI de paso fino (QFN, QFP, paso ≤ 0.65 mm)	ICs mit feinem Raster (QFN, QFP, Raster ≤ 0.65 mm)	Układy o drobnym rastrze (QFN, QFP, raster ≤ 0.65 mm)
+Flux and paste or drag-solder; inspect for bridges. Exposed pad — hot air.	Флюс, паяльная паста или волна по выводам; проверить мосты под лупой. Центральную площадку — феном.	Flux y pasta o soldadura por arrastre; revisar puentes con lupa. Pad central — aire caliente.	Flussmittel und Paste oder Schlepplöten; auf Brücken prüfen. Thermal-Pad — Heißluft.	Topnik i pasta lub lutowanie przeciąganiem; sprawdź mostki pod lupą. Pad centralny — gorące powietrze.
+Folder	Папка	Carpeta	Ordner	Folder
+folder	папка	carpeta	Ordner	folder
+footprint differs from JLC: some leads partly outside pads (up to {0} mm)	посадочное место отличается от JLC: выводы частично вне площадок (до {0} мм)	la huella difiere de JLC: algunos terminales quedan en parte fuera de los pads (hasta {0} mm)	Footprint weicht von JLC ab: einige Anschlüsse teils außerhalb der Pads (bis {0} mm)	footprint różni się od JLC: część wyprowadzeń częściowo poza padami (do {0} mm)
+footprint does not fit	посадочное место не подходит	la huella no encaja	Footprint passt nicht	footprint nie pasuje
+footprint is a mirror image of the part package ({0})	посадочное место зеркально корпусу детали ({0})	la huella es la imagen especular del encapsulado de la pieza ({0})	Footprint ist ein Spiegelbild des Bauteilgehäuses ({0})	footprint jest lustrzanym odbiciem obudowy części ({0})
+footprint match	посадка совпадает	huella coincide	Footprint passt	footprint zgodny
+footprint matches by pin numbers	посадочное место совпадает по номерам выводов	la huella coincide por números de pin	Footprint passt nach Pinnummern	footprint zgodny wg numerów pinów
+footprint matches by shape — check the pinout and the mating part	посадочное место совпадает по форме — проверить цоколёвку и ответную часть	la huella coincide por forma — comprobar el pinout y la pieza complementaria	Footprint passt nach Form — Pinbelegung und Gegenstück prüfen	footprint zgodny wg kształtu — sprawdź wyprowadzenia i część współpracującą
+footprint not verified	посадочное место не сверено	huella no verificada	Footprint nicht geprüft	footprint niesprawdzony
+footprint notes	посадка: замечания	huella: observaciones	Footprint: Hinweise	footprint: uwagi
+footprint {0} does not fit package {1}, deviation up to {2} mm	посадочное место {0} не подходит к корпусу {1}, расхождение до {2} мм	la huella {0} no encaja con el encapsulado {1}, desviación de hasta {2} mm	Footprint {0} passt nicht zum Gehäuse {1}, Abweichung bis {2} mm	footprint {0} nie pasuje do obudowy {1}, odchyłka do {2} mm
+footprint {0} has no paste (tCream) — the stencil will not apply paste, check the library	у посадочного места {0} нет пасты (tCream) — трафарет её не нанесёт, проверить библиотеку	la huella {0} no tiene pasta (tCream) — la plantilla no la aplicará, revisar la biblioteca	Footprint {0} hat keine Paste (tCream) — die Schablone trägt keine Paste auf, Bibliothek prüfen	footprint {0} nie ma pasty (tCream) — szablon jej nie nałoży, sprawdź bibliotekę
+footprints	посадочные места	huellas	Footprints	footprinty
+Footprints	Посадочные места	Huellas	Footprints	Footprinty
+Footprints and orientation	Посадочные места и ориентация	Huellas y orientación	Footprints und Ausrichtung	Footprinty i orientacja
+Format	Формат	Formato	Format	Format
+found	найдено	encontradas	gefunden	znalezione
+Free to use with attribution.	Использование бесплатно с указанием автора.	Uso gratuito citando al autor.	Kostenlose Nutzung mit Namensnennung.	Bezpłatne użycie z podaniem autora.
+from attributes	из атрибутов	de atributos	aus Attributen	z atrybutów
+from attributes / import	из атрибутов / импорта	de atributos / importación	aus Attributen / Import	z atrybutów / importu
+Fusion folders restored. Restart Fusion.\nThe copied files remain in:	Папки Fusion возвращены. Перезапустите Fusion.\nСкопированные файлы остались в:	Carpetas de Fusion restauradas. Reinicie Fusion.\nLos archivos copiados siguen en:	Fusion-Ordner wiederhergestellt. Fusion neu starten.\nDie kopierten Dateien bleiben in:	Foldery Fusion przywrócone. Uruchom ponownie Fusion.\nSkopiowane pliki pozostają w:
+Fusion source	Исходный файл Fusion	Origen en Fusion	Fusion-Quelle	Plik źródłowy Fusion
+Fusion's built-in ULPs stay in place	встроенные ULP Fusion остаются на месте	los ULP integrados de Fusion se mantienen	die integrierten ULPs von Fusion bleiben erhalten	wbudowane ULP Fusion pozostają na miejscu
+Gerber	Gerber	Gerber	Gerber	Gerber
+Gerber and drill for JLCPCB (zip + layer previews)	Gerber и сверловка для JLCPCB (архив + превью слоёв)	Gerber y taladrado para JLCPCB (zip + vistas previas de capas)	Gerber und Bohrdaten für JLCPCB (Zip + Lagenvorschau)	Gerber i wiercenie dla JLCPCB (zip + podglądy warstw)
+Gerber archive	Архив Gerber	Archivo Gerber	Gerber-Archiv	Archiwum Gerber
+Gerber for JLCPCB	Gerber для JLCPCB	Gerber para JLCPCB	Gerber für JLCPCB	Gerber dla JLCPCB
+Gerber layers and drilling	Слои Gerber и сверловка	Capas Gerber y taladrado	Gerber-Lagen und Bohrungen	Warstwy Gerber i wiercenie
+Gerber was not exported	Gerber не выгружен	Gerber no exportado	Gerber wurde nicht exportiert	Gerber nie został wyeksportowany
+Handle ESD-sensitive parts with ESD protection.	Компоненты, чувствительные к ESD, — с защитой от статики.	Manipular los componentes sensibles a ESD con protección antiestática.	ESD-empfindliche Bauteile nur mit ESD-Schutz handhaben.	Elementy wrażliwe na ESD — z ochroną antystatyczną.
+Holes	Отверстий	Taladros	Bohrungen	Otwory
+Holes / tools	Отверстий / инструментов	Taladros / herramientas	Bohrungen / Werkzeuge	Otwory / narzędzia
+Hover to explode the layer stack	Наведите курсор — слои раздвинутся	Pase el cursor para separar las capas	Mauszeiger darüber — die Lagen fächern sich auf	Najedź kursorem — warstwy się rozsuną
+Import a finished JLCPCB BOM (optional)	Импорт готовой BOM JLCPCB (необязательно)	Importar una BOM de JLCPCB terminada (opcional)	Fertige JLCPCB-BOM importieren (optional)	Import gotowej BOM JLCPCB (opcjonalnie)
+imported BOM	импорт BOM	BOM importada	importierte BOM	import BOM
+In the JLCPCB preview check rotation of parts listed under Attention.	В предпросмотре JLCPCB проверить поворот деталей из раздела «Внимание».	En la vista previa de JLCPCB, comprobar la rotación de las piezas de la sección «Atención».	In der JLCPCB-Vorschau die Drehung der unter «Achtung» aufgeführten Teile prüfen.	W podglądzie JLCPCB sprawdź obrót części z sekcji «Uwaga».
+Inner copper {0}	Медь, внутренний слой {0}	Cobre interno {0}	Kupfer innen {0}	Miedź wewnętrzna {0}
+Install	Установить	Instalar	Installieren	Zainstaluj
+Installation	Установка	Instalación	Installation	Instalacja
+Installation into Autodesk Fusion:	Установка в Autodesk Fusion:	Instalación en Autodesk Fusion:	Installation in Autodesk Fusion:	Instalacja w Autodesk Fusion:
+Issue	Что не так	Problema	Problem	Problem
+JLC has no footprint model	у JLC нет модели посадочного места	JLC no tiene modelo de huella	JLC hat kein Footprint-Modell	JLC nie ma modelu footprintu
+JLC model has no pads	в модели JLC нет площадок	el modelo de JLC no tiene pads	JLC-Modell hat keine Pads	model JLC nie ma padów
+JLCPCB BOM	BOM JLCPCB	BOM de JLCPCB	JLCPCB-BOM	BOM JLCPCB
+JLCPCB catalogue	каталог JLCPCB	catálogo JLCPCB	JLCPCB-Katalog	katalog JLCPCB
+JLCPCB catalogue did not answer	Каталог JLCPCB не ответил	El catálogo de JLCPCB no respondió	JLCPCB-Katalog hat nicht geantwortet	Katalog JLCPCB nie odpowiedział
+JLCPCB catalogue prices at export time, for {0} boards, without attrition, PCB and assembly cost. Each unique Extended part adds a feeder loading fee ({1}).	Цены каталога JLCPCB на момент выгрузки; плат в заказе: {0}; без запаса на потери, без стоимости платы и монтажа. За каждую уникальную деталь Extended JLCPCB берёт плату за установку катушки ({1}).	Precios del catálogo JLCPCB en el momento de la exportación, para {0} placas, sin margen de pérdidas ni coste de placa y montaje. Cada pieza Extended única añade una tarifa de carga de alimentador ({1}).	JLCPCB-Katalogpreise zum Exportzeitpunkt für {0} Platinen, ohne Ausschusszuschlag, Platinen- und Bestückungskosten. Jedes einzelne Extended-Teil kostet zusätzlich eine Feeder-Rüstgebühr ({1}).	Ceny katalogu JLCPCB w chwili eksportu, płytek w zamówieniu: {0}; bez zapasu na straty, bez kosztu płytki i montażu. Każda unikalna część Extended dodaje opłatę za załadunek podajnika ({1}).
+JLCPCB catalogue: off	каталог JLCPCB: выключен	catálogo JLCPCB: desactivado	JLCPCB-Katalog: aus	katalog JLCPCB: wyłączony
+JLCPCB catalogue: online	каталог JLCPCB: онлайн	catálogo JLCPCB: en línea	JLCPCB-Katalog: online	katalog JLCPCB: online
+Key	Ключ	Marca	Markierung	Klucz
+Key: 1 — pin 1, K — cathode, the arrow shows where it is from the body centre.	Ключ: 1 — вывод 1, K — катод, стрелка — где он от центра корпуса.	Marca: 1 — pin 1, K — cátodo; la flecha indica dónde está respecto al centro del cuerpo.	Markierung: 1 — Pin 1, K — Kathode; der Pfeil zeigt, wo er von der Gehäusemitte aus liegt.	Klucz: 1 — pin 1, K — katoda; strzałka pokazuje, gdzie leży względem środka obudowy.
+Language	Язык	Idioma	Sprache	Język
+Large thermal mass: more heat; electrolytic polarity.	Учесть теплоёмкость: прогрев сильнее, полярность электролитов.	Gran masa térmica: más calor; polaridad de los electrolíticos.	Große Wärmekapazität: mehr Hitze; Polung der Elkos beachten.	Duża pojemność cieplna: mocniej grzać; polaryzacja elektrolitów.
+Layer	Слой	Capa	Lage	Warstwa
+layer PDFs	PDF слоёв	PDF de capas	PDFs der Lagen	PDF warstw
+Layer stack	Стек слоёв	Pila de capas	Lagenaufbau	Stos warstw
+Layers	Слоёв	Capas	Lagen	Warstwy
+LCSC part selection	Подбор номеров LCSC	Selección de piezas LCSC	LCSC-Teileauswahl	Dobór części LCSC
+LCSC_PART attributes written	Атрибутов LCSC_PART записано	Atributos LCSC_PART escritos	LCSC_PART-Attribute geschrieben	Zapisane atrybuty LCSC_PART
+LCSC_PART attributes written: {0}.	Записано атрибутов LCSC_PART: {0}.	Atributos LCSC_PART escritos: {0}.	LCSC_PART-Attribute geschrieben: {0}.	Zapisane atrybuty LCSC_PART: {0}.
+left	слева	izquierda	links	po lewej
+library	в библиотеке	biblioteca	Bibliothek	biblioteka
+Lines without a catalogue price: {0}.	Строк без цены в каталоге: {0}.	Líneas sin precio en el catálogo: {0}.	Zeilen ohne Katalogpreis: {0}.	Pozycje bez ceny w katalogu: {0}.
+Lot	Партия	Lote	Los	Partia
+Manufacturability check	Проверка технологичности	Comprobación de fabricabilidad	Fertigbarkeitsprüfung	Kontrola wykonalności
+Manufacturer	Производитель	Fabricante	Hersteller	Producent
+Manufacturing and assembly documentation package	Комплект документации для изготовления и сборки печатного узла	Documentación para la fabricación y el montaje del circuito impreso	Dokumentation für Fertigung und Bestückung der Baugruppe	Dokumentacja do produkcji i montażu zespołu
+Mask / silkscreen	Маска / шелкография	Máscara / serigrafía	Maske / Bestückungsdruck	Maska / opisy
+match	совпадает	coincide	passt	zgodny
+Matched by	Сверка	Coincidencia	Abgleich nach	Dopasowanie
+Material	Материал	Material	Material	Materiał
+Min capacitor voltage, V	Мин. напряжение конденсаторов, В	Tensión mín. de condensadores, V	Min. Kondensatorspannung, V	Min. napięcie kondensatorów, V
+Min hole	Мин. отверстие	Taladro mín.	Min. Bohrung	Min. otwór
+Min hole size, mm	Мин. отверстие, мм	Taladro mín., mm	Min. Bohrdurchmesser, mm	Min. otwór, mm
+min hole {0} mm is below the standard 0.3 mm for 1–2 layers	мин. отверстие {0} мм меньше стандартных 0.3 мм для 1–2 слоёв	taladro mín. de {0} mm, por debajo del estándar de 0.3 mm para 1–2 capas	min. Bohrung {0} mm liegt unter dem Standard von 0.3 mm für 1–2 Lagen	min. otwór {0} mm jest mniejszy od standardowych 0.3 mm dla 1–2 warstw
+min hole {0} mm — standard	мин. отверстие {0} мм — стандарт	taladro mín. de {0} mm — estándar	min. Bohrung {0} mm — Standard	min. otwór {0} mm — standard
+min hole {0} mm: fine for multilayer, holes below 0.3 mm may raise the price	мин. отверстие {0} мм: допустимо для многослойных, отверстия меньше 0.3 мм могут увеличить цену	taladro mín. de {0} mm: válido para multicapa; los taladros de menos de 0.3 mm pueden encarecer el pedido	min. Bohrung {0} mm: für Mehrlagen zulässig, Bohrungen unter 0.3 mm können den Preis erhöhen	min. otwór {0} mm: dopuszczalny dla wielowarstwowych, otwory poniżej 0.3 mm mogą podnieść cenę
+Min track	Мин. ширина линии	Pista mín.	Min. Leiterbahn	Min. ścieżka
+Min track width, mm	Мин. ширина линии, мм	Ancho mín. de pista, mm	Min. Leiterbahnbreite, mm	Min. szerokość ścieżki, mm
+Mind diode and LED polarity (cathode mark).	Соблюдать полярность диодов и светодиодов (метка катода).	Respetar la polaridad de diodos y LED (marca del cátodo).	Polung von Dioden und LEDs beachten (Kathodenmarkierung).	Pilnuj polaryzacji diod i LED (znacznik katody).
+MIRRORED	ЗЕРКАЛЬНО	ESPEJADO	GESPIEGELT	LUSTRZANIE
+mirrored	зеркально	espejada	gespiegelt	lustrzany
+Most expensive lines	Что дороже всего	Líneas más caras	Teuerste Zeilen	Najdroższe pozycje
+mounting hole / fiducial	крепёжное отверстие / фидуциал	taladro de montaje / fiducial	Befestigungsloch / Passermarke	otwór montażowy / fiducial
+Need	Нужно	Necesario	Bedarf	Potrzeba
+need attention	требуют внимания	requieren atención	brauchen Aufmerksamkeit	wymagają uwagi
+Need attention	Требуют внимания	Requieren atención	Achtung erforderlich	Wymagają uwagi
+No	Нет	No	Nein	Nie
+no answer from EasyEDA	нет ответа от EasyEDA	sin respuesta de EasyEDA	keine Antwort von EasyEDA	brak odpowiedzi z EasyEDA
+no answer from JLCPCB, part number not verified	нет ответа от JLCPCB, номер не проверен	sin respuesta de JLCPCB, número no verificado	keine Antwort von JLCPCB, Teilenummer nicht geprüft	brak odpowiedzi z JLCPCB, numer niesprawdzony
+No issues.	Замечаний нет.	Sin observaciones.	Keine Hinweise.	Brak uwag.
+No output folder.	Не указана папка.	No se ha indicado la carpeta.	Kein Ausgabeordner angegeben.	Nie podano folderu.
+no pads (logo, artwork)	нет площадок (логотип, графика)	sin pads (logotipo, gráfico)	keine Pads (Logo, Grafik)	brak padów (logo, grafika)
+no part number	без номера	sin número	ohne Teilenummer	bez numeru
+no substitute: no in-stock alternative has a compatible footprint	замена не найдена: среди аналогов в наличии нет совместимого посадочного места	sin sustituto: ninguna alternativa en stock tiene una huella compatible	kein Ersatz: keine vorrätige Alternative hat einen kompatiblen Footprint	brak zamiennika: żaden dostępny odpowiednik nie ma zgodnego footprintu
+No substitutes needed.	Замен не потребовалось.	No hicieron falta sustitutos.	Keine Ersatzteile nötig.	Zamienniki nie były potrzebne.
+not applied	не подставлена	no aplicado	nicht übernommen	nie zastosowany
+Not exported to BOM/CPL	Не выгружено в BOM/CPL	No exportado a BOM/CPL	Nicht in BOM/CPL exportiert	Niewyeksportowane do BOM/CPL
+not found	не найден	no encontrado	nicht gefunden	nie znaleziono
+not found by value; MPN attribute {0} not used: the value points to a different part	по номиналу не найден; атрибут MPN {0} не подставлен: номинал указывает на другую деталь	no encontrado por valor; el atributo MPN {0} no se usó: el valor indica otra pieza	nach Wert nicht gefunden; MPN-Attribut {0} nicht verwendet: der Wert verweist auf ein anderes Teil	nie znaleziono wg wartości; atrybut MPN {0} nie użyty: wartość wskazuje inną część
+not in the JLCPCB catalogue	нет в каталоге JLCPCB	no está en el catálogo de JLCPCB	nicht im JLCPCB-Katalog	brak w katalogu JLCPCB
+not mirrored	не зеркально	sin espejar	nicht gespiegelt	nie lustrzanie
+Note	Примечание	Nota	Bemerkung	Uwagi
+Nothing.	Ничего.	Nada.	Nichts.	Nic.
+Offset, mm	Сдвиг, мм	Desplazamiento, mm	Versatz, mm	Przesunięcie, mm
+Open the folder when done	Открыть папку после выгрузки	Abrir la carpeta al terminar	Ordner nach Abschluss öffnen	Otwórz folder po zakończeniu
+Order	Заказ	Pedido	Bestellung	Zamówienie
+Ordering at JLCPCB	Заказ на JLCPCB	Pedido en JLCPCB	Bestellung bei JLCPCB	Zamówienie w JLCPCB
+Original	Было	Original	Original	Oryginał
+Other ICs and transistors (SOIC, SOT, TSSOP)	Прочие микросхемы и транзисторы (SOIC, SOT, TSSOP)	Otros CI y transistores (SOIC, SOT, TSSOP)	Sonstige ICs und Transistoren (SOIC, SOT, TSSOP)	Pozostałe układy i tranzystory (SOIC, SOT, TSSOP)
+Other SMD: 1206+, diodes, LEDs, crystals	Остальные SMD: 1206+, диоды, светодиоды, кварцы	Resto de SMD: 1206+, diodos, LED, cristales	Übrige SMD: 1206+, Dioden, LEDs, Quarze	Pozostałe SMD: 1206+, diody, LED, kwarce
+Outer copper	Медь снаружи	Cobre exterior	Kupfer außen	Miedź zewnętrzna
+Outer copper weight	Медь снаружи	Grosor del cobre exterior	Kupferstärke außen	Grubość miedzi zewnętrznej
+Output	Выгрузка	Salida	Ausgabe	Wyjście
+Output folder	Куда выгружать	Carpeta de salida	Ausgabeordner	Folder wyjściowy
+Overlay	Совмещение	Superposición	Überlagerung	Nałożenie
+Package	Корпус	Encapsulado	Gehäuse	Obudowa
+package folder not found	нет папки пакета	no se encuentra la carpeta del paquete	Paketordner nicht gefunden	nie znaleziono folderu pakietu
+pads without paste (fiducial, jumper, contact pad)	площадки без пасты (фидуциал, перемычка, контактная площадка)	pads sin pasta (fiducial, puente, pad de contacto)	Pads ohne Paste (Passermarke, Brücke, Kontaktfläche)	pady bez pasty (fiducial, zworka, pole kontaktowe)
+Paper: glossy/photo or transfer film; iron 160–180 °C.	Бумага: глянцевая/фото или термотрансферная плёнка; утюг 160–180 °C.	Papel: satinado/fotográfico o film de transferencia; plancha a 160–180 °C.	Papier: Glanz-/Fotopapier oder Transferfolie; Bügeleisen 160–180 °C.	Papier: kredowy/fotograficzny lub folia transferowa; żelazko 160–180 °C.
+Parameter	Параметр	Parámetro	Parameter	Parametr
+part	часть	parte	Teil	część
+Part	Деталь	Pieza	Bauteil	Część
+Part #	Номер	N.º de pieza	Teilenr.	Nr części
+part leads without board pads: {0}	у детали выводы без площадок на плате: {0}	terminales de la pieza sin pad en la placa: {0}	Bauteilanschlüsse ohne Pad auf der Platine: {0}	wyprowadzenia części bez padów na płytce: {0}
+Part number	Номер детали	Número de pieza	Teilenummer	Numer części
+part number taken from MPN attribute {0}	номер взят по атрибуту MPN {0}	número tomado del atributo MPN {0}	Teilenummer aus MPN-Attribut {0} übernommen	numer wzięty z atrybutu MPN {0}
+Parts	Детали	Piezas	Bauteile	Części
+Parts cost (estimate)	Стоимость деталей (оценка)	Coste de piezas (estimación)	Bauteilkosten (Schätzung)	Koszt części (szacunek)
+parts, estimate	детали, оценка	piezas, estimación	Bauteile, Schätzung	części, szacunek
+PCB	Плата	Placa	Platine	Płytka
+PCB fabrication specification	Параметры изготовления платы	Especificación de fabricación de la placa	Fertigungsspezifikation der Platine	Specyfikacja produkcji płytki
+PCB layers	Слои платы	Capas de la placa	Platinenlagen	Warstwy płytki
+PCB order options	Параметры заказа платы	Opciones de pedido de la placa	Bestelloptionen der Platine	Opcje zamówienia płytki
+PCB parameters for the order form	Параметры платы для формы заказа	Parámetros de la placa para el formulario de pedido	Platinenparameter für das Bestellformular	Parametry płytki do formularza zamówienia
+PCB qty	Количество плат	Cantidad de placas	Anzahl Platinen	Liczba płytek
+PCB thickness, mm	Толщина, мм	Grosor de la placa, mm	Platinendicke, mm	Grubość płytki, mm
+PCB: archive	Плата: архив	Placa: archivo	Platine: Archiv	Płytka: archiwum
+pcs	шт	uds.	Stk.	szt.
+PDF of the documentation (via Microsoft Edge)	PDF документации (через Microsoft Edge)	PDF de la documentación (con Microsoft Edge)	PDF der Dokumentation (über Microsoft Edge)	PDF dokumentacji (przez Microsoft Edge)
+per board	на 1 плату	por placa	pro Platine	na płytkę
+Per board	На одну плату	Por placa	Pro Platine	Na płytkę
+phase 2: Fusion export	фаза 2: выгрузка Fusion	fase 2: exportación de Fusion	Phase 2: Fusion-Export	faza 2: eksport Fusion
+pin 1	вывод 1	pin 1	Pin 1	pin 1
+Pin 1 and polarity keys	Ключи и полярность	Marcas de pin 1 y polaridad	Pin-1- und Polaritätsmarkierungen	Klucze pinu 1 i polaryzacji
+pin numbers	по номерам выводов	números de pin	Pinnummern	numery pinów
+pin numbers differ	номера выводов не совпадают	los números de pin no coinciden	Pinnummern stimmen nicht überein	numery pinów się nie zgadzają
+Placement	Расстановка	Colocación	Platzierung	Rozmieszczenie
+polar part rotated by {0}° from pad numbers 1/2 — two-pin libraries number pads differently, check the polarity mark in the preview	полярная деталь развёрнута на {0}° по номерам площадок 1/2 — у двухвыводных деталей нумерация в библиотеках бывает разной, проверить метку полярности в предпросмотре	pieza polarizada girada {0}° según los números de pad 1/2 — las bibliotecas numeran de forma distinta los componentes de dos terminales, comprobar la marca de polaridad en la vista previa	gepoltes Bauteil um {0}° gedreht nach Padnummern 1/2 — zweipolige Bibliotheken nummerieren Pads unterschiedlich, Polaritätsmarkierung in der Vorschau prüfen	część biegunowa obrócona o {0}° wg numerów padów 1/2 — biblioteki elementów dwuwyprowadzeniowych numerują pady różnie, sprawdź znacznik polaryzacji w podglądzie
+polarity cannot be derived from the shape — check in the JLCPCB preview	полярность по форме не определить — проверить в предпросмотре	la polaridad no se deduce de la forma — comprobar en la vista previa de JLCPCB	Polarität lässt sich aus der Form nicht ableiten — in der JLCPCB-Vorschau prüfen	polaryzacji nie da się ustalić z kształtu — sprawdź w podglądzie JLCPCB
+Prefer Basic/Preferred (no feeder fee)	Предпочитать Basic/Preferred (без платы за катушку)	Preferir Basic/Preferred (sin tarifa de alimentador)	Basic/Preferred bevorzugen (ohne Feeder-Gebühr)	Preferuj Basic/Preferred (bez opłaty za podajnik)
+Print on a laser printer at 100% / Actual size. Never use Fit to page.	Печатать на лазерном принтере в масштабе 100% («Фактический размер»). «Вписать в страницу» не включать.	Imprimir en impresora láser al 100% («Tamaño real»). No usar nunca «Ajustar a la página».	Mit einem Laserdrucker in 100% («Tatsächliche Größe») drucken. Niemals «An Seite anpassen» verwenden.	Drukuj na drukarce laserowej w skali 100% («Rzeczywisty rozmiar»). Nigdy nie włączaj «Dopasuj do strony».
+Product	Изделие	Producto	Produkt	Wyrób
+Production package	Производственный пакет	Paquete de fabricación	Fertigungspaket	Pakiet produkcyjny
+Production report	Производственный отчёт	Informe de fabricación	Fertigungsbericht	Raport produkcyjny
+Qty	Шт	Cant.	Anz.	Szt.
+Quantity	Количество	Cantidad	Menge	Ilość
+Reason	Причина	Motivo	Grund	Powód
+Reference designators per schematic; dot marks pin 1 or cathode.	Позиционные обозначения — по схеме; ключ (точка) — вывод 1 или катод.	Designadores según el esquema; el punto marca el pin 1 o el cátodo.	Referenzbezeichner nach Schaltplan; der Punkt markiert Pin 1 oder die Kathode.	Oznaczenia wg schematu; kropka oznacza pin 1 lub katodę.
+Remove	Удалить	Quitar	Entfernen	Usuń
+report	отчёт	informe	Bericht	raport
+Report	Отчёт	Informe	Bericht	Raport
+request {0} of {1}	запрос {0} из {1}	consulta {0} de {1}	Anfrage {0} von {1}	zapytanie {0} z {1}
+Restart Fusion after installing.	После установки перезапустите Fusion.	Reinicie Fusion después de instalar.	Starten Sie Fusion nach der Installation neu.	Po instalacji uruchom ponownie Fusion.
+Result	Итог	Resultado	Ergebnis	Wynik
+Rev	Ред.	Rev.	Rev.	Wyd.
+Revision	Редакция	Revisión	Revision	Wydanie
+right	справа	derecha	rechts	po prawej
+Rotation	Поворот	Rotación	Drehung	Obrót
+rotation offset {0} from attribute/map replaced by computed {1}	поправка поворота {0} из атрибута или файла заменена расчётной {1}	la corrección de rotación {0} del atributo o archivo se sustituyó por la calculada {1}	Drehkorrektur {0} aus Attribut/Datei durch berechnete {1} ersetzt	korekta obrotu {0} z atrybutu lub pliku zastąpiona obliczoną {1}
+Run dmxON FabKit from the board editor.	Запустите dmxON FabKit из редактора платы.	Ejecute dmxON FabKit desde el editor de placas.	dmxON FabKit im Board-Editor starten.	Uruchom dmxON FabKit z edytora płytki.
+Scale	Масштаб	Escala	Maßstab	Skala
+schematic	на схеме	esquema	Schaltplan	schemat
+Search the JLCPCB catalogue (online)	Искать в каталоге JLCPCB (нужен интернет)	Buscar en el catálogo de JLCPCB (en línea)	Im JLCPCB-Katalog suchen (online)	Szukaj w katalogu JLCPCB (online)
+searching substitutes	поиск замен	buscando sustitutos	Ersatzteilsuche	szukanie zamienników
+see drawing	см. чертёж	ver plano	siehe Zeichnung	patrz rysunek
+shape	по форме	forma	Form	kształt
+shape matches but pin numbers do not — check the pinout	по форме посадочное место совпадает, а номера выводов нет — проверить цоколёвку	la forma coincide pero los números de pin no — comprobar el pinout	Form passt, Pinnummern nicht — Pinbelegung prüfen	kształt się zgadza, a numery pinów nie — sprawdź wyprowadzenia
+Share	Доля	Proporción	Anteil	Udział
+Shared by all boards	Общие для всех плат	Comunes a todas las placas	Für alle Platinen	Wspólne dla wszystkich płytek
+Sheet	Лист	Hoja	Blatt	Arkusz
+Sheets	Листов	Hojas	Blätter	Arkuszy
+Sheets are built from the same Gerber files the factory gets: copper pours, clearances and cut-outs are exact. White dots mark drill centres.	Листы построены из тех же Gerber, что уходят на завод: заливки, зазоры и вырезы — точные. Белые точки — центры отверстий для сверла.	Las hojas se generan a partir de los mismos Gerber que van a la fábrica: rellenos de cobre, separaciones y recortes son exactos. Los puntos blancos marcan los centros de los taladros.	Die Blätter entstehen aus denselben Gerber-Dateien wie für die Fertigung: Kupferflächen, Abstände und Aussparungen sind exakt. Weiße Punkte markieren die Bohrmitten.	Arkusze powstają z tych samych plików Gerber, które trafiają do fabryki: wylewki, odstępy i wycięcia są dokładne. Białe kropki to środki otworów do wiercenia.
+Silkscreen	Шелкография	Serigrafía	Bestückungsdruck	Opisy (sitodruk)
+Size	Размер	Tamaño	Größe	Rozmiar
+Size, mm	Размер, мм	Tamaño, mm	Größe, mm	Wymiary, mm
+Skip designators	Не выгружать обозначения	Omitir designadores	Bezeichner auslassen	Pomiń oznaczenia
+Small passives (0201–0805)	Мелкие пассивные компоненты (0201–0805)	Pasivos pequeños (0201–0805)	Kleine passive Bauteile (0201–0805)	Małe elementy bierne (0201–0805)
+solder jumper / test point	паяная перемычка / тестовая точка	puente de soldadura / punto de prueba	Lötbrücke / Testpunkt	zworka lutowana / punkt testowy
+Solder mask	Цвет маски	Máscara de soldadura	Lötstoppmaske	Maska lutownicza
+Solder mask colour	Цвет маски	Color de la máscara	Farbe der Lötstoppmaske	Kolor maski
+Solder the side with fewer and lighter parts first.	Паяйте первой сторону с меньшим числом и массой деталей.	Suelde primero la cara con menos piezas y más ligeras.	Zuerst die Seite mit weniger und leichteren Bauteilen löten.	Najpierw lutuj stronę z mniejszą liczbą i masą części.
+Soldering order per the Soldering order sheets. Clean flux residue.	Порядок пайки — по листам «Порядок пайки». Отмыть флюс после пайки.	Orden de soldadura según las hojas «Orden de soldadura». Limpiar los restos de flux.	Lötreihenfolge gemäß den Blättern «Lötreihenfolge». Flussmittelreste entfernen.	Kolejność lutowania wg arkuszy «Kolejność lutowania». Zmyć resztki topnika.
+Soldering order — step {0} of {1}	Порядок пайки — шаг {0} из {1}	Orden de soldadura — paso {0} de {1}	Lötreihenfolge — Schritt {0} von {1}	Kolejność lutowania — krok {0} z {1}
+Source	Откуда	Origen	Quelle	Źródło
+Stock	Склад	Stock	Lager	Magazyn
+stock {0} < needed {1}	склад {0} < нужно {1}	stock {0} < necesario {1}	Lager {0} < benötigt {1}	magazyn {0} < potrzeba {1}
+stock {0} of {1}	на складе {0} из {1}	en stock {0} de {1}	Lager {0} von {1}	w magazynie {0} z {1}
+substitute	замена	sustituto	Ersatzteil	zamiennik
+Substitute	Замена	Sustituto	Ersatzteil	Zamiennik
+SUBSTITUTE	ЗАМЕНА	SUSTITUTO	ERSATZ	ZAMIENNIK
+substitutes	замены	sustitutos	Ersatzteile	zamienniki
+Substitutes	Замены	Sustitutos	Ersatzteile	Zamienniki
+Substitutes (JLCPCB catalogue alternatives)	Замены (аналоги из каталога JLCPCB)	Sustitutos (alternativas del catálogo JLCPCB)	Ersatzteile (Alternativen aus dem JLCPCB-Katalog)	Zamienniki (odpowiedniki z katalogu JLCPCB)
+Support the project	Поддержите проект	Apoye el proyecto	Projekt unterstützen	Wesprzyj projekt
+Surface finish	Покрытие	Acabado superficial	Oberfläche	Wykończenie powierzchni
+Tack one pin, align to the pin-1 key, then solder the rest.	Сначала прихватить один вывод, выровнять по ключу, затем пропаять остальные.	Fijar un pin, alinear con la marca del pin 1 y soldar el resto.	Einen Pin anheften, an der Pin-1-Markierung ausrichten, dann den Rest löten.	Przylutuj jeden pin, wyrównaj do klucza pinu 1, potem lutuj resztę.
+Technical requirements	Технические требования	Requisitos técnicos	Technische Anforderungen	Wymagania techniczne
+The board has {0} copper layers: at home only double-sided boards can be made — these sheets cover the outer layers only (for reference or a simplified prototype).	Слоёв меди у платы: {0}. Дома делаются только двусторонние платы — листы только для внешних слоёв (для справки или упрощённого макета).	La placa tiene {0} capas de cobre: en casa solo se hacen placas de doble cara — estas hojas cubren solo las capas exteriores (como referencia o para un prototipo simplificado).	Die Platine hat {0} Kupferlagen: zu Hause lassen sich nur doppelseitige Platinen herstellen — diese Blätter decken nur die Außenlagen ab (zur Orientierung oder für einen vereinfachten Prototyp).	Warstw miedzi na płytce: {0} — w domu da się wykonać tylko płytki dwustronne, arkusze obejmują tylko warstwy zewnętrzne (poglądowo lub do uproszczonego prototypu).
+The folder exists and was not created by FabKit:	Папка уже есть и создана не FabKit:	La carpeta ya existe y no la creó FabKit:	Der Ordner existiert und wurde nicht von FabKit angelegt:	Folder już istnieje i nie został utworzony przez FabKit:
+the folder is added to Fusion's ULP list — <b>{0}</b> appears in Automation → Run ULP	папка добавляется в список ULP Fusion — <b>{0}</b> появится в Automation → Run ULP	la carpeta se añade a la lista de ULP de Fusion — <b>{0}</b> aparece en Automation → Run ULP	der Ordner wird der ULP-Liste von Fusion hinzugefügt — <b>{0}</b> erscheint unter Automation → Run ULP	folder zostaje dodany do listy ULP Fusion — <b>{0}</b> pojawi się w Automation → Run ULP
+The package goes to «{0}». A previous package of this board is replaced completely.	Пакет создаётся в подпапке «{0}». Прежний пакет этой платы удаляется целиком.	El paquete se crea en «{0}». El paquete anterior de esta placa se sustituye por completo.	Das Paket wird in «{0}» angelegt. Ein früheres Paket dieser Platine wird vollständig ersetzt.	Pakiet trafia do «{0}». Poprzedni pakiet tej płytki jest zastępowany w całości.
+the project is copied to <tt>{0}</tt>	проект копируется в <tt>{0}</tt>	el proyecto se copia en <tt>{0}</tt>	das Projekt wird nach <tt>{0}</tt> kopiert	projekt zostaje skopiowany do <tt>{0}</tt>
+Thickness, mm	Толщина, мм	Espesor, mm	Dicke, mm	Grubość, mm
+Through-hole	Выводных	Pasantes (THT)	Bedrahtet (THT)	Przewlekane (THT)
+Through-hole (THT) parts	Выводные (THT) детали	Componentes pasantes (THT)	Bedrahtete Bauteile (THT)	Elementy przewlekane (THT)
+through-hole part (THT disabled)	выводная деталь (THT выключены)	componente pasante (THT desactivado)	bedrahtetes Bauteil (THT ausgeschaltet)	element przewlekany (THT wyłączone)
+Through-hole parts (THT) — last	Выводные компоненты (THT) — в последнюю очередь	Componentes pasantes (THT) — al final	Bedrahtete Bauteile (THT) — zuletzt	Elementy przewlekane (THT) — na końcu
+THT parts last, after cleaning SMD; low parts before tall ones.	Выводные — последними, после отмывки SMD; низкие раньше высоких.	Los THT al final, tras limpiar los SMD; los bajos antes que los altos.	THT-Teile zuletzt, nach dem Reinigen der SMD; niedrige vor hohen.	THT na końcu, po umyciu SMD; niskie przed wysokimi.
+Title	Штамп	Cajetín	Schriftfeld	Tabliczka
+Title block fields are editable here, then Ctrl+P → Save as PDF (A4 landscape, margins: none)	Поля штампа можно править прямо здесь, затем Ctrl+P → Сохранить как PDF (A4 альбомная, поля: нет)	Los campos del cajetín se pueden editar aquí; luego Ctrl+P → Guardar como PDF (A4 horizontal, márgenes: ninguno)	Die Felder des Schriftfelds sind hier editierbar, dann Strg+P → Als PDF speichern (A4 quer, Ränder: keine)	Pola tabliczki można edytować tutaj, potem Ctrl+P → Zapisz jako PDF (A4 poziomo, marginesy: brak)
+Toner transfer 1:1	ЛУТ 1:1	Transferencia de tóner 1:1	Tonertransfer 1:1	Termotransfer 1:1
+Toner transfer prints, scale 1:1	Листы для ЛУТ, масштаб 1:1	Hojas para transferencia de tóner, escala 1:1	Blätter für Tonertransfer, Maßstab 1:1	Arkusze do termotransferu, skala 1:1
+Tool	Инструмент	Herramienta	Werkzeug	Narzędzie
+top	верх	arriba	oben	na górze
+Top	Верх	Superior	Oberseite	Góra
+top / bottom	сверху / снизу	arriba / abajo	oben / unten	góra / dół
+Top copper	Медь, верх	Cobre superior	Kupfer oben	Miedź górna
+Top paste (stencil)	Паста (трафарет), верх	Pasta superior (plantilla)	Lotpaste oben (Schablone)	Pasta górna (szablon)
+TOP sheets are already mirrored: after ironing the image reads correctly on the board.	Листы TOP уже зеркальные: после переноса утюгом изображение на плате читается правильно.	Las hojas TOP ya están espejadas: tras transferir con la plancha, la imagen se lee correctamente en la placa.	TOP-Blätter sind bereits gespiegelt: nach dem Aufbügeln ist das Bild auf der Platine richtig lesbar.	Arkusze TOP są już lustrzane: po przeniesieniu żelazkiem obraz na płytce czyta się prawidłowo.
+Top side	Верхняя сторона	Cara superior	Oberseite	Strona górna
+Top silkscreen	Шелкография, верх	Serigrafía superior	Bestückungsdruck oben	Opisy (sitodruk) górne
+Top solder mask	Паяльная маска, верх	Máscara de soldadura superior	Lötstoppmaske oben	Maska lutownicza górna
+Top solder mask (UV): openings black	Маска (УФ), верх: вскрытия чёрные	Máscara superior (UV): aperturas en negro	Lötstoppmaske oben (UV): Öffnungen schwarz	Maska górna (UV): otwarcia czarne
+top-left	слева сверху	arriba a la izquierda	oben links	na górze po lewej
+top-right	справа сверху	arriba a la derecha	oben rechts	na górze po prawej
+Total	Итого	Total	Gesamt	Razem
+track width from {0} mm — at the capability limit	ширина линий от {0} мм — на пределе возможностей	ancho de pista desde {0} mm — en el límite de capacidad	Leiterbahnbreite ab {0} mm — an der Fertigungsgrenze	szerokość ścieżek od {0} mm — na granicy możliwości
+track width from {0} mm — standard	ширина линий от {0} мм — стандарт	ancho de pista desde {0} mm — estándar	Leiterbahnbreite ab {0} mm — Standard	szerokość ścieżek od {0} mm — standard
+track width {0} mm is below the {1} mm minimum	ширина линий {0} мм меньше допустимой {1} мм	ancho de pista de {0} mm, por debajo del mínimo de {1} mm	Leiterbahnbreite {0} mm liegt unter dem Minimum von {1} mm	szerokość ścieżki {0} mm poniżej minimum {1} mm
+Tweezers and a fine tip; tack one side, then the other.	Пинцет и тонкое жало; одна сторона — прихват, затем вторая.	Pinzas y punta fina; fijar un lado y luego el otro.	Pinzette und feine Spitze; erst eine Seite anheften, dann die andere.	Pinceta i cienki grot; najpierw jedna strona, potem druga.
+Type	Тип	Tipo	Typ	Typ
+Unique parts	Позиций BOM	Piezas únicas	Einzelne Teile	Unikalne części
+Unit	Цена	Precio unit.	Stückpreis	Cena jedn.
+Used in the report, the order parameters and the board render.	Используется в отчёте, в параметрах заказа и для вида платы.	Se usa en el informe, en los parámetros del pedido y en la vista de la placa.	Wird im Bericht, in den Bestellparametern und in der Platinenansicht verwendet.	Używane w raporcie, parametrach zamówienia i widoku płytki.
+value	номинал	valor	Wert	wartość
+Value	Номинал	Valor	Wert	Wartość
+Verify footprints against JLC; CPL rotation and centre from them	Сверять посадочные места с JLC; поворот и центр в CPL — по ним	Verificar huellas con JLC; rotación y centro del CPL a partir de ellas	Footprints mit JLC abgleichen; Drehung und Mitte im CPL danach	Sprawdzaj footprinty z JLC; obrót i środek w CPL wg nich
+Version	Версия	Versión	Version	Wersja
+View	Вид	Vista	Ansicht	Widok
+WARNING	ВНИМАНИЕ	ATENCIÓN	ACHTUNG	UWAGA
+What goes into BOM/CPL	Что выгружать в BOM/CPL	Qué va al BOM/CPL	Was in BOM/CPL kommt	Co trafia do BOM/CPL
+What to build	Что создать	Qué crear	Was erstellen	Co utworzyć
+What to upload	Что загрузить	Qué subir	Was hochladen	Co wgrać
+Where	Куда	Dónde	Wohin	Gdzie
+Write part numbers to LCSC_PART attributes	Записать номера в атрибуты LCSC_PART на плате	Escribir los números en atributos LCSC_PART	Teilenummern in LCSC_PART-Attribute schreiben	Zapisz numery w atrybutach LCSC_PART
+Yes	Да	Sí	Ja	Tak
+{0} apertures · {1} lines · {2} flashes	апертур: {0} · линий: {1} · вспышек: {2}	{0} aperturas · {1} líneas · {2} destellos	{0} Blenden · {1} Linien · {2} Blitze	apertury: {0} · linie: {1} · flashe: {2}
+{0} copper strokes thinner than 0.05 mm (artwork, logo) will not be reproduced	штрихов меди тоньше 0.05 мм (графика, логотип): {0} — изготовлены не будут	{0} trazos de cobre de menos de 0.05 mm (gráfico, logotipo) no se fabricarán	{0} Kupferstriche dünner als 0.05 mm (Grafik, Logo) werden nicht gefertigt	kreski miedzi cieńsze niż 0.05 mm (grafika, logo): {0} — nie zostaną wykonane
+{0} files, {1} copper layers	файлов: {0}, слоёв меди: {1}	{0} archivos, {1} capas de cobre	{0} Dateien, {1} Kupferlagen	plików: {0}, warstw miedzi: {1}
+{0} is not in the JLCPCB catalogue	номер {0} не найден в каталоге JLCPCB	{0} no está en el catálogo de JLCPCB	{0} ist nicht im JLCPCB-Katalog	{0} nie ma w katalogu JLCPCB
+{0} is outside the board outline	{0} за контуром платы	{0} está fuera del contorno de la placa	{0} liegt außerhalb der Platinenkontur	{0} jest poza obrysem płytki
+{0} is rated {1} V, {2} V required	{0} на {1} В, нужно {2} В	{0} es de {1} V, se requieren {2} V	{0} ist für {1} V ausgelegt, {2} V erforderlich	{0} na {1} V, wymagane {2} V
+{0} regions	областей: {0}	{0} regiones	{0} Regionen	regiony: {0}
+{0} requests via curl...	запросов через curl: {0}...	{0} consultas mediante curl...	{0} Anfragen über curl...	zapytania przez curl: {0}...
+{0} tools · {1} holes	инструментов: {0} · отверстий: {1}	{0} herramientas · {1} taladros	{0} Werkzeuge · {1} Bohrungen	narzędzia: {0} · otwory: {1}
+{0}, but the value is {1}	{0}, а номинал {1}	{0}, pero el valor es {1}	{0}, aber der Wert ist {1}	{0}, a wartość to {1}
+{0}; no replacement by value, kept {1}	{0}; по номиналу замена не найдена, оставлен {1}	{0}; no hay sustituto por valor, se mantiene {1}	{0}; kein Ersatz nach Wert gefunden, {1} beibehalten	{0}; brak zamiennika wg wartości, pozostawiono {1}

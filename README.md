@@ -15,7 +15,11 @@
 </p>
 
 <p align="center">
-  <b>English</b> · <a href="README.ru.md">Русский</a> &nbsp;|&nbsp;
+  <b>English</b> · <a href="README.ru.md">Русский</a> · <a href="README.es.md">Español</a> · <a href="README.de.md">Deutsch</a> · <a href="README.pl.md">Polski</a>
+</p>
+
+<p align="center">
+  <a href="#installation">Installation</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#compatibility">Compatibility</a> ·
   <a href="#output">Output</a> ·
@@ -44,7 +48,7 @@
 | 📄 | **A4 documentation** for manual assembly: cover, fabrication spec, layers, assembly drawings at standard scale, step-by-step soldering order, IC keys, BOM; editable title block; PDF |
 | 🖨️ | **Toner transfer 1:1**: a PDF per layer (copper, silkscreen, mask, drill), top sheets mirrored, a 50 mm bar to check the scale |
 | 📥 | **Import a finished JLCPCB BOM** (xlsx, csv or text from the order page) — your verified part numbers win |
-| 🌐 | Everything in **English and Russian** |
+| 🌐 | **5 languages**: English, Russian, Spanish, German, Polish — the dialog, the report and all documents in the language you pick |
 
 ---
 
@@ -53,7 +57,7 @@
 | | dmxON FabKit |
 |---|---|
 | **Autodesk Fusion (Electronics), Windows 10/11** | ✅ tested on Fusion **2705.1.11** (October 2026) |
-| Autodesk Fusion on macOS | ❌ uses Windows tools (`curl.exe`, `tar.exe`, Windows Script Host, Microsoft Edge) |
+| Autodesk Fusion on macOS | ❌ uses Windows tools (`curl.exe`, `tar.exe`, `robocopy`, Windows Script Host, Microsoft Edge) |
 | EAGLE 9.x | ❌ needs Fusion's `MANUFACTURING EXPORT` command for Gerber |
 | KiCad, Altium, EasyEDA | ❌ |
 
@@ -63,26 +67,29 @@ Also needed: **Microsoft Edge** (built into Windows) for PDFs; internet for the 
 
 ## Installation
 
-1. [**Download `dmxON-FabKit.zip`**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) and unpack it anywhere, e.g. `Documents\dmxON-FabKit`.
-2. Keep the layout: `dmxON_FabKit.ulp` loads its modules from `lib\` and settings from `config\` next to it.
-3. Optional: add the folder to **Electronics → Preferences → Directories → ULPs**.
+1. [**Download `dmxON-FabKit.zip`**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) and unpack it anywhere.
+2. In Fusion Electronics: **Automation → Run ULP → `INSTALL.ulp`** from the unpacked folder, choose the language and press **Install**.
+3. **Restart Fusion.** `dmxON_FabKit` now sits in the **Run ULP** list next to the built-in ULPs — its own folder `Documents\dmxON\dmxON-FabKit` comes first, Fusion's built-in ULPs stay where they are.
+
+The installer copies the project to `Documents\dmxON\dmxON-FabKit` and adds that folder to Fusion's ULP directories through Fusion's own settings. Running `INSTALL.ulp` again updates the files; **Remove** gives Fusion its previous folders back. Manual alternative: keep the unpacked folder intact (`dmxON_FabKit.ulp` loads `lib\` and `config\` next to it) and run it with `RUN 'C:/path/dmxON_FabKit.ulp'`.
 
 ---
 
 ## Quick start
 
 1. Open the **board** in Fusion Electronics and **save it** (Ctrl+S) — Fusion exports Gerber from the last saved version.
-2. Run **Automation → Run ULP → `dmxON_FabKit.ulp`** or type `RUN 'C:/path/dmxON_FabKit.ulp'`.
-3. Choose the folder in the dialog and press **Build package**.
+2. Run **Automation → Run ULP → `dmxON_FabKit`**.
+3. Pick the **language** in the top-right corner of the dialog (English by default), choose the folder and press **Build package**.
 4. Fusion may show a **CAM Export File List** window — press **OK** (that is the regular Gerber export).
 5. About a minute later the package folder opens. Start with `index.html`.
 
-Tip: run [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) first — it sets up JLCPCB design rules and the layer stack-up, and passes the board thickness and mask colour to FabKit.
+Tip: run [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) first — it sets up JLCPCB design rules and the layer stack-up, and passes the board thickness and mask colour to FabKit. Both tools share the language setting.
 
 ### The dialog
 
 | Tab | What it sets |
 |---|---|
+| **Language** (top right) | English, Русский, Español, Deutsch, Polski — the dialog switches at once; the report and documents are written in the same language |
 | **Output** | folder; what to build: Gerber, A4 docs, PDF, toner sheets; what goes into BOM/CPL: THT, pad centre, skipped designators |
 | **Parts** | catalogue search, Basic/Preferred, substitutes, footprint check, attribute re-check, writing `LCSC_PART`, board quantity, minimum capacitor voltage, feeder fee, BOM import |
 | **PCB** | thickness, mask and silkscreen colour, finish — for the report, the order form and the render |
@@ -140,12 +147,13 @@ Sheets are built from **the same Gerber files** the factory gets: pours, clearan
 ## Batch mode
 
 ```
-RUN dmxON_FabKit.ulp -batch <folder> [-offline] [-boards N] [-import file] [-nogerber] [-nodocs] [-notoner] [-nopdf] [-keep]
+RUN dmxON_FabKit.ulp -batch <folder> [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import file] [-nogerber] [-nodocs] [-notoner] [-nopdf] [-keep]
 ```
 
 | Flag | Meaning |
 |---|---|
 | `-batch <folder>` | no dialog, into this folder, no attribute writes |
+| `-lang <code>` | language of the report and documents (default: the language last picked in the dialog) |
 | `-offline` | no catalogue and EasyEDA |
 | `-boards N` | boards in the order |
 | `-import <file>` | JLCPCB BOM (xlsx/csv/txt) |
@@ -158,6 +166,7 @@ RUN dmxON_FabKit.ulp -batch <folder> [-offline] [-boards N] [-import file] [-nog
 
 | Symptom | What to do |
 |---|---|
+| `dmxON_FabKit` is not in the Run ULP list after installing | restart Fusion — it reads its folder list at start-up |
 | **CAM Export File List** window | press **OK**: Fusion asks to confirm the Gerber export |
 | «Your PCB design has changed. CAM output is generated using the last saved version» | press **Cancel**, save the board (Ctrl+S) and run FabKit again — otherwise Gerber is made from the old saved version (for example without new design rules) |
 | «catalogue did not answer» | check internet and proxy; the package is still built offline |
@@ -168,13 +177,13 @@ RUN dmxON_FabKit.ulp -batch <folder> [-offline] [-boards N] [-import file] [-nog
 
 ## How it works
 
-Phase 1 (ULP) analyses the board and writes BOM/CPL and drafts, phase 2 (Fusion commands) runs `MANUFACTURING EXPORT`, phase 3 (the same ULP with `-finish`) builds Gerber, previews, report, documentation and toner sheets. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · changelog: [CHANGELOG.md](CHANGELOG.md).
+Phase 1 (ULP) analyses the board and writes BOM/CPL and drafts, phase 2 (Fusion commands) runs `MANUFACTURING EXPORT`, phase 3 (the same ULP with `-finish`) builds Gerber, previews, report, documentation and toner sheets. Texts in Spanish, German and Polish come from `lib/fk_lang.ulp`, generated from `lang/strings.tsv`. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · changelog: [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
 ## Support the project
 
-dmxON FabKit is **free**. Behind it are weeks of work: a Gerber and Excellon parser, part selection against the JLCPCB catalogue, footprint matching, documentation and real orders checked against it. If it saved you an evening of preparing a JLCPCB order, a wrong part or a failed assembly — please support further development: new versions, catalogue changes at JLCPCB and fixes for new Fusion releases.
+dmxON FabKit is **free**. Behind it are weeks of work: a Gerber and Excellon parser, part selection against the JLCPCB catalogue, footprint matching, documentation in five languages and real orders checked against it. If it saved you an evening of preparing a JLCPCB order, a wrong part or a failed assembly — please support further development: new versions, catalogue changes at JLCPCB and fixes for new Fusion releases.
 
 <p align="center">
   <a href="https://www.paypal.com/donate/?business=smith.show2025%40gmail.com&no_recurring=0&item_name=dmxON+FabKit&currency_code=EUR"><img src="docs/assets/donate.svg" alt="Support dmxON FabKit with PayPal" width="760"></a>

@@ -1,118 +1,101 @@
-# История версий / Changelog
+# Changelog
 
-Версия меняется при каждой переделке: `FK_VERSION` и `FK_DATE` в `lib/fk_core.ulp`, файл `VERSION` и запись здесь.
 The version is bumped on every change: `FK_VERSION` and `FK_DATE` in `lib/fk_core.ulp`, the `VERSION` file and an entry here.
+Numbering: `MAJOR.MINOR.PATCH` — new feature → MINOR, fix → PATCH.
 
-Нумерация / Numbering: `MAJOR.MINOR.PATCH` — новая возможность → MINOR, исправление → PATCH.
-New feature → MINOR, fix → PATCH.
+---
+
+## 2.1.0 — 2026-10-13
+
+**New**
+
+- **Five languages, one at a time.** The dialog, the report, the A4 documentation, the toner-transfer sheets and the start page now come out in a single language — English (default), Russian, Spanish, German or Polish — instead of Russian with English subtitles. The language is picked in the top-right corner of the dialog and switches it at once; dmxON JLC Rules uses the same setting.
+- `-lang en|ru|es|de|pl` for batch mode.
+- **`INSTALL.ulp`** — copies FabKit to `Documents\dmxON\dmxON-FabKit` and adds the folder to Fusion's ULP directories through Fusion's own settings, so `dmxON_FabKit` is in the Run ULP list after a restart. **Remove** restores the previous folders (shared with the dmxON JLC Rules installer).
+- Translation table `lang/strings.tsv` → `lib/fk_lang.ulp` (Spanish, German, Polish), keyed by the English text.
+- README in English, Russian, Spanish, German and Polish; a donation card for each language.
+
+**Changed**
+
+- BOM notes are stored once, in the selected language; warnings are tracked by a flag instead of searching the text for «WARNING».
+- Changelog, license and architecture notes are in English only.
 
 ---
 
 ## 2.0.5 — 2026-10-13
 
-**Изменено / Changed**
+**Changed**
 
-- Репозиторий переименован в **dmxON-FabKit-Fusion-Electronics** — так его проще найти по запросу «Fusion Electronics». Ссылки в программе и документации обновлены; старые адреса GitHub перенаправляет сам.
-  The repository is renamed to **dmxON-FabKit-Fusion-Electronics** so it is easier to find when searching for «Fusion Electronics». Links in the program and docs are updated; GitHub redirects the old addresses.
+- The repository is renamed to **dmxON-FabKit-Fusion-Electronics** so it is easier to find when searching for «Fusion Electronics». Links in the program and docs are updated; GitHub redirects the old addresses.
 
 ---
 
 ## 2.0.4 — 2026-10-13
 
-**Изменено / Changed**
+**Changed**
 
-- Вкладка «Инфо»: ссылки на GitHub и на поддержку проекта (PayPal); ссылки открываются в браузере.
-  About tab: links to GitHub and to supporting the project (PayPal); links open in the browser.
-- README на английском (главная страница) и на русском (`README.ru.md`): баннер, значки версии и скачиваний, кнопка «Скачать», таблица совместимости. Исправлено: FabKit работает только во Fusion — в EAGLE 9 нет команды `MANUFACTURING EXPORT`.
-  README in English (main page) and Russian (`README.ru.md`): banner, version and download badges, a Download button, a compatibility table. Fixed: FabKit runs in Fusion only — EAGLE 9 has no `MANUFACTURING EXPORT` command.
-- README: перед запуском сохраните плату — Gerber Fusion делает из последней сохранённой версии; что ответить на вопрос Fusion «Your PCB design has changed…».
-  README: save the board before running — Fusion exports Gerber from the last saved version; what to answer to Fusion's «Your PCB design has changed…».
-- В релизе — готовый архив `dmxON-FabKit.zip` (постоянная ссылка на последнюю версию).
-  Releases carry a ready `dmxON-FabKit.zip` (a permanent link to the latest version).
+- About tab: links to GitHub and to supporting the project (PayPal); links open in the browser.
+- README in English (main page) and Russian (`README.ru.md`): banner, version and download badges, a Download button, a compatibility table. Fixed: FabKit runs in Fusion only — EAGLE 9 has no `MANUFACTURING EXPORT` command.
+- README: save the board before running — Fusion exports Gerber from the last saved version; what to answer to Fusion's «Your PCB design has changed…».
+- Releases carry a ready `dmxON-FabKit.zip` (a permanent link to the latest version).
 
 ---
 
 ## 2.0.3 — 2026-10-12
 
-**Документация / Documentation**
+**Documentation**
 
-- README: ссылка на сопутствующий проект [dmxON JLC Rules](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) — правила JLCPCB для 2, 4, 6 и 8 слоёв и настройщик платы.
-  README: a link to the companion project dmxON JLC Rules — JLCPCB rules for 2, 4, 6 and 8 layers and a board setup.
+- README: a link to the companion project [dmxON JLC Rules](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) — JLCPCB rules for 2, 4, 6 and 8 layers and a board setup.
 
 ---
 
 ## 2.0.2 — 2026-10-09
 
-**Исправлено / Fixed**
+**Fixed**
 
-- Проверка технологичности: слои, выходящие за контур платы (медь — ошибка; шелкография, маска, паста — предупреждение с величиной выхода).
-  Manufacturability check: layers extending beyond the board outline (copper — error; silkscreen, mask, paste — warning with the overshoot).
-- Шкала на листах ЛУТ — ровно 50 мм с учётом толщины линий (было 50.5 мм). Масштаб листов проверен измерением: контур 198 × 74 мм.
-  The toner-sheet scale bar is exactly 50 mm including line width (was 50.5 mm). Sheet scale verified by measurement: outline 198 × 74 mm.
-- Инструкция ЛУТ: исправлен не-ASCII символ в английском тексте.
-  Toner instructions: a non-ASCII character in the English text fixed.
+- Manufacturability check: layers extending beyond the board outline (copper — error; silkscreen, mask, paste — warning with the overshoot).
+- The toner-sheet scale bar is exactly 50 mm including line width (was 50.5 mm). Sheet scale verified by measurement: outline 198 × 74 mm.
+- Toner instructions: a non-ASCII character in the English text fixed.
 
 ---
 
 ## 2.0.1 — 2026-10-08
 
-**Исправлено / Fixed**
+**Fixed**
 
-- Папки и имена с кириллицей: путь пакета, штамп и итоговое окно больше не искажаются (символы восстанавливаются по таблице, а не через 8-битный `char`).
-  Cyrillic folders and names: the package path, title block and summary window are no longer garbled (characters are restored from a table instead of an 8-bit `char`).
-- Архив Gerber и импорт XLSX в папках с кириллицей: `tar.exe` работает из временной папки с латинскими именами.
-  Gerber zip and XLSX import in Cyrillic folders: `tar.exe` now runs from the temp folder with Latin names.
-- Служебные команды больше не открывают окна консоли/Терминала (запуск через `wscript`, без окна); ожидание PDF — без мигающих окон.
-  Helper commands no longer pop up console/Terminal windows (run via windowless `wscript`); PDF waiting without flashing windows.
-- Если папку пакета создать нельзя — понятное сообщение сразу, а не цепочка ошибок.
-  If the package folder cannot be created — a clear message right away instead of a chain of errors.
-- Настоящие детали с посадочным местом без пасты (например, диод SOD-123) остаются в BOM/CPL с предупреждением, а не исключаются как перемычки.
-  Real parts whose footprint has no paste (e.g. an SOD-123 diode) stay in BOM/CPL with a warning instead of being dropped as jumpers.
-- Вывод 1: точное имя «1» главнее переходных отверстий теплоотвода `P$1`; шаг выводов — по SMD-площадкам (QFN, DPAK).
-  Pin 1: the exact name «1» wins over thermal vias named `P$1`; lead pitch is taken from SMD pads (QFN, DPAK).
-- Керамические чипы 0402…2512 не попадают в лист «Ключи и полярность».
-  Ceramic chips 0402…2512 no longer appear on the «Pin 1 and polarity» sheet.
-- Таблица посадочных мест не показывает пары кандидатов в замены.
-  The footprint table no longer lists substitute-candidate pairs.
-- Таблицы порядка пайки не заходят под штамп; колонки заполняются поровну.
-  Soldering-step tables no longer run under the title block; columns are balanced.
-- Диалог помещается на экран 1024×768: подписи в две строки, короче вкладки.
-  The dialog fits a 1024×768 screen: two-line labels, shorter tabs.
-- Импорт: текст со страницы заказа JLCPCB распознаётся раньше таблицы CSV.
-  Import: text copied from the JLCPCB order page is recognised before CSV.
+- Cyrillic folders and names: the package path, title block and summary window are no longer garbled (characters are restored from a table instead of an 8-bit `char`).
+- Gerber zip and XLSX import in Cyrillic folders: `tar.exe` now runs from the temp folder with Latin names.
+- Helper commands no longer pop up console/Terminal windows (run via windowless `wscript`); PDF waiting without flashing windows.
+- If the package folder cannot be created — a clear message right away instead of a chain of errors.
+- Real parts whose footprint has no paste (e.g. an SOD-123 diode) stay in BOM/CPL with a warning instead of being dropped as jumpers.
+- Pin 1: the exact name «1» wins over thermal vias named `P$1`; lead pitch is taken from SMD pads (QFN, DPAK).
+- Ceramic chips 0402…2512 no longer appear on the «Pin 1 and polarity» sheet.
+- The footprint table no longer lists substitute-candidate pairs.
+- Soldering-step tables no longer run under the title block; columns are balanced.
+- The dialog fits a 1024×768 screen: shorter labels and tabs.
+- Import: text copied from the JLCPCB order page is recognised before CSV.
 
 ---
 
 ## 2.0.0 — 2026-10-08
 
-Первый выпуск dmxON FabKit. / First release of dmxON FabKit.
+First release of dmxON FabKit.
 
-**Новое / New**
+**New**
 
-- Производственный пакет одной командой: Gerber + BOM + CPL + отчёт + документация A4 + листы ЛУТ.
-  One-run production package: Gerber + BOM + CPL + report + A4 documentation + toner sheets.
-- Gerber под JLCPCB: имена Protel (GTL, GBL, G1…, GTS, GTP, GTO, GKO, XLN), архив для загрузки, определение слоёв, толщины, мин. линии и отверстия.
-  JLCPCB Gerber: Protel names, upload zip, detection of layers, thickness, min track and hole.
-- Собственный разбор Gerber RS-274X и Excellon: превью слоёв, реалистичный вид платы, карта сверловки.
-  Own Gerber RS-274X and Excellon parser: layer previews, realistic board render, drill map.
-- Проверка технологичности против возможностей JLCPCB (ширина линий, отверстия, тонкая графика в меди).
-  Manufacturability check against JLCPCB capabilities (track width, holes, thin copper artwork).
-- Замены отсутствующих деталей с проверкой по площадкам платы и выбором самой дешёвой.
-  Substitutes for missing parts, checked against the board pads, cheapest wins.
-- Цены каталога, стоимость тиража, плата за катушки Extended.
-  Catalogue prices, batch cost, Extended feeder fees.
-- Импорт готовой BOM JLCPCB (xlsx, csv, текст со страницы заказа).
-  Import of a finished JLCPCB BOM (xlsx, csv, order-page text).
-- Документация A4: титул с содержанием, параметры изготовления, слои, сборочные чертежи в стандартном масштабе, порядок пайки по шагам, ключи и полярность, спецификация; рамка и штамп, поля правятся в браузере; PDF через Microsoft Edge.
-  A4 documentation: cover with contents, fabrication spec, layers, assembly drawings at standard scale, soldering steps, pin-1/polarity keys, BOM; frame and title block editable in the browser; PDF via Microsoft Edge.
-- Листы ЛУТ 1:1 из Gerber: медь, шелкография, УФ-маска, карта сверловки; шкала 50 мм.
-  1:1 toner-transfer sheets from Gerber: copper, silkscreen, UV mask, drill guide; 50 mm scale bar.
-- Весь вывод на русском и английском. / All output in Russian and English.
-- Диалог с вкладками, штамп для каждой платы, пакетный режим. / Tabbed dialog, per-board title block, batch mode.
-- Пакет платы пересоздаётся целиком; удаляются только папки с меткой FabKit.
-  The board package is rebuilt from scratch; only folders carrying the FabKit marker are deleted.
+- One-run production package: Gerber + BOM + CPL + report + A4 documentation + toner sheets.
+- JLCPCB Gerber: Protel names (GTL, GBL, G1…, GTS, GTP, GTO, GKO, XLN), upload zip, detection of layers, thickness, min track and hole.
+- Own Gerber RS-274X and Excellon parser: layer previews, realistic board render, drill map.
+- Manufacturability check against JLCPCB capabilities (track width, holes, thin copper artwork).
+- Substitutes for missing parts, checked against the board pads, cheapest wins.
+- Catalogue prices, batch cost, Extended feeder fees.
+- Import of a finished JLCPCB BOM (xlsx, csv, order-page text).
+- A4 documentation: cover with contents, fabrication spec, layers, assembly drawings at standard scale, soldering steps, pin-1/polarity keys, BOM; frame and title block editable in the browser; PDF via Microsoft Edge.
+- 1:1 toner-transfer sheets from Gerber: copper, silkscreen, UV mask, drill guide; 50 mm scale bar.
+- All output in Russian and English.
+- Tabbed dialog, per-board title block, batch mode.
+- The board package is rebuilt from scratch; only folders carrying the FabKit marker are deleted.
 
-**Основа / Based on**
+**Based on**
 
-- Подбор номеров LCSC, сверка посадочных мест EasyEDA и поправки поворота CPL из предыдущего скрипта `jlcpcb_export.ulp` (1.x), переписанные модулями.
-  LCSC selection, EasyEDA footprint verification and CPL rotation fixes from the earlier `jlcpcb_export.ulp` (1.x), rewritten as modules.
+- LCSC selection, EasyEDA footprint verification and CPL rotation fixes from the earlier `jlcpcb_export.ulp` (1.x), rewritten as modules.

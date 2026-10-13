@@ -5,7 +5,7 @@
 // Поля штампа заполняются из диалога и правятся прямо в браузере (contenteditable);
 // небольшой скрипт повторяет правку на всех листах, без скрипта всё видно как есть.
 // Номера листов: {{SHEET}} / {{SHEETS}}, содержание: <!--FK:TOC-->, заголовки листов —
-// метки <!--FK:PAGE ru|en-->; всё это заполняет третья фаза.
+// метки <!--FK:PAGE заголовок-->; всё это заполняет третья фаза. Текст — на языке интерфейса.
 
 string DC_CSS =
     "@page{size:A4 landscape;margin:0}" +
@@ -86,65 +86,70 @@ string dc_date = "";            // дата в штампе
 
 // ---------------------------------------------------------------- лист и штамп
 
-string tb_cell(string area, string kru, string ken, string field, string val, string cls)
+string tb_cell(string area, string label, string field, string val, string cls)
 {
     string ed = "";
     if (field != "") ed = " contenteditable=\"true\" data-f=\"" + field + "\"";
     string lab = "";
-    if (kru != "") lab = "<span class=\"k\">" + h(kru) + " / " + h(ken) + "</span>";
+    if (label != "") lab = "<span class=\"k\">" + h(label) + "</span>";
     return "<div class=\"c\" style=\"grid-area:" + area + "\">" + lab + "<span class=\"v " + cls + "\"" + ed + ">" + h(val) + "</span></div>";
 }
 
-string title_block(string sru, string sen, string scale)
+string title_block(string title, string scale)
 {
     string s = "<div class=\"tb\">";
-    s += tb_cell("1/1/3/4", "Организация", "Company", "company", tb_company, "mid");
-    s += tb_cell("3/1/4/2", "Разраб.", "Designed", "", "", "");
-    s += tb_cell("3/2/4/3", "", "", "designer", tb_designer, "sm");
-    s += tb_cell("3/3/4/4", "Дата", "Date", "date", dc_date, "sm");
-    s += tb_cell("4/1/5/2", "Пров.", "Checked", "", "", "");
-    s += tb_cell("4/2/5/4", "", "", "checker", tb_checker, "sm");
-    s += tb_cell("5/1/6/2", "Утв.", "Approved", "", "", "");
-    s += tb_cell("5/2/6/4", "", "", "approver", tb_approver, "sm");
-    s += tb_cell("6/1/7/2", "Заказчик", "Customer", "", "", "");
-    s += tb_cell("6/2/7/4", "", "", "customer", tb_customer, "sm");
-    s += tb_cell("7/1/9/4", "Примечание", "Note", "note", tb_note, "sm");
-    s += tb_cell("1/4/3/5", "Обозначение", "Document No.", "docno", tb_docno, "big");
-    s += tb_cell("3/4/6/5", "Изделие", "Product", "product", tb_product, "mid");
-    s += "<div class=\"c\" style=\"grid-area:6/4/9/5\"><span class=\"k\">" + h("Лист") + " / Sheet</span><span class=\"v mid\">" + h(sru) +
-         "</span><span class=\"v sm en\">" + h(sen) + "</span></div>";
-    s += tb_cell("1/5/3/6", "Ред.", "Rev", "rev", tb_rev, "big");
-    s += tb_cell("1/6/3/7", "Масштаб", "Scale", "", scale, "big");
-    s += "<div class=\"c\" style=\"grid-area:3/5/5/6\"><span class=\"k\">" + h("Лист") + " / Sheet</span><span class=\"v big\">{{SHEET}}</span></div>";
-    s += "<div class=\"c\" style=\"grid-area:3/6/5/7\"><span class=\"k\">" + h("Листов") + " / Sheets</span><span class=\"v big\">{{SHEETS}}</span></div>";
-    s += tb_cell("5/5/7/6", "Формат", "Format", "", "A4", "mid");
-    s += tb_cell("5/6/7/7", "Партия", "Batch", "", istr(opt_boards), "mid");
+    s += tb_cell("1/1/3/4", L("Организация", "Company"), "company", tb_company, "mid");
+    s += tb_cell("3/1/4/2", L("Разраб.", "Designed"), "", "", "");
+    s += tb_cell("3/2/4/3", "", "designer", tb_designer, "sm");
+    s += tb_cell("3/3/4/4", L("Дата", "Date"), "date", dc_date, "sm");
+    s += tb_cell("4/1/5/2", L("Пров.", "Checked"), "", "", "");
+    s += tb_cell("4/2/5/4", "", "checker", tb_checker, "sm");
+    s += tb_cell("5/1/6/2", L("Утв.", "Approved"), "", "", "");
+    s += tb_cell("5/2/6/4", "", "approver", tb_approver, "sm");
+    s += tb_cell("6/1/7/2", L("Заказчик", "Customer"), "", "", "");
+    s += tb_cell("6/2/7/4", "", "customer", tb_customer, "sm");
+    s += tb_cell("7/1/9/4", L("Примечание", "Note"), "note", tb_note, "sm");
+    s += tb_cell("1/4/3/5", L("Обозначение", "Document No."), "docno", tb_docno, "big");
+    s += tb_cell("3/4/6/5", L("Изделие", "Product"), "product", tb_product, "mid");
+    s += "<div class=\"c\" style=\"grid-area:6/4/9/5\"><span class=\"k\">" + h(L("Лист", "Sheet")) + "</span><span class=\"v mid\">" + h(title) + "</span></div>";
+    s += tb_cell("1/5/3/6", L("Ред.", "Rev"), "rev", tb_rev, "big");
+    s += tb_cell("1/6/3/7", L("Масштаб", "Scale"), "", scale, "big");
+    s += "<div class=\"c\" style=\"grid-area:3/5/5/6\"><span class=\"k\">" + h(L("Лист", "Sheet")) + "</span><span class=\"v big\">{{SHEET}}</span></div>";
+    s += "<div class=\"c\" style=\"grid-area:3/6/5/7\"><span class=\"k\">" + h(L("Листов", "Sheets")) + "</span><span class=\"v big\">{{SHEETS}}</span></div>";
+    s += tb_cell("5/5/7/6", L("Формат", "Format"), "", "A4", "mid");
+    s += tb_cell("5/6/7/7", L("Партия", "Batch"), "", istr(opt_boards), "mid");
     s += "<div class=\"c brand\" style=\"grid-area:7/5/9/7\"><i></i>" + h(fk_sign()) + "</div>";
     s += "</div>";
     return s;
 }
 
-// начало листа; full = без штампа снизу на всю высоту (штамп всё равно рисуется поверх)
-string pg_open(string ru, string en, string right)
+// начало листа; title — заголовок на языке интерфейса (он же строка содержания)
+string pg_open(string title, string right)
 {
-    string s = "<!--FK:PAGE " + h(ru) + "|" + h(en) + "-->\n<div class=\"page\"><div class=\"frm\">";
-    s += "<div class=\"hd\"><h1>" + h(ru) + "<span>" + h(en) + "</span></h1><div class=\"r\">" + right + "</div></div>";
+    string s = "<!--FK:PAGE " + h(title) + "-->\n<div class=\"page\"><div class=\"frm\">";
+    s += "<div class=\"hd\"><h1>" + h(title) + "</h1><div class=\"r\">" + right + "</div></div>";
     return s;
 }
 
-string pg_close(string ru, string en, string scale)
+string pg_close(string title, string scale)
 {
-    return title_block(ru, en, scale) + "</div></div>\n";
+    return title_block(title, scale) + "</div></div>\n";
+}
+
+// «часть 2» в правом углу шапки листа
+string part_txt(int n)
+{
+    return h(L("часть", "part") + " " + istr(n));
 }
 
 // технические требования (левый нижний угол чертежа сборки)
 string tech_req()
 {
-    string s = "<div class=\"tr\"><b>" + h("Технические требования") + "</b> <span class=\"en\">/ Technical requirements</span><ol>";
-    s += "<li>" + h("Монтаж и приёмка — по IPC-A-610, класс 2.") + " <span class=\"en\">Assembly and acceptance per IPC-A-610, class 2.</span></li>";
-    s += "<li>" + h("Позиционные обозначения — по схеме; ключ (точка) — вывод 1 или катод.") + " <span class=\"en\">Reference designators per schematic; dot marks pin 1 or cathode.</span></li>";
-    s += "<li>" + h("Порядок пайки — по листам «Порядок пайки». Отмыть флюс после пайки.") + " <span class=\"en\">Soldering order per the Soldering sheets. Clean flux residue.</span></li>";
-    s += "<li>" + h("Компоненты, чувствительные к ESD, — с защитой от статики.") + " <span class=\"en\">Handle ESD-sensitive parts with ESD protection.</span></li>";
+    string s = "<div class=\"tr\"><b>" + h(L("Технические требования", "Technical requirements")) + "</b><ol>";
+    s += "<li>" + h(L("Монтаж и приёмка — по IPC-A-610, класс 2.", "Assembly and acceptance per IPC-A-610, class 2.")) + "</li>";
+    s += "<li>" + h(L("Позиционные обозначения — по схеме; ключ (точка) — вывод 1 или катод.", "Reference designators per schematic; dot marks pin 1 or cathode.")) + "</li>";
+    s += "<li>" + h(L("Порядок пайки — по листам «Порядок пайки». Отмыть флюс после пайки.", "Soldering order per the Soldering order sheets. Clean flux residue.")) + "</li>";
+    s += "<li>" + h(L("Компоненты, чувствительные к ESD, — с защитой от статики.", "Handle ESD-sensitive parts with ESD protection.")) + "</li>";
     s += "</ol></div>";
     return s;
 }
@@ -213,14 +218,14 @@ void docs_page_assembly(int bottom)
     real aw = 262, ah = 136;
     real W = (bb_x2 - bb_x1) + 6, H = (bb_y2 - bb_y1) + 6;
     real sc = pick_scale(W, H, aw, ah);
-    string ru = "Сборочный чертёж — верхняя сторона", en = "Assembly drawing — top side";
-    if (bottom) { ru = "Сборочный чертёж — нижняя сторона (вид со стороны пайки)"; en = "Assembly drawing — bottom side (solder-side view)"; }
+    string tt = L("Сборочный чертёж — верхняя сторона", "Assembly drawing — top side");
+    if (bottom) tt = L("Сборочный чертёж — нижняя сторона (вид со стороны пайки)", "Assembly drawing — bottom side (solder-side view)");
     int cnt = 0;
     for (int e = 0; e < n_el; e++) if (el_bottom[e] == bottom) cnt++;
-    printf("%s", pg_open(ru, en, h("компонентов: " + istr(cnt) + " / components: " + istr(cnt))));
+    printf("%s", pg_open(tt, h(L("компонентов", "components") + ": " + istr(cnt))));
     printf("<div class=\"area\"><div class=\"ctr\">%s</div></div>", draw_scaled(bottom, "", 1, sc));
     printf("%s", tech_req());
-    printf("%s", pg_close(ru, en, scale_txt(sc)));
+    printf("%s", pg_close(tt, scale_txt(sc)));
     dc_pages++;
 }
 
@@ -265,7 +270,7 @@ void docs_steps()
         int bottom = (any_bot && !any_top);
         // группы: ключ «номинал|корпус»
         numeric string gk[];
-        string gdes[], gval[], gpkg[], gkey_ru[], gkey_en[], gkl[];
+        string gdes[], gval[], gpkg[], gkey[], gkl[];
         int gdiff[], gnk[];
         int gq[], ng = 0;
         for (e = 0; e < n_el; e++) {
@@ -275,7 +280,7 @@ void docs_steps()
             for (k = 0; k < ng; k++) if (gk[k] == key) { f = k; break; }
             if (f < 0) {
                 f = ng++;
-                gk[f] = key; gdes[f] = ""; gval[f] = el_comment[e]; gpkg[f] = el_jpkg[e]; gq[f] = 0; gkey_ru[f] = ""; gkey_en[f] = ""; gkl[f] = ""; gdiff[f] = 0; gnk[f] = 0;
+                gk[f] = key; gdes[f] = ""; gval[f] = el_comment[e]; gpkg[f] = el_jpkg[e]; gq[f] = 0; gkey[f] = ""; gkl[f] = ""; gdiff[f] = 0; gnk[f] = 0;
             }
             if (gdes[f] != "") gdes[f] += ", ";
             gdes[f] += el_name[e];
@@ -284,9 +289,8 @@ void docs_steps()
                 // «1 ↖» — вывод 1 слева сверху, «K →» — катод справа (пояснение — в подсказке шага)
                 string kr = "1 " + key_arrow(e);
                 if (el_p1cat[e]) kr = "K " + key_arrow(e);
-                string ke = kr;
-                if (gq[f] == 1) { gkey_ru[f] = kr; gkey_en[f] = ke; }
-                else if (gkey_ru[f] != kr) gdiff[f] = 1;
+                if (gq[f] == 1) gkey[f] = kr;
+                else if (gkey[f] != kr) gdiff[f] = 1;
                 // ключи по каждой детали — пригодятся, если в группе они смотрят в разные стороны
                 if (gkl[f] != "") gkl[f] += ", ";
                 gkl[f] += el_name[e] + " " + kr;
@@ -295,8 +299,8 @@ void docs_steps()
         }
         for (k = 0; k < ng; k++) {
             if (!gdiff[k]) continue;
-            if (gnk[k] <= 8) { gkey_ru[k] = gkl[k]; gkey_en[k] = gkl[k]; }
-            else { gkey_ru[k] = "см. чертёж"; gkey_en[k] = "see drawing"; }
+            if (gnk[k] <= 8) gkey[k] = gkl[k];
+            else gkey[k] = L("см. чертёж", "see drawing");
         }
         int ord[];
         sort(ng, ord, gk);
@@ -306,11 +310,7 @@ void docs_steps()
         for (i = 0; i < ng; i++) {
             k = ord[i];
             int a1 = 1 + strlen(gdes[k]) / wrap, a2 = 1 + strlen(gval[k]) / wv, a3 = 1;
-            if (gkey_ru[k] != "") {
-                string kt = gkey_ru[k];
-                if (gkey_en[k] != gkey_ru[k]) kt += " / " + gkey_en[k];
-                a3 = 1 + strlen(kt) / wk;
-            }
+            if (gkey[k] != "") a3 = 1 + strlen(gkey[k]) / wk;
             rl[i] = max(a1, max(a2, a3));
         }
         int from = 0, prt = 0;
@@ -337,32 +337,26 @@ void docs_steps()
                 int na = strsplit(a, replace_all(gdes[ord[i]], " ", ""), ',');
                 for (k = 0; k < na; k++) sel += a[k] + "|";
             }
-            string ru = "Порядок пайки — шаг " + istr(stepno) + " из " + istr(n_steps);
-            string en = "Soldering order — step " + istr(stepno) + " of " + istr(n_steps);
-            string rt = h(istr(n) + " шт / pcs");
-            if (prt > 1 || to < ng) rt += " &middot; " + h("часть / part " + istr(prt));
-            printf("%s", pg_open(ru, en, rt));
+            // «Порядок пайки — шаг …»: часть до « — » — строка содержания
+            string tt = Lf("Порядок пайки — шаг {0} из {1}", "Soldering order — step {0} of {1}", istr(stepno), istr(n_steps), "");
+            string rt = h(istr(n) + " " + L("шт", "pcs"));
+            if (prt > 1 || to < ng) rt += " &middot; " + part_txt(prt);
+            printf("%s", pg_open(tt, rt));
             // подсказка шага — в свободном углу слева от штампа, таблице остаётся вся высота
-            string tip = "<div class=\"tr\"><b>" + h(step_ru(s)) + "</b> <span class=\"en1\">/ " + h(step_en(s)) + "</span><br>" + h(step_tip_ru(s)) +
-                         " <span class=\"en1\">/ " + h(step_tip_en(s)) + "</span><br>" +
-                         h("Ключ: 1 — вывод 1, K — катод, стрелка — где он от центра корпуса.") +
-                         " <span class=\"en1\">/ " + h("Key: 1 — pin 1, K — cathode, the arrow shows where it is from the body centre.") + "</span></div>";
+            string tip = "<div class=\"tr\"><b>" + h(step_txt(s)) + "</b><br>" + h(step_tip(s)) + "<br>" +
+                         h(L("Ключ: 1 — вывод 1, K — катод, стрелка — где он от центра корпуса.",
+                             "Key: 1 — pin 1, K — cathode, the arrow shows where it is from the body centre.")) + "</div>";
             if (stack) printf("<div class=\"area\"><div class=\"stk\"><div class=\"dw\">%s</div>", draw_scaled(bottom, sel, 0, sc));
             else printf("<div class=\"area\"><div class=\"step\"><div class=\"dw\">%s</div><div>", draw_scaled(bottom, sel, 0, sc));
             printf("<div style=\"display:grid;grid-template-columns:repeat(%d,1fr);gap:3mm;align-items:start\">", ncol);
             int c_from = from;
             for (c = 0; c < ncol; c++) {
                 if (cut[c] <= c_from) break;
-                printf("<table class=\"t c\"><tr><th>%s <span class=\"en1\">/ Qty</span></th><th>%s <span class=\"en1\">/ Designators</span></th><th>%s <span class=\"en1\">/ Value</span></th><th>%s <span class=\"en1\">/ Package</span></th><th>%s <span class=\"en1\">/ Key</span></th></tr>",
-                       h("Шт"), h("Обозначения"), h("Номинал"), h("Корпус"), h("Ключ"));
+                printf("<table class=\"t c\"><tr><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th></tr>",
+                       h(L("Шт", "Qty")), h(L("Обозначения", "Designators")), h(L("Номинал", "Value")), h(L("Корпус", "Package")), h(L("Ключ", "Key")));
                 for (i = c_from; i < cut[c]; i++) {
                     k = ord[i];
-                    string kk = "";
-                    if (gkey_ru[k] != "") {
-                        kk = h(gkey_ru[k]);
-                        if (gkey_en[k] != gkey_ru[k]) kk += " <span class=\"en1\">/ " + h(gkey_en[k]) + "</span>";
-                    }
-                    printf("<tr><td class=\"n\">%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>", gq[k], h(gdes[k]), h(gval[k]), h(gpkg[k]), kk);
+                    printf("<tr><td class=\"n\">%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>", gq[k], h(gdes[k]), h(gval[k]), h(gpkg[k]), h(gkey[k]));
                 }
                 printf("</table>");
                 c_from = cut[c];
@@ -371,7 +365,7 @@ void docs_steps()
             if (stack) printf("</div></div>");
             else printf("</div></div></div>");
             printf("%s", tip);
-            printf("%s", pg_close(ru, en, scale_txt(sc)));
+            printf("%s", pg_close(tt, scale_txt(sc)));
             dc_pages++;
             from = to;
         }
@@ -394,24 +388,23 @@ void docs_keys()
     sort(n, ord, kk);
     int per = 24;
     for (int from = 0; from < n; from += per) {
-        string ru = "Ключи и полярность", en = "Pin 1 and polarity keys";
-        string rt = h(istr(n) + " шт / pcs");
-        printf("%s", pg_open(ru, en, rt));
+        string tt = L("Ключи и полярность", "Pin 1 and polarity keys");
+        printf("%s", pg_open(tt, h(istr(n) + " " + L("шт", "pcs"))));
         printf("<div class=\"area\"><div class=\"keys\">");
         for (i = from; i < from + per && i < n; i++) {
             e = list[ord[i]];
-            string mk_ru = "вывод 1", mk_en = "pin 1";
-            if (el_p1cat[e]) { mk_ru = "катод"; mk_en = "cathode"; }
+            string mk = L("вывод 1", "pin 1");
+            if (el_p1cat[e]) mk = L("катод", "cathode");
             string side = "";
-            if (el_bottom[e]) side = " &middot; " + h("снизу / bottom");
+            if (el_bottom[e]) side = " &middot; " + h(L("снизу", "bottom"));
             string pn = el_comment[e];
             int g = el_group[e];
             if (g >= 0 && g_model[g] != "") pn = g_model[g];
-            printf("<div class=\"key\"><div class=\"d\">%s%s</div>%s<div class=\"s\">%s<br>%s: %s<br><span class=\"en\">%s: %s</span></div></div>",
-                   h(el_name[e]), side, el_thumb(e), h(pn + " · " + el_jpkg[e]), h(mk_ru), h(key_where_ru(e)), h(mk_en), h(key_where_en(e)));
+            printf("<div class=\"key\"><div class=\"d\">%s%s</div>%s<div class=\"s\">%s<br>%s: %s</div></div>",
+                   h(el_name[e]), side, el_thumb(e), h(pn + " · " + el_jpkg[e]), h(mk), h(key_where(e)));
         }
         printf("</div></div>");
-        printf("%s", pg_close(ru, en, "—"));
+        printf("%s", pg_close(tt, "—"));
         dc_pages++;
     }
 }
@@ -432,10 +425,11 @@ void docs_bom()
             to++;
         }
         prt++;
-        string ru = "Спецификация (BOM)", en = "Bill of materials";
-        printf("%s", pg_open(ru, en, h("часть / part " + istr(prt))));
-        printf("<div class=\"area\"><table class=\"t\"><tr><th>#</th><th>%s<span class=\"en\">Designators</span></th><th>%s<span class=\"en\">Qty</span></th><th>%s<span class=\"en\">Value</span></th><th>%s<span class=\"en\">Package</span></th><th>%s<span class=\"en\">Part number</span></th><th>%s<span class=\"en\">Manufacturer</span></th><th>LCSC</th><th>%s<span class=\"en\">Type</span></th></tr>",
-               h("Обозначения"), h("Шт"), h("Номинал"), h("Корпус"), h("Номер детали"), h("Производитель"), h("Тип"));
+        string tt = L("Спецификация (BOM)", "Bill of materials");
+        printf("%s", pg_open(tt, part_txt(prt)));
+        printf("<div class=\"area\"><table class=\"t\"><tr><th>#</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th>LCSC</th><th>%s</th></tr>",
+               h(L("Обозначения", "Designators")), h(L("Шт", "Qty")), h(L("Номинал", "Value")), h(L("Корпус", "Package")),
+               h(L("Номер детали", "Part number")), h(L("Производитель", "Manufacturer")), h(L("Тип", "Type")));
         for (int i = from; i < to; i++) {
             g = list[i];
             row++;
@@ -445,7 +439,7 @@ void docs_bom()
                    row, h(desig_sp(g_desig[g])), g_qty[g], h(g_comment[g]), h(pkg), h(g_model[g]), h(g_brand[g]), h(g_lcsc[g]), h(g_type[g]));
         }
         printf("</table></div>");
-        printf("%s", pg_close(ru, en, "—"));
+        printf("%s", pg_close(tt, "—"));
         dc_pages++;
         from = to;
     }
@@ -454,27 +448,26 @@ void docs_bom()
 // титульный лист: вид платы и содержание вставляет третья фаза
 void docs_cover(string base, int n_layers, string stamp)
 {
-    string ru = "Титульный лист", en = "Cover sheet";
-    printf("%s", pg_open(ru, en, h(stamp)));
+    string tt = L("Титульный лист", "Cover sheet");
+    printf("%s", pg_open(tt, h(stamp)));
     printf("<div class=\"area\"><div class=\"cover\"><div>");
     printf("<h2 contenteditable=\"true\" data-f=\"product\">%s</h2>", h(tb_product));
-    printf("<div class=\"sub\">%s<br><span class=\"en\">%s</span></div>", h("Комплект документации для изготовления и сборки печатного узла"),
-           h("Manufacturing and assembly documentation package"));
+    printf("<div class=\"sub\">%s</div>", h(L("Комплект документации для изготовления и сборки печатного узла", "Manufacturing and assembly documentation package")));
     printf("<!--FK:COVERIMG-->");
     printf("</div><div>");
     printf("<table class=\"facts\">");
-    printf("<tr><td>%s<span class=\"en\"> / Board</span></td><td><b>%s</b></td></tr>", h("Плата"), h(base));
-    printf("<tr><td>%s<span class=\"en\"> / Size</span></td><td>%s</td></tr>", h("Размер, мм"), h(num(round((bb_x2 - bb_x1) * 100) / 100.0) + " × " + num(round((bb_y2 - bb_y1) * 100) / 100.0)));
-    printf("<tr><td>%s<span class=\"en\"> / Copper layers</span></td><td>%d</td></tr>", h("Слоёв меди"), n_layers);
-    printf("<tr><td>%s<span class=\"en\"> / Components</span></td><td>%d (%s %d, %s %d)</td></tr>", h("Компонентов"), n_el, h("верх / top"), n_top, h("низ / bottom"), n_bot);
-    printf("<tr><td>%s<span class=\"en\"> / Unique parts</span></td><td>%d</td></tr>", h("Позиций BOM"), n_rows);
-    printf("<tr><td>%s<span class=\"en\"> / Through-hole</span></td><td>%d</td></tr>", h("Выводных"), n_thtc);
-    printf("<tr><td>%s<span class=\"en\"> / Batch</span></td><td>%d</td></tr>", h("Плат в партии"), opt_boards);
+    printf("<tr><td>%s</td><td><b>%s</b></td></tr>", h(L("Плата", "Board")), h(base));
+    printf("<tr><td>%s</td><td>%s</td></tr>", h(L("Размер, мм", "Size, mm")), h(num(round((bb_x2 - bb_x1) * 100) / 100.0) + " × " + num(round((bb_y2 - bb_y1) * 100) / 100.0)));
+    printf("<tr><td>%s</td><td>%d</td></tr>", h(L("Слоёв меди", "Copper layers")), n_layers);
+    printf("<tr><td>%s</td><td>%d (%s %d, %s %d)</td></tr>", h(L("Компонентов", "Components")), n_el, h(L("верх", "top")), n_top, h(L("низ", "bottom")), n_bot);
+    printf("<tr><td>%s</td><td>%d</td></tr>", h(L("Позиций BOM", "Unique parts")), n_rows);
+    printf("<tr><td>%s</td><td>%d</td></tr>", h(L("Выводных", "Through-hole")), n_thtc);
+    printf("<tr><td>%s</td><td>%d</td></tr>", h(L("Плат в партии", "Batch")), opt_boards);
     printf("</table>");
-    printf("<div style=\"margin-top:4mm;font-weight:700\">%s <span class=\"en\" style=\"font-weight:400\">/ Contents</span></div>", h("Содержание"));
+    printf("<div style=\"margin-top:4mm;font-weight:700\">%s</div>", h(L("Содержание", "Contents")));
     printf("<div class=\"toc\"><!--FK:TOC--></div>");
     printf("</div></div></div>");
-    printf("%s", pg_close(ru, en, "—"));
+    printf("%s", pg_close(tt, "—"));
     dc_pages++;
 }
 
@@ -484,11 +477,12 @@ void docs_phase1(string path, string base, int n_layers, string stamp)
     int e;
     for (e = 0; e < n_el; e++) el_step[e] = calc_step(e);
     output(path, "wt") {
-        printf("<!DOCTYPE html>\n<html lang=\"ru\">\n<head>\n<meta charset=\"utf-8\">\n");
+        printf("<!DOCTYPE html>\n<html lang=\"%s\">\n<head>\n<meta charset=\"utf-8\">\n", LANG_CODE[ui_lang]);
         printf("<meta name=\"generator\" content=\"%s\">\n", h(fk_title()));
-        printf("<title>%s</title>\n<style>%s</style>\n</head>\n<body>\n", h(base + " · Assembly documentation A4"), DC_CSS);
-        printf("<div class=\"bar\"><i></i><span>%s <span class=\"en\">/ Title block fields are editable here, then Ctrl+P &rarr; Save as PDF (A4 landscape, margins: none)</span></span></div>\n",
-               h("Поля штампа можно править прямо здесь, затем Ctrl+P → Сохранить как PDF (A4 альбомная, поля: нет)"));
+        printf("<title>%s</title>\n<style>%s</style>\n</head>\n<body>\n", h(base + " · " + L("Документация для сборки A4", "Assembly documentation A4")), DC_CSS);
+        printf("<div class=\"bar\"><i></i><span>%s</span></div>\n",
+               h(L("Поля штампа можно править прямо здесь, затем Ctrl+P → Сохранить как PDF (A4 альбомная, поля: нет)",
+                   "Title block fields are editable here, then Ctrl+P → Save as PDF (A4 landscape, margins: none)")));
         docs_cover(base, n_layers, stamp);
         printf("<!--FK:FABSPEC-->\n");
         printf("<!--FK:LAYERS-->\n");

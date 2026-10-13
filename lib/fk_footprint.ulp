@@ -397,29 +397,21 @@ int get_mp(int ef, int jf, int polar)
 
 string mp_status(int k)
 {
-    if (mp_mir[k]) return "зеркально";
-    if (mp_stat[k] == 1) return "совпадает";
-    if (mp_stat[k] == 2) return "отличается";
-    if (mp_stat[k] == 3) return "не подходит";
-    return "номера выводов не совпадают";
+    if (mp_mir[k]) return L("зеркально", "mirrored");
+    if (mp_stat[k] == 1) return L("совпадает", "match");
+    if (mp_stat[k] == 2) return L("отличается", "differs");
+    if (mp_stat[k] == 3) return L("не подходит", "does not fit");
+    return L("номера выводов не совпадают", "pin numbers differ");
 }
 
-string jf_why_en(string s)
+// причина «посадочное место не сверено»: внутренний ключ -> текст на языке интерфейса
+string jf_why_txt(string s)
 {
-    if (s == "нет ответа от EasyEDA") return "no answer from EasyEDA";
-    if (s == "у JLC нет модели посадочного места") return "JLC has no footprint model";
-    if (s == "не разобрать модель EasyEDA") return "EasyEDA model could not be parsed";
-    if (s == "в модели JLC нет площадок") return "JLC model has no pads";
+    if (s == "нет ответа от EasyEDA") return L("нет ответа от EasyEDA", "no answer from EasyEDA");
+    if (s == "у JLC нет модели посадочного места") return L("у JLC нет модели посадочного места", "JLC has no footprint model");
+    if (s == "не разобрать модель EasyEDA") return L("не разобрать модель EasyEDA", "EasyEDA model could not be parsed");
+    if (s == "в модели JLC нет площадок") return L("в модели JLC нет площадок", "JLC model has no pads");
     return s;
-}
-
-string mp_status_en(int k)
-{
-    if (mp_mir[k]) return "mirrored";
-    if (mp_stat[k] == 1) return "match";
-    if (mp_stat[k] == 2) return "differs";
-    if (mp_stat[k] == 3) return "does not fit";
-    return "pin numbers differ";
 }
 
 // годится ли результат, чтобы брать из него поворот и центр
@@ -437,51 +429,40 @@ int mp_clean(int k)
     return 1;
 }
 
-// замечания по паре для строки BOM
+// замечания по паре для строки BOM (на языке интерфейса); mp_attn — есть предупреждение
+int mp_attn = 0;
+
 string mp_notes(int k)
 {
     string s = "";
+    mp_attn = 0;
     string pkg = jf_pkg[mp_jf[k]];
-    if (mp_mir[k]) s = "ВНИМАНИЕ: посадочное место зеркально корпусу детали (" + pkg + ")";
-    else if (mp_stat[k] == 3) s = "ВНИМАНИЕ: посадочное место " + ef_name[mp_ef[k]] + " не подходит к корпусу " + pkg + ", расхождение до " + num(mp_mx[k]) + " мм";
-    else if (mp_stat[k] == 4) s = "ВНИМАНИЕ: по форме посадочное место совпадает, а номера выводов нет — проверить цоколёвку";
-    else if (mp_stat[k] == 2) s = "посадочное место отличается от JLC: выводы частично вне площадок (до " + num(mp_mx[k]) + " мм)";
+    if (mp_mir[k]) { s = attn() + Lf("посадочное место зеркально корпусу детали ({0})", "footprint is a mirror image of the part package ({0})", pkg, "", ""); mp_attn = 1; }
+    else if (mp_stat[k] == 3) {
+        s = attn() + Lf("посадочное место {0} не подходит к корпусу {1}, расхождение до {2} мм", "footprint {0} does not fit package {1}, deviation up to {2} mm",
+                        ef_name[mp_ef[k]], pkg, num(mp_mx[k]));
+        mp_attn = 1;
+    }
+    else if (mp_stat[k] == 4) {
+        s = attn() + L("по форме посадочное место совпадает, а номера выводов нет — проверить цоколёвку", "shape matches but pin numbers do not — check the pinout");
+        mp_attn = 1;
+    }
+    else if (mp_stat[k] == 2)
+        s = Lf("посадочное место отличается от JLC: выводы частично вне площадок (до {0} мм)", "footprint differs from JLC: some leads partly outside pads (up to {0} mm)",
+               num(mp_mx[k]), "", "");
     if (mp_amb[k]) {
         if (s != "") s += "; ";
-        s += "полярность по форме не определить — проверить в предпросмотре";
+        s += L("полярность по форме не определить — проверить в предпросмотре", "polarity cannot be derived from the shape — check in the JLCPCB preview");
     }
     if (mp_polar2[k] && mp_byname[k] && mp_rot[k] != 0 && mp_usable(k)) {
         if (s != "") s += "; ";
-        s += "полярная деталь развёрнута на " + istr(mp_rot[k]) + "° по номерам площадок 1/2 — у двухвыводных деталей " +
-             "нумерация в библиотеках бывает разной, проверить метку полярности в предпросмотре";
+        s += Lf("полярная деталь развёрнута на {0}° по номерам площадок 1/2 — у двухвыводных деталей нумерация в библиотеках бывает разной, проверить метку полярности в предпросмотре",
+                "polar part rotated by {0}° from pad numbers 1/2 — two-pin libraries number pads differently, check the polarity mark in the preview",
+                istr(mp_rot[k]), "", "");
     }
     if (mp_miss[k] > 0) {
         if (s != "") s += "; ";
-        s += "у детали выводы без площадок на плате: " + mp_missing[k];
-    }
-    return s;
-}
-
-string mp_notes_en(int k)
-{
-    string s = "";
-    string pkg = jf_pkg[mp_jf[k]];
-    if (mp_mir[k]) s = "WARNING: footprint is a mirror image of the part package (" + pkg + ")";
-    else if (mp_stat[k] == 3) s = "WARNING: footprint " + ef_name[mp_ef[k]] + " does not fit package " + pkg + ", deviation up to " + num(mp_mx[k]) + " mm";
-    else if (mp_stat[k] == 4) s = "WARNING: shape matches but pin numbers do not — check the pinout";
-    else if (mp_stat[k] == 2) s = "footprint differs from JLC: some leads partly outside pads (up to " + num(mp_mx[k]) + " mm)";
-    if (mp_amb[k]) {
-        if (s != "") s += "; ";
-        s += "polarity cannot be derived from the shape — check in the JLCPCB preview";
-    }
-    if (mp_polar2[k] && mp_byname[k] && mp_rot[k] != 0 && mp_usable(k)) {
-        if (s != "") s += "; ";
-        s += "polar part rotated by " + istr(mp_rot[k]) + "° from pad numbers 1/2 — two-pin libraries number pads " +
-             "differently, check the polarity mark in the preview";
-    }
-    if (mp_miss[k] > 0) {
-        if (s != "") s += "; ";
-        s += "part leads without board pads: " + mp_missing[k];
+        s += Lf("у детали выводы без площадок на плате: {0}", "part leads without board pads: {0}", mp_missing[k], "", "");
     }
     return s;
 }

@@ -1,0 +1,159 @@
+#usage "en: <b>Install dmxON FabKit into Autodesk Fusion</b><p>"
+       "Copies the project to Documents\\dmxON and adds it to Fusion's ULP folders. "
+       "After restarting Fusion, dmxON_FabKit appears in Automation → Run ULP.<p>"
+       "<author>dmxON by AlexSmith 2026</author>",
+       "ru: <b>Установка dmxON FabKit во Fusion</b><p>"
+       "Копирует проект в Документы\\dmxON и добавляет его в папки ULP Fusion. "
+       "После перезапуска Fusion dmxON_FabKit появится в Automation → Run ULP.<p>"
+       "<author>dmxON by AlexSmith 2026</author>",
+       "es: <b>Instalar dmxON FabKit en Autodesk Fusion</b><p>"
+       "Copia el proyecto en Documentos\\dmxON y lo añade a las carpetas de ULP de Fusion. "
+       "Tras reiniciar Fusion, dmxON_FabKit aparece en Automation → Run ULP.<p>"
+       "<author>dmxON by AlexSmith 2026</author>",
+       "de: <b>dmxON FabKit in Autodesk Fusion installieren</b><p>"
+       "Kopiert das Projekt nach Dokumente\\dmxON und fügt es den ULP-Ordnern von Fusion hinzu. "
+       "Nach einem Neustart von Fusion steht dmxON_FabKit unter Automation → Run ULP.<p>"
+       "<author>dmxON by AlexSmith 2026</author>",
+       "pl: <b>Instalacja dmxON FabKit w Autodesk Fusion</b><p>"
+       "Kopiuje projekt do Dokumenty\\dmxON i dodaje go do folderów ULP Fusion. "
+       "Po ponownym uruchomieniu Fusion dmxON_FabKit pojawi się w Automation → Run ULP.<p>"
+       "<author>dmxON by AlexSmith 2026</author>"
+
+// Установщик dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+//
+// Папки Fusion меняются через официальный доступ ULP к настройкам (cfgset "EAGLE:Directories.*"),
+// поэтому Fusion сам сохраняет их при выходе; применяются они после перезапуска Fusion.
+// Исходное «папки по умолчанию» запоминается одно на оба проекта dmxON (dmxon.install.usedefault):
+// когда удалён последний из них, Fusion возвращается к нему.
+
+#include "lib/fk_strings.ulp"
+#include "lib/fk_lang.ulp"
+#include "lib/fk_core.ulp"
+
+string IN_NAME  = "dmxON FabKit";
+string IN_DIR   = "dmxON-FabKit";
+string IN_MAIN  = "dmxON_FabKit";
+string IN_KEY   = "dmxon.install.fabkit";
+string IN_OTHER = "dmxon.install.jlc";            // второй проект dmxON
+string DIR_KEYS[] = { "Ulp" };                     // куда добавляется папка
+int N_KEYS = 1;
+
+string in_dir(string p)
+{
+    p = replace_all(p, "\\", "/");
+    while (ends_with(p, "/")) p = strsub(p, 0, strlen(p) - 1);
+    return p;
+}
+
+// папка для вида настроек k
+string in_target(string dst, int k)
+{
+    return dst;
+}
+
+// список папок «a;b;c» без пути p (без учёта регистра)
+string in_without(string list, string p)
+{
+    string a[];
+    int n = strsplit(a, list, ';');
+    string t = "";
+    for (int i = 0; i < n; i++) {
+        if (a[i] == "" || strlwr(in_dir(a[i])) == strlwr(p)) continue;
+        t += (t == "" ? "" : ";") + a[i];
+    }
+    return t;
+}
+
+lang_load();
+string src = in_dir(filedir(argv[0]));
+string home = home_from(argv[0]);
+if (home == "") home = home_from(path_ulp[0]);
+if (home == "") {
+    dlgMessageBox(L("Не удалось определить папку пользователя.", "Cannot find the user folder."), "OK");
+    exit(EXIT_FAILURE);
+}
+runner_init(home + "/AppData/Local/Temp");
+string dst = home + "/Documents/dmxON/" + IN_DIR;
+int installed = cfgget(IN_KEY + ".dst", "") != "";
+
+int action = 0;
+int sel_lang = ui_lang;
+while (1) {
+    sel_lang = ui_lang;
+    string txt = "<h3>" + IN_NAME + " " + FK_VERSION + "</h3>" +
+        "<p>" + L("Установка в Autodesk Fusion:", "Installation into Autodesk Fusion:") + "</p><ul>" +
+        "<li>" + Lf("проект копируется в <tt>{0}</tt>", "the project is copied to <tt>{0}</tt>", dst, "", "") + "</li>" +
+        "<li>" + Lf("папка добавляется в список ULP Fusion — <b>{0}</b> появится в Automation → Run ULP",
+                    "the folder is added to Fusion's ULP list — <b>{0}</b> appears in Automation → Run ULP", IN_MAIN, "", "") + "</li>" +
+        "<li>" + L("встроенные ULP Fusion остаются на месте", "Fusion's built-in ULPs stay in place") + "</li></ul>" +
+        "<p><b>" + L("После установки перезапустите Fusion.", "Restart Fusion after installing.") + "</b></p>" +
+        (installed ? "<p>" + L("Уже установлено — «Установить» обновит файлы.", "Already installed — «Install» updates the files.") + "</p>" : "");
+    action = dlgDialog(L("Установка", "Installation") + " · " + IN_NAME) {
+        dlgHBoxLayout {
+            dlgStretch(1);
+            dlgLabel(L("Язык", "Language"));
+            dlgComboBox(LANG_NAME, sel_lang) { if (sel_lang != ui_lang) { ui_lang = sel_lang; lang_save(); dlgAccept(9); } }
+        }
+        dlgHBoxLayout {
+            dlgVBoxLayout dlgSpacing(220);
+            dlgVBoxLayout {
+                dlgHBoxLayout dlgSpacing(560);
+                dlgTextView(txt);
+            }
+        }
+        dlgHBoxLayout {
+            dlgPushButton("+" + L("Установить", "Install")) dlgAccept(1);
+            if (installed) dlgPushButton(L("Удалить", "Remove")) dlgAccept(2);
+            dlgStretch(1);
+            dlgPushButton("-" + L("Отмена", "Cancel")) dlgReject();
+        }
+    };
+    if (action == 9) continue;
+    break;
+}
+if (action <= 0) exit(0);
+
+// ---- удалить: убрать свои папки; последний проект dmxON возвращает Fusion к прежнему виду
+if (action == 2) {
+    string was = cfgget(IN_KEY + ".dst", dst);
+    for (int r = 0; r < N_KEYS; r++) {
+        string k = DIR_KEYS[r];
+        cfgset("EAGLE:Directories." + k, in_without(cfgget("EAGLE:Directories." + k, ""), in_target(was, r)));
+    }
+    cfgset(IN_KEY + ".dst", "");
+    if (cfgget(IN_OTHER + ".dst", "") == "") {
+        if (cfgget("dmxon.install.usedefault", "") == "1") cfgset("EAGLE:Directories.UseDefault", "1");
+        cfgset("dmxon.install.usedefault", "");
+    }
+    dlgMessageBox(L("Папки Fusion возвращены. Перезапустите Fusion.\nСкопированные файлы остались в:", "Fusion folders restored. Restart Fusion.\nThe copied files remain in:") + "\n" + dst, "OK");
+    exit(0);
+}
+
+// ---- установить
+if (strlwr(src) != strlwr(dst)) {
+    // robocopy: коды 0–7 — успех; .git и сам установщик не копируются
+    shell("mkdir " + qp(dst) + " 2>nul");
+    shell("robocopy " + qp(src) + " " + qp(dst) + " /E /NFL /NDL /NJH /NJS /NP /XD .git .github /XF INSTALL.ulp >nul");
+}
+if (!file_exists(dst + "/" + IN_MAIN + ".ulp")) {
+    dlgMessageBox(L("Не удалось скопировать файлы в:", "Cannot copy the files to:") + "\n" + dst, "OK");
+    exit(EXIT_FAILURE);
+}
+
+// исходное состояние Fusion — один раз, до первой установки любого проекта dmxON
+if (cfgget("dmxon.install.usedefault", "") == "") cfgset("dmxon.install.usedefault", cfgget("EAGLE:Directories.UseDefault", "1"));
+int was_default = cfgget("EAGLE:Directories.UseDefault", "1") == "1";
+for (int k = 0; k < N_KEYS; k++) {
+    string key = "EAGLE:Directories." + DIR_KEYS[k];
+    string cur = was_default ? "" : cfgget(key, "");
+    string add = in_target(dst, k);
+    string lst = in_without(cur, add);
+    cfgset(key, add + (lst != "" ? ";" + lst : ""));       // своя папка — первой
+}
+// встроенные папки Fusion добавляются к списку сами (системные папки)
+cfgset("EAGLE:Directories.UseSystemDirs", "1");
+cfgset("EAGLE:Directories.UseDefault", "0");
+cfgset(IN_KEY + ".dst", dst);
+
+dlgMessageBox(Lf("Готово. Перезапустите Fusion — {0} появится в Automation → Run ULP.",
+                 "Done. Restart Fusion — {0} will appear in Automation → Run ULP.", IN_MAIN, "", "") + "\n\n" + dst, "OK");

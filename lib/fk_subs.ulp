@@ -14,25 +14,20 @@ int is_connector_like(string des, int tht)
            p == "K" || p == "SW" || p == "S" || p == "BT" || p == "F";
 }
 
-// почему строке нужна замена; "" — не нужна (английский текст — в sr_en)
-string sr_en = "";
-
+// почему строке нужна замена (на языке интерфейса); "" — не нужна
 string sub_reason(int g)
 {
-    sr_en = "";
     if (g_merged[g]) return "";
     int need = g_qty[g] * opt_boards;
     int k = g_kind[g];
     if ((k == 'R' || k == 'C') && g_parsed[g] && is_chip(g_jpkg[g])) return "";   // пассив подобран по номиналу
-    if (g_lcsc[g] == "") { sr_en = "not in the JLCPCB catalogue"; return "нет в каталоге JLCPCB"; }
-    if (g_stock[g] >= 0 && g_stock[g] < need) {
-        sr_en = "stock " + istr(g_stock[g]) + " of " + istr(need);
-        return "на складе " + istr(g_stock[g]) + " из " + istr(need);
-    }
+    if (g_lcsc[g] == "") return L("нет в каталоге JLCPCB", "not in the JLCPCB catalogue");
+    if (g_stock[g] >= 0 && g_stock[g] < need)
+        return Lf("на складе {0} из {1}", "stock {0} of {1}", istr(g_stock[g]), istr(need), "");
     int e = g_first[g];
     if (el_mp[e] >= 0) {
         int m = el_mp[e];
-        if (mp_mir[m] || mp_stat[m] == 3) { sr_en = "footprint does not fit"; return "посадочное место не подходит"; }
+        if (mp_mir[m] || mp_stat[m] == 3) return L("посадочное место не подходит", "footprint does not fit");
     }
     return "";
 }
@@ -188,7 +183,7 @@ void sub_trim()
 }
 
 // выбор замены по результатам сверки посадочных мест
-void sub_choose(int g, string why, string why_en)
+void sub_choose(int g, string why)
 {
     int e = g_first[g];
     int ef = g_ef[g];
@@ -215,30 +210,28 @@ void sub_choose(int g, string why, string why_en)
         if (best < 0 || cost < bcost) { best = i; bcost = cost; bmp = m; }
     }
     if (best < 0) {
-        add_note(g, "замена не найдена: среди аналогов в наличии нет совместимого посадочного места",
-                 "no substitute: no in-stock alternative has a compatible footprint");
+        add_note(g, L("замена не найдена: среди аналогов в наличии нет совместимого посадочного места",
+                      "no substitute: no in-stock alternative has a compatible footprint"));
         return;
     }
     g_sub_code[g] = sc_code[best]; g_sub_model[g] = sc_model[best]; g_sub_pkg[g] = sc_pkg[best];
     g_sub_type[g] = sc_type[best]; g_sub_tiers[g] = sc_tiers[best]; g_sub_stock[g] = sc_stock[best];
-    g_sub_mp[g] = bmp; g_sub_why[g] = why; g_sub_why_en[g] = why_en;
+    g_sub_mp[g] = bmp; g_sub_why[g] = why;
     g_sub_from[g] = g_lcsc[g];
     if (opt_alt) {
         g_sub_applied[g] = 1;
         // прежние замечания относились к исходной детали
-        g_note[g] = ""; g_note_en[g] = "";
+        g_note[g] = ""; g_attn[g] = 0;
         string was = g_lcsc[g];
         if (was == "") was = squeeze(g_value[g]);
         g_lcsc[g] = sc_code[best]; g_model[g] = sc_model[best]; g_cpkg[g] = sc_pkg[best]; g_type[g] = sc_type[best];
         g_stock[g] = sc_stock[best]; g_tiers[g] = sc_tiers[best];
         g_src[g] = "замена";
-        string nt = "ЗАМЕНА: " + was + " → " + sc_code[best] + " " + sc_model[best] + " (" + why + "); посадочное место ";
-        string ne = "SUBSTITUTE: " + was + " → " + sc_code[best] + " " + sc_model[best] + " (" + why_en + "); footprint ";
-        if (mp_stat[bmp] == 1) { nt += "совпадает по номерам выводов"; ne += "matches by pin numbers"; }
-        else { nt += "совпадает по форме — проверить цоколёвку и ответную часть"; ne += "matches by shape — check the pinout and the mating part"; }
-        add_note(g, nt, ne);
+        string fit = mp_stat[bmp] == 1 ? L("посадочное место совпадает по номерам выводов", "footprint matches by pin numbers")
+                                       : L("посадочное место совпадает по форме — проверить цоколёвку и ответную часть", "footprint matches by shape — check the pinout and the mating part");
+        add_note(g, L("ЗАМЕНА", "SUBSTITUTE") + ": " + was + " → " + sc_code[best] + " " + sc_model[best] + " (" + why + "); " + fit);
     } else {
-        add_note(g, "есть совместимая замена " + sc_code[best] + " " + sc_model[best] + " (не подставлена, включите замены в настройках)",
-                 "compatible substitute " + sc_code[best] + " " + sc_model[best] + " available (not applied, enable substitutes in the settings)");
+        add_note(g, Lf("есть совместимая замена {0} (не подставлена, включите замены в настройках)",
+                       "compatible substitute {0} available (not applied, enable substitutes in the settings)", sc_code[best] + " " + sc_model[best], "", ""));
     }
 }

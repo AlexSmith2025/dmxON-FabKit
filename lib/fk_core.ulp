@@ -1,10 +1,10 @@
-// fk_core.ulp — версия, настройки, двуязычные строки, файлы, состояние между фазами
+// fk_core.ulp — версия, настройки, язык интерфейса, файлы, состояние между фазами
 // dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
 
 // ---------------------------------------------------------------- продукт
 
 string FK_NAME    = "dmxON FabKit";
-string FK_VERSION = "2.0.5";              // при каждой переделке поднимать (см. CHANGELOG.md)
+string FK_VERSION = "2.1.0";              // при каждой переделке поднимать (см. CHANGELOG.md)
 string FK_DATE    = "2026-10-13";
 string FK_AUTHOR  = "dmxON by AlexSmith";
 string FK_YEAR    = "2026";
@@ -65,18 +65,108 @@ real fee_usd()
     return strtod(opt_fee);
 }
 
-// ---------------------------------------------------------------- двуязычные строки
 
-// для диалогов и простого текста: «Русский / English»
-string L(string ru, string en)
+// ---------------------------------------------------------------- язык интерфейса
+// Английский по умолчанию. Русский и английский тексты — прямо в коде (L("рус", "eng")),
+// испанский, немецкий и польский — из таблицы lib/fk_lang.ulp, ключ — английский текст.
+// Выбор языка общий для dmxON FabKit и dmxON JLC Rules (настройка dmxon.lang).
+string LANG_CODE[] = { "en", "ru", "es", "de", "pl" };
+string LANG_NAME[] = { "English", "Русский", "Español", "Deutsch", "Polski" };
+int    N_LANG   = 5;
+int    ui_lang  = 0;                      // 0 en, 1 ru, 2 es, 3 de, 4 pl
+string LANG_CFG = "dmxon.lang";
+
+void lang_load()
 {
-    return ru + " / " + en;
+    string c = cfgget(LANG_CFG, "en");
+    ui_lang = 0;
+    for (int i = 0; i < N_LANG; i++) if (LANG_CODE[i] == c) ui_lang = i;
 }
 
-// для HTML: русский основной, английский — подстрочником (класс en)
+void lang_save()
+{
+    cfgset(LANG_CFG, LANG_CODE[ui_lang]);
+}
+
+// код языка из аргумента -lang
+int lang_index(string c)
+{
+    for (int i = 0; i < N_LANG; i++) if (LANG_CODE[i] == strlwr(c)) return i;
+    return -1;
+}
+
+int TR_HT[];
+int tr_built = 0;
+
+int tr_hash(string s)
+{
+    int hv = 7;
+    for (int i = 0; s[i]; i++) hv = (hv * 31 + s[i]) % 1000003;
+    return hv % 4099;
+}
+
+void tr_build()
+{
+    for (int i = 0; i < TR_N; i++) {
+        int b = tr_hash(TR_EN[i]);
+        while (TR_HT[b]) b = (b + 1) % 4099;
+        TR_HT[b] = i + 1;
+    }
+    tr_built = 1;
+}
+
+// английский текст на языке lg (2 es, 3 de, 4 pl); перевода нет — остаётся английский
+string tr(int lg, string en)
+{
+    if (!tr_built) tr_build();
+    int b = tr_hash(en);
+    while (TR_HT[b]) {
+        int i = TR_HT[b] - 1;
+        if (TR_EN[i] == en) {
+            string v = lg == 2 ? TR_ES[i] : (lg == 3 ? TR_DE[i] : TR_PL[i]);
+            return v != "" ? v : en;
+        }
+        b = (b + 1) % 4099;
+    }
+    return en;
+}
+
+// текст на языке lg
+string Lx(int lg, string ru, string en)
+{
+    if (lg == 1) return ru;
+    if (lg == 0) return en;
+    return tr(lg, en);
+}
+
+// текст на языке интерфейса
+string L(string ru, string en)
+{
+    return Lx(ui_lang, ru, en);
+}
+
+string fmt3(string s, string a, string b, string c)
+{
+    s = replace_all(s, "{0}", a);
+    s = replace_all(s, "{1}", b);
+    return replace_all(s, "{2}", c);
+}
+
+// шаблон с подстановками {0} {1} {2}
+string Lf(string ru, string en, string a, string b, string c)
+{
+    return fmt3(L(ru, en), a, b, c);
+}
+
+string Lfx(int lg, string ru, string en, string a, string b, string c)
+{
+    return fmt3(Lx(lg, ru, en), a, b, c);
+}
+
+// для HTML: подпись на языке интерфейса
 string hl(string ru, string en)
 {
-    return h(ru) + "<span class=\"en\">" + h(en) + "</span>";
+    return h(L(ru, en));
 }
 
 // готовая разметка: не-ASCII символы -> числовые ссылки (теги и сущности не трогает)
@@ -99,10 +189,10 @@ string asc(string s)
     return t;
 }
 
-// в одну строку через косую черту
+// то же в строке текста
 string hs(string ru, string en)
 {
-    return h(ru) + " <span class=\"en1\">/ " + h(en) + "</span>";
+    return h(L(ru, en));
 }
 
 // ---------------------------------------------------------------- файлы и команды
@@ -234,6 +324,7 @@ void st_save(string path)
 // символ по коду Юникода: char в ULP 8-битный, поэтому берём символ из таблиц-литералов
 string UNI_CYR = "ЀЁЂЃЄЅІЇЈЉЊЋЌЍЎЏАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяѐёђѓєѕіїјљњћќѝўџѠѡѢѣѤѥѦѧѨѩѪѫѬѭѮѯѰѱѲѳѴѵѶѷѸѹѺѻѼѽѾѿҀҁ҂҃҄҅҆҇҈҉ҊҋҌҍҎҏҐґҒғҔҕҖҗҘҙҚқҜҝҞҟҠҡҢңҤҥҦҧҨҩҪҫҬҭҮүҰұҲҳҴҵҶҷҸҹҺһҼҽҾҿӀӁӂӃӄӅӆӇӈӉӊӋӌӍӎӏӐӑӒӓӔӕӖӗӘәӚӛӜӝӞӟӠӡӢӣӤӥӦӧӨөӪӫӬӭӮӯӰӱӲӳӴӵӶӷӸӹӺӻӼӽӾӿ";
 string UNI_LAT = " ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ";
+string UNI_LXA = "ĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſ";
 string UNI_PUN = "–—‘’“”„•…№™←↑→↓−≤≥≈≠×‰€′″";
 int UNI_PUN_CODE[] = { 8211, 8212, 8216, 8217, 8220, 8221, 8222, 8226, 8230, 8470, 8482, 8592, 8593, 8594, 8595, 8722, 8804, 8805, 8776, 8800, 215, 8240, 8364, 8242, 8243 };
 
@@ -242,6 +333,7 @@ string uchar(int c)
     if (c < 128) { char a = c; string t = ""; t += a; return t; }
     if (c >= 0x400 && c < 0x500) return strsub(UNI_CYR, c - 0x400, 1);
     if (c >= 0xA0 && c < 0x100) return strsub(UNI_LAT, c - 0xA0, 1);
+    if (c >= 0x100 && c < 0x180) return strsub(UNI_LXA, c - 0x100, 1);
     for (int i = 0; i < 25; i++)
         if (UNI_PUN_CODE[i] == c) return strsub(UNI_PUN, i, 1);
     return "?";

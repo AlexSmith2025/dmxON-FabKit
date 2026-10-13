@@ -1,17 +1,38 @@
 #usage "en: <b>dmxON FabKit</b> — complete JLCPCB production package from a Fusion Electronics board<p>"
        "Gerber (JLCPCB names + zip), BOM and CPL with automatic LCSC part selection, price-optimised substitutes "
-       "checked against the board footprints, an animated bilingual report, A4 assembly documentation with an editable "
-       "title block, and 1:1 PDF prints for toner transfer.<p>"
+       "checked against the board footprints, an animated report, A4 assembly documentation with an editable "
+       "title block, and 1:1 PDF prints for toner transfer. Interface and documents: English, Russian, Spanish, German, Polish.<p>"
        "<b>Usage:</b> run from the board editor: <tt>RUN dmxON_FabKit</tt><br>"
-       "Batch: <tt>RUN dmxON_FabKit -batch &lt;folder&gt; [-offline] [-boards N] [-import file] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "Batch: <tt>RUN dmxON_FabKit -batch &lt;folder&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import file] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
        "<author>dmxON by AlexSmith 2026 · free to use with attribution · see LICENSE.md</author>",
        "ru: <b>dmxON FabKit</b> — полный производственный пакет JLCPCB из платы Fusion Electronics<p>"
        "Gerber (имена JLCPCB + архив), BOM и CPL с автоматическим подбором номеров LCSC, замены с оптимизацией цены "
-       "и сверкой посадочных мест, анимированный двуязычный отчёт, документация A4 для ручной сборки с редактируемым "
-       "штампом и PDF 1:1 для ЛУТ.<p>"
+       "и сверкой посадочных мест, анимированный отчёт, документация A4 для ручной сборки с редактируемым "
+       "штампом и PDF 1:1 для ЛУТ. Интерфейс и документы: английский, русский, испанский, немецкий, польский.<p>"
        "<b>Запуск:</b> из редактора платы: <tt>RUN dmxON_FabKit</tt><br>"
-       "Пакетный режим: <tt>RUN dmxON_FabKit -batch &lt;папка&gt; [-offline] [-boards N] [-import файл] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
-       "<author>dmxON by AlexSmith 2026 · свободное использование с указанием автора · см. LICENSE.md</author>"
+       "Пакетный режим: <tt>RUN dmxON_FabKit -batch &lt;папка&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import файл] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "<author>dmxON by AlexSmith 2026 · свободное использование с указанием автора · см. LICENSE.md</author>",
+       "es: <b>dmxON FabKit</b> — paquete de fabricación JLCPCB completo desde una placa de Fusion Electronics<p>"
+       "Gerber (nombres JLCPCB + zip), BOM y CPL con selección automática de piezas LCSC, sustitutos optimizados por precio "
+       "y comprobados con las huellas de la placa, informe animado, documentación A4 de montaje con cajetín editable "
+       "e impresiones PDF 1:1 para transferencia de tóner. Interfaz y documentos: inglés, ruso, español, alemán, polaco.<p>"
+       "<b>Uso:</b> desde el editor de placas: <tt>RUN dmxON_FabKit</tt><br>"
+       "Por lotes: <tt>RUN dmxON_FabKit -batch &lt;carpeta&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import archivo] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "<author>dmxON by AlexSmith 2026 · uso libre citando al autor · ver LICENSE.md</author>",
+       "de: <b>dmxON FabKit</b> — komplettes JLCPCB-Fertigungspaket aus einer Fusion-Electronics-Platine<p>"
+       "Gerber (JLCPCB-Namen + Zip), BOM und CPL mit automatischer LCSC-Teileauswahl, preisoptimierte Ersatzteile, "
+       "geprüft gegen die Footprints der Platine, animierter Bericht, A4-Bestückungsdokumentation mit editierbarem "
+       "Schriftfeld und 1:1-PDF-Drucke für die Tonertransfer-Methode. Oberfläche und Dokumente: Englisch, Russisch, Spanisch, Deutsch, Polnisch.<p>"
+       "<b>Aufruf:</b> im Board-Editor: <tt>RUN dmxON_FabKit</tt><br>"
+       "Stapelbetrieb: <tt>RUN dmxON_FabKit -batch &lt;Ordner&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import Datei] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "<author>dmxON by AlexSmith 2026 · freie Nutzung mit Namensnennung · siehe LICENSE.md</author>",
+       "pl: <b>dmxON FabKit</b> — kompletny pakiet produkcyjny JLCPCB z płytki Fusion Electronics<p>"
+       "Gerber (nazwy JLCPCB + zip), BOM i CPL z automatycznym doborem części LCSC, zamienniki optymalizowane cenowo "
+       "i sprawdzone z footprintami płytki, animowany raport, dokumentacja montażowa A4 z edytowalną tabliczką "
+       "oraz wydruki PDF 1:1 do metody termotransferu. Interfejs i dokumenty: angielski, rosyjski, hiszpański, niemiecki, polski.<p>"
+       "<b>Uruchomienie:</b> w edytorze płytki: <tt>RUN dmxON_FabKit</tt><br>"
+       "Tryb wsadowy: <tt>RUN dmxON_FabKit -batch &lt;folder&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import plik] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "<author>dmxON by AlexSmith 2026 · bezpłatne użycie z podaniem autora · zob. LICENSE.md</author>"
 
 // dmxON FabKit · dmxON by AlexSmith 2026
 // Лицензия: LICENSE.md (использование бесплатно с указанием автора; копирование кода,
@@ -25,6 +46,7 @@
 //   фаза 3 (fk_finish)  — Gerber под JLCPCB, превью слоёв, отчёт, документация A4 → PDF, index.html
 
 #include "lib/fk_strings.ulp"
+#include "lib/fk_lang.ulp"
 #include "lib/fk_core.ulp"
 #include "lib/fk_values.ulp"
 #include "lib/fk_packages.ulp"
@@ -43,6 +65,7 @@
 
 // ---------------------------------------------------------------- фаза 3
 
+lang_load();
 if (argc > 2 && argv[1] == "-finish") {
     finish_main(argv[2]);
     exit(0);
@@ -67,12 +90,6 @@ int list_index(string list, string v)
     for (int i = 0; i < n; i++)
         if (a[i] == v) return i;
     return 0;
-}
-
-// подпись в две строки: русский, под ним английский (окно диалога не растягивается)
-string L2(string ru, string en)
-{
-    return ru + "\n" + en;
 }
 
 string cfg_key(string k)
@@ -120,7 +137,7 @@ void geo_one(int e)
     if (jfi < 0) return;
     if (!jf_ok[jfi]) {
         if (strstr(g_geo[g], "|nomodel|") < 0) {
-            add_note(g, "посадочное место не сверено: " + jf_why[jfi], "footprint not verified: " + jf_why_en(jf_why[jfi]));
+            add_note(g, L("посадочное место не сверено", "footprint not verified") + ": " + jf_why_txt(jf_why[jfi]));
             g_geo[g] += "nomodel|";
         }
         return;
@@ -132,14 +149,15 @@ void geo_one(int e)
     el_mp[e] = mpi;
     if (strstr(g_geo[g], "|" + istr(mpi) + "|") < 0) {
         string gn = mp_notes(mpi);
-        if (gn != "") add_note(g, gn, mp_notes_en(mpi));
+        if (mp_attn) add_warn(g, gn);
+        else add_note(g, gn);
         g_geo[g] += istr(mpi) + "|";
     }
     if (!mp_usable(mpi)) return;
     if (!board_point(e, el_ef[e], mp_tx[mpi], mp_ty[mpi])) return;
     if (el_rotsrc[e] != "" && angle_mod(el_rotofs[e]) != mp_rot[mpi] && strstr(g_geo[g], "|rotattr|") < 0) {
-        add_note(g, "поправка поворота " + el_rotsrc[e] + " из атрибута или файла заменена расчётной " + istr(mp_rot[mpi]),
-                 "rotation offset " + el_rotsrc[e] + " from attribute/map replaced by computed " + istr(mp_rot[mpi]));
+        add_note(g, Lf("поправка поворота {0} из атрибута или файла заменена расчётной {1}", "rotation offset {0} from attribute/map replaced by computed {1}",
+                       el_rotsrc[e], istr(mp_rot[mpi]), ""));
         g_geo[g] += "rotattr|";
     }
     el_cpl_x[e] = bp_x;
@@ -147,7 +165,7 @@ void geo_one(int e)
     el_cpl_rot[e] = angle_mod(el_angle[e] + mp_rot[mpi]);
     el_geo[e] = 1;
     if (el_bottom[e] && strstr(g_geo[g], "|bottom|") < 0) {
-        add_note(g, "деталь снизу: поворот проверить в предпросмотре JLCPCB", "bottom-side part: check rotation in the JLCPCB preview");
+        add_note(g, L("деталь снизу: поворот проверить в предпросмотре JLCPCB", "bottom-side part: check rotation in the JLCPCB preview"));
         g_geo[g] += "bottom|";
     }
 }
@@ -223,13 +241,22 @@ board(B) {
         else if (argv[a] == "-notoner") opt_toner = 0;
         else if (argv[a] == "-nopdf") opt_pdf = 0;
         else if (argv[a] == "-keep") keep_tmp = 1;
+        else if (argv[a] == "-lang") { if (a + 1 < argc) { int li = lang_index(argv[++a]); if (li >= 0) ui_lang = li; } }
     }
 
     // ---- диалог
     if (!batch_mode) {
         int i_mask = list_index(strjoin(MASKS, '|'), opt_mask), i_silk = list_index(strjoin(SILKS, '|'), opt_silk);
         int i_fin = list_index(strjoin(FINISHES, '|'), opt_finish), i_th = list_index(strjoin(THICKS, '|'), opt_thick);
-        int res = dlgDialog(fk_title() + " — " + base) {
+        int res = 0, sel_lang = ui_lang;
+        while (1) {
+        sel_lang = ui_lang;
+        res = dlgDialog(fk_title() + " — " + base) {
+            dlgHBoxLayout {
+                dlgStretch(1);
+                dlgLabel(L("Язык", "Language"));
+                dlgComboBox(LANG_NAME, sel_lang) { if (sel_lang != ui_lang) { ui_lang = sel_lang; lang_save(); dlgAccept(9); } }
+            }
             dlgTabWidget {
                 dlgTabPage(L("Выгрузка", "Output")) {
                     dlgGroup(L("Куда", "Where")) {
@@ -241,19 +268,19 @@ board(B) {
                                 if (d != "") opt_root = d;
                             }
                         }
-                        dlgLabel(L2("Пакет создаётся в подпапке «" + base + "_FabKit». Прежний пакет этой платы удаляется целиком.",
-                                   "The package goes to «" + base + "_FabKit». A previous package of this board is replaced completely."));
-                        dlgCheckBox(L2("Открыть папку после выгрузки", "Open the folder when done"), opt_open);
+                        dlgLabel(Lf("Пакет создаётся в подпапке «{0}». Прежний пакет этой платы удаляется целиком.",
+                                    "The package goes to «{0}». A previous package of this board is replaced completely.", base + "_FabKit", "", ""));
+                        dlgCheckBox(L("Открыть папку после выгрузки", "Open the folder when done"), opt_open);
                     }
                     dlgGroup(L("Что создать", "What to build")) {
-                        dlgCheckBox(L2("Gerber и сверловка для JLCPCB (архив + превью слоёв)", "Gerber and drill for JLCPCB (zip + layer previews)"), opt_gerber);
-                        dlgCheckBox(L2("Документация A4 для ручной сборки", "A4 documentation for manual assembly"), opt_docs);
-                        dlgCheckBox(L2("PDF документации (через Microsoft Edge)", "PDF of the documentation (via Microsoft Edge)"), opt_pdf);
-                        dlgCheckBox(L2("Листы 1:1 для ЛУТ (PDF)", "1:1 toner-transfer sheets (PDF)"), opt_toner);
+                        dlgCheckBox(L("Gerber и сверловка для JLCPCB (архив + превью слоёв)", "Gerber and drill for JLCPCB (zip + layer previews)"), opt_gerber);
+                        dlgCheckBox(L("Документация A4 для ручной сборки", "A4 documentation for manual assembly"), opt_docs);
+                        dlgCheckBox(L("PDF документации (через Microsoft Edge)", "PDF of the documentation (via Microsoft Edge)"), opt_pdf);
+                        dlgCheckBox(L("Листы 1:1 для ЛУТ (PDF)", "1:1 toner-transfer sheets (PDF)"), opt_toner);
                     }
                     dlgGroup(L("Что выгружать в BOM/CPL", "What goes into BOM/CPL")) {
-                        dlgCheckBox(L2("Выводные (THT) детали", "Through-hole (THT) parts"), opt_tht);
-                        dlgCheckBox(L2("CPL по центру площадок, если посадочное место не сверено", "CPL at pad centre when the footprint is not verified"), opt_centroid);
+                        dlgCheckBox(L("Выводные (THT) детали", "Through-hole (THT) parts"), opt_tht);
+                        dlgCheckBox(L("CPL по центру площадок, если посадочное место не сверено", "CPL at pad centre when the footprint is not verified"), opt_centroid);
                         dlgHBoxLayout {
                             dlgLabel(L("Не выгружать обозначения", "Skip designators") + ":");
                             dlgStringEdit(opt_prefixes);
@@ -263,12 +290,12 @@ board(B) {
                 }
                 dlgTabPage(L("Детали", "Parts")) {
                     dlgGroup(L("Подбор номеров LCSC", "LCSC part selection")) {
-                        dlgCheckBox(L2("Искать в каталоге JLCPCB (нужен интернет)", "Search the JLCPCB catalogue (online)"), opt_online);
-                        dlgCheckBox(L2("Предпочитать Basic/Preferred (без платы за катушку)", "Prefer Basic/Preferred (no feeder fee)"), opt_basic);
-                        dlgCheckBox(L2("Подставлять дешёвые совместимые замены отсутствующих деталей", "Apply cheaper compatible substitutes for missing parts"), opt_alt);
-                        dlgCheckBox(L2("Сверять посадочные места с JLC; поворот и центр в CPL — по ним", "Verify footprints against JLC; CPL rotation and centre from them"), opt_geo);
-                        dlgCheckBox(L2("Номер в атрибуте не совпал с номиналом — подобрать заново", "Attribute part number contradicts the value — reselect"), opt_fixattr);
-                        dlgCheckBox(L2("Записать номера в атрибуты LCSC_PART на плате", "Write part numbers to LCSC_PART attributes"), opt_writeattr);
+                        dlgCheckBox(L("Искать в каталоге JLCPCB (нужен интернет)", "Search the JLCPCB catalogue (online)"), opt_online);
+                        dlgCheckBox(L("Предпочитать Basic/Preferred (без платы за катушку)", "Prefer Basic/Preferred (no feeder fee)"), opt_basic);
+                        dlgCheckBox(L("Подставлять дешёвые совместимые замены отсутствующих деталей", "Apply cheaper compatible substitutes for missing parts"), opt_alt);
+                        dlgCheckBox(L("Сверять посадочные места с JLC; поворот и центр в CPL — по ним", "Verify footprints against JLC; CPL rotation and centre from them"), opt_geo);
+                        dlgCheckBox(L("Номер в атрибуте не совпал с номиналом — подобрать заново", "Attribute part number contradicts the value — reselect"), opt_fixattr);
+                        dlgCheckBox(L("Записать номера в атрибуты LCSC_PART на плате", "Write part numbers to LCSC_PART attributes"), opt_writeattr);
                         dlgGridLayout {
                             dlgCell(0, 0) dlgLabel(L("Плат в заказе", "Boards in the order"));
                             dlgCell(0, 1) dlgIntEdit(opt_boards, 1, 1000000);
@@ -286,7 +313,7 @@ board(B) {
                                 if (f != "") imp_file = f;
                             }
                         }
-                        dlgLabel(L2("Номера из файла главнее атрибутов. Понимает «Download Selected Parts List», любую CSV/XLSX с Designator и LCSC.",
+                        dlgLabel(L("Номера из файла главнее атрибутов. Понимает «Download Selected Parts List», любую CSV/XLSX с Designator и LCSC.",
                                    "File numbers override attributes. Reads «Download Selected Parts List» and any CSV/XLSX with Designator and LCSC."));
                     }
                 }
@@ -302,7 +329,7 @@ board(B) {
                             dlgCell(3, 0) dlgLabel(L("Покрытие", "Surface finish"));
                             dlgCell(3, 1) dlgComboBox(FINISHES, i_fin);
                         }
-                        dlgLabel(L2("Используется в отчёте, в параметрах заказа и для вида платы.", "Used in the report, the order parameters and the board render."));
+                        dlgLabel(L("Используется в отчёте, в параметрах заказа и для вида платы.", "Used in the report, the order parameters and the board render."));
                     }
                     dlgStretch(1);
                 }
@@ -333,19 +360,19 @@ board(B) {
                             dlgCell(3, 1) dlgStringEdit(tb_approver);
                         }
                     }
-                    dlgLabel(L2("Поля можно поправить и потом — прямо в HTML документации.", "Fields can also be edited later right in the documentation HTML."));
+                    dlgLabel(L("Поля можно поправить и потом — прямо в HTML документации.", "Fields can also be edited later right in the documentation HTML."));
                     dlgStretch(1);
                 }
                 dlgTabPage(L("Инфо", "About")) {
                     // в текстовом поле ссылки открываются в браузере (в dlgLabel — нет)
                     dlgTextView("<h2>" + FK_NAME + "</h2><p>" + L("Версия", "Version") + " " + FK_VERSION + " · " + FK_DATE + "</p>" +
                                 "<p><b>" + FK_AUTHOR + " " + FK_YEAR + "</b> · <a href=\"" + FK_REPO + "\">GitHub</a></p>" +
-                                "<p>" + h("Использование бесплатно с указанием автора.") + "<br>Free to use with attribution.<br><br>" +
-                                h("Копирование кода, изменение и коммерческое использование запрещены.") +
-                                "<br>Copying the code, modification and commercial use are not permitted.<br><br>LICENSE.md</p>" +
-                                "<hr><p><b>&#10084; " + h("Поддержите проект") + " / Support the project</b><br>" +
-                                h("FabKit бесплатный. Если он сэкономил вам время или деньги — поддержите новые версии.") +
-                                "<br>FabKit is free. If it saved you time or money, please support new versions.<br><br>" +
+                                "<p>" + h(L("Использование бесплатно с указанием автора.", "Free to use with attribution.")) + "<br>" +
+                                h(L("Копирование кода, изменение и коммерческое использование запрещены.",
+                                    "Copying the code, modification and commercial use are not permitted.")) + "<br>LICENSE.md</p>" +
+                                "<hr><p><b>&#10084; " + h(L("Поддержите проект", "Support the project")) + "</b><br>" +
+                                h(L("FabKit бесплатный. Если он сэкономил вам время или деньги — поддержите новые версии.",
+                                    "FabKit is free. If it saved you time or money, please support new versions.")) + "<br><br>" +
                                 "<a href=\"" + FK_DONATE + "\">PayPal · smith.show2025@gmail.com</a></p>");
                 }
             }
@@ -355,6 +382,9 @@ board(B) {
                 dlgPushButton("-" + L("Отмена", "Cancel")) dlgReject();
             }
         };
+        if (res == 9) continue;
+        break;
+        }
         if (res != 1) exit(0);
         opt_mask = MASKS[i_mask]; opt_silk = SILKS[i_silk]; opt_finish = FINISHES[i_fin]; opt_thick = THICKS[i_th];
     }
@@ -490,26 +520,23 @@ board(B) {
         string P = strupr(E.footprint.name);
         string VU = strupr(squeeze(E.value));
         int smd_only = (n_smd > 0 && n_pad == 0);
-        string why = "", why_en = "";
-        if (!E.populate) { why = "вариант сборки: не устанавливать"; why_en = "assembly variant: do not place"; }
-        else if (a_dnp) { why = "атрибут DNP / JLC_EXCLUDE"; why_en = "DNP / JLC_EXCLUDE attribute"; }
-        else if (VU == "DNP" || VU == "DNF" || VU == "NC" || VU == "N/C" || VU == "NP" || VU == "NOPOP" || VU == "NO POP" || VU == "DO NOT PLACE") {
-            why = "номинал «" + squeeze(E.value) + "»"; why_en = "value «" + squeeze(E.value) + "»";
-        }
-        else if (a_bom == "EXCLUDE" || a_bom == "NO" || a_bom == "DNP" || a_bom == "FALSE") { why = "атрибут BOM=" + a_bom; why_en = "attribute BOM=" + a_bom; }
-        else if (n_smd + n_pad == 0) { why = "нет площадок (логотип, графика)"; why_en = "no pads (logo, artwork)"; }
-        else if (prefix_excluded(nm)) { why = "обозначение из списка исключений"; why_en = "designator in the skip list"; }
-        else if (strstr(P, "HOLE") >= 0 || strstr(P, "FIDUCIAL") >= 0 || starts_with(P, "FID") || strstr(P, "LOGO") >= 0) {
-            why = "крепёжное отверстие / фидуциал"; why_en = "mounting hole / fiducial";
-        }
-        else if (smd_only && n_nocream == n_smd && !real_part(nm)) { why = "площадки без пасты (фидуциал, перемычка, контактная площадка)"; why_en = "pads without paste (fiducial, jumper, contact pad)"; }
-        else if (smd_only && (strstr(P, "JUMP") >= 0 || strstr(P, "SOLDER") >= 0 || strstr(P, "TESTPOINT") >= 0 || strstr(P, "TEST-POINT") >= 0)) {
-            why = "паяная перемычка / тестовая точка"; why_en = "solder jumper / test point";
-        }
-        else if (n_smd == 0 && !opt_tht) { why = "выводная деталь (THT выключены)"; why_en = "through-hole part (THT disabled)"; }
+        string why = "";
+        if (!E.populate) why = L("вариант сборки: не устанавливать", "assembly variant: do not place");
+        else if (a_dnp) why = L("атрибут DNP / JLC_EXCLUDE", "DNP / JLC_EXCLUDE attribute");
+        else if (VU == "DNP" || VU == "DNF" || VU == "NC" || VU == "N/C" || VU == "NP" || VU == "NOPOP" || VU == "NO POP" || VU == "DO NOT PLACE")
+            why = L("номинал", "value") + " «" + squeeze(E.value) + "»";
+        else if (a_bom == "EXCLUDE" || a_bom == "NO" || a_bom == "DNP" || a_bom == "FALSE") why = L("атрибут", "attribute") + " BOM=" + a_bom;
+        else if (n_smd + n_pad == 0) why = L("нет площадок (логотип, графика)", "no pads (logo, artwork)");
+        else if (prefix_excluded(nm)) why = L("обозначение из списка исключений", "designator in the skip list");
+        else if (strstr(P, "HOLE") >= 0 || strstr(P, "FIDUCIAL") >= 0 || starts_with(P, "FID") || strstr(P, "LOGO") >= 0)
+            why = L("крепёжное отверстие / фидуциал", "mounting hole / fiducial");
+        else if (smd_only && n_nocream == n_smd && !real_part(nm)) why = L("площадки без пасты (фидуциал, перемычка, контактная площадка)", "pads without paste (fiducial, jumper, contact pad)");
+        else if (smd_only && (strstr(P, "JUMP") >= 0 || strstr(P, "SOLDER") >= 0 || strstr(P, "TESTPOINT") >= 0 || strstr(P, "TEST-POINT") >= 0))
+            why = L("паяная перемычка / тестовая точка", "solder jumper / test point");
+        else if (n_smd == 0 && !opt_tht) why = L("выводная деталь (THT выключены)", "through-hole part (THT disabled)");
 
         if (why != "") {
-            ex_name[n_ex] = nm; ex_pkg[n_ex] = E.footprint.name; ex_why[n_ex] = why; ex_why_en[n_ex] = why_en;
+            ex_name[n_ex] = nm; ex_pkg[n_ex] = E.footprint.name; ex_why[n_ex] = why;
             n_ex++;
             // контур платы бывает нарисован и в футпринтах исключённых элементов
             E.footprint.wires(W) { if (W.layer == LAYER_DIMENSION) outline_add(u2mm(W.x1), u2mm(W.y1), u2mm(W.x2), u2mm(W.y2), W.curve); }
@@ -659,11 +686,11 @@ board(B) {
         if (g_lcsc[g] == "") continue;
         for (hh = 0; hh < g; hh++) {
             if (g_merged[hh] || g_lcsc[hh] != g_lcsc[g]) continue;
-            if (strupr(g_comment[hh]) != strupr(g_comment[g]) &&
-                (strstr(g_note[hh], "ВНИМАНИЕ") >= 0 || strstr(g_note[g], "ВНИМАНИЕ") >= 0)) continue;
+            if (strupr(g_comment[hh]) != strupr(g_comment[g]) && (g_attn[hh] || g_attn[g])) continue;
             g_desig[hh] = sort_desig(g_desig[hh] + "," + g_desig[g]);
             g_qty[hh] += g_qty[g];
-            if (g_note[g] != "") add_note(hh, g_note[g], g_note_en[g]);
+            if (g_note[g] != "") add_note(hh, g_note[g]);
+            if (g_attn[g]) g_attn[hh] = 1;
             g_merged[g] = 1;
             for (e = 0; e < n_el; e++)
                 if (el_group[e] == g) el_group[e] = hh;
@@ -689,12 +716,11 @@ board(B) {
     // ---- замены: нет в каталоге, нет на складе, корпус не подходит
     if (opt_online && opt_geo) {
         int needsub[];
-        string whys[], whys_en[];
+        string whys[];
         int any = 0;
         for (g = 0; g < n_g; g++) {
             needsub[g] = 0;
             whys[g] = sub_reason(g);
-            whys_en[g] = sr_en;
             if (whys[g] != "" && g_ef[g] >= 0) { needsub[g] = 1; any = 1; }
         }
         if (any) {
@@ -715,7 +741,7 @@ board(B) {
             for (q = 0; q < n_sc; q++) if (sc_g[q] >= 0 && find_jf(sc_code[q]) < 0) parse_eda(sc_code[q], fetch(eda_url(sc_code[q]), ""));
             for (g = 0; g < n_g; g++) {
                 if (!needsub[g]) continue;
-                sub_choose(g, whys[g], whys_en[g]);
+                sub_choose(g, whys[g]);
                 if (g_sub_applied[g]) {
                     g_geo[g] = "|";
                     for (e = 0; e < n_el; e++) if (el_group[e] == g) geo_one(e);
@@ -744,8 +770,8 @@ board(B) {
     for (e = 0; e < n_el; e++) {
         g = el_group[e];
         if (!el_nopaste[e] || strstr(g_geo[g], "|nopaste|") >= 0) continue;
-        add_note(g, "ВНИМАНИЕ: у посадочного места " + el_pkg[e] + " нет пасты (tCream) — трафарет её не нанесёт, проверить библиотеку",
-                 "WARNING: footprint " + el_pkg[e] + " has no paste (tCream) — the stencil will not apply paste, check the library");
+        add_warn(g, attn() + Lf("у посадочного места {0} нет пасты (tCream) — трафарет её не нанесёт, проверить библиотеку",
+                                "footprint {0} has no paste (tCream) — the stencil will not apply paste, check the library", el_pkg[e], "", ""));
         g_geo[g] += "nopaste|";
     }
 
@@ -754,14 +780,14 @@ board(B) {
         if (g_merged[g] || g_lcsc[g] == "" || !is_chip(g_jpkg[g])) continue;
         string cc = chip_in(g_cpkg[g]);
         if (cc != "" && cc != g_jpkg[g])
-            add_note(g, "ВНИМАНИЕ: на плате корпус " + g_jpkg[g] + ", а деталь " + g_cpkg[g], "WARNING: board package " + g_jpkg[g] + " but the part is " + g_cpkg[g]);
+            add_warn(g, attn() + Lf("на плате корпус {0}, а деталь {1}", "board package {0} but the part is {1}", g_jpkg[g], g_cpkg[g], ""));
     }
 
     // ---- детали за контуром платы
     if (bb_set) {
         for (e = 0; e < n_el; e++) {
             if (el_cpl_x[e] < bb_x1 - 0.1 || el_cpl_x[e] > bb_x2 + 0.1 || el_cpl_y[e] < bb_y1 - 0.1 || el_cpl_y[e] > bb_y2 + 0.1)
-                add_note(el_group[e], "ВНИМАНИЕ: " + el_name[e] + " за контуром платы", "WARNING: " + el_name[e] + " is outside the board outline");
+                add_warn(el_group[e], attn() + Lf("{0} за контуром платы", "{0} is outside the board outline", el_name[e], "", ""));
         }
     }
 
@@ -826,7 +852,7 @@ board(B) {
     st_set("tb_checker", tb_checker); st_set("tb_approver", tb_approver); st_set("tb_customer", tb_customer); st_set("tb_rev", tb_rev);
     st_set("tb_note", tb_note);
     st_set("bx1", f3(bb_x1)); st_set("by1", f3(bb_y1)); st_set("bx2", f3(bb_x2)); st_set("by2", f3(bb_y2));
-    st_seti("n_top", n_top); st_seti("n_bot", n_bot); st_seti("layers", n_layers);
+    st_seti("n_top", n_top); st_seti("n_bot", n_bot); st_seti("layers", n_layers); st_seti("lang", ui_lang);
     string summary;
     sprintf(summary, "%s\n\n%s: %d\n%s: %d\n%s: %d\n%s: %d\n%s: %d\n%s: %d",
             fk_title() + " — " + base,

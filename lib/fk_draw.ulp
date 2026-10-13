@@ -83,48 +83,27 @@ int is_cathode_name(string n)
 
 int STEP_N = 7;
 
-string step_ru(int s)
+string step_txt(int s)
 {
-    if (s == 1) return "Нижняя сторона: SMD-компоненты";
-    if (s == 2) return "Микросхемы с мелким шагом (QFN, QFP, шаг ≤ 0.65 мм)";
-    if (s == 3) return "Прочие микросхемы и транзисторы (SOIC, SOT, TSSOP)";
-    if (s == 4) return "Мелкие пассивные компоненты (0201–0805)";
-    if (s == 5) return "Остальные SMD: 1206+, диоды, светодиоды, кварцы";
-    if (s == 6) return "Крупные SMD: электролиты, силовые дроссели, SMD-разъёмы";
-    return "Выводные компоненты (THT) — в последнюю очередь";
+    if (s == 1) return L("Нижняя сторона: SMD-компоненты", "Bottom side: SMD parts");
+    if (s == 2) return L("Микросхемы с мелким шагом (QFN, QFP, шаг ≤ 0.65 мм)", "Fine-pitch ICs (QFN, QFP, pitch ≤ 0.65 mm)");
+    if (s == 3) return L("Прочие микросхемы и транзисторы (SOIC, SOT, TSSOP)", "Other ICs and transistors (SOIC, SOT, TSSOP)");
+    if (s == 4) return L("Мелкие пассивные компоненты (0201–0805)", "Small passives (0201–0805)");
+    if (s == 5) return L("Остальные SMD: 1206+, диоды, светодиоды, кварцы", "Other SMD: 1206+, diodes, LEDs, crystals");
+    if (s == 6) return L("Крупные SMD: электролиты, силовые дроссели, SMD-разъёмы", "Bulky SMD: electrolytics, power inductors, SMD connectors");
+    return L("Выводные компоненты (THT) — в последнюю очередь", "Through-hole parts (THT) — last");
 }
 
-string step_en(int s)
+string step_tip(int s)
 {
-    if (s == 1) return "Bottom side: SMD parts";
-    if (s == 2) return "Fine-pitch ICs (QFN, QFP, pitch ≤ 0.65 mm)";
-    if (s == 3) return "Other ICs and transistors (SOIC, SOT, TSSOP)";
-    if (s == 4) return "Small passives (0201–0805)";
-    if (s == 5) return "Other SMD: 1206+, diodes, LEDs, crystals";
-    if (s == 6) return "Bulky SMD: electrolytics, power inductors, SMD connectors";
-    return "Through-hole parts (THT) — last";
-}
-
-string step_tip_ru(int s)
-{
-    if (s == 1) return "Паяйте первой сторону с меньшим числом и массой деталей.";
-    if (s == 2) return "Флюс, паяльная паста или волна по выводам; проверить мосты под лупой. Центральную площадку — феном.";
-    if (s == 3) return "Сначала прихватить один вывод, выровнять по ключу, затем пропаять остальные.";
-    if (s == 4) return "Пинцет и тонкое жало; одна сторона — прихват, затем вторая.";
-    if (s == 5) return "Соблюдать полярность диодов и светодиодов (метка катода).";
-    if (s == 6) return "Учесть теплоёмкость: прогрев сильнее, полярность электролитов.";
-    return "Выводные — последними, после отмывки SMD; низкие раньше высоких.";
-}
-
-string step_tip_en(int s)
-{
-    if (s == 1) return "Solder the side with fewer and lighter parts first.";
-    if (s == 2) return "Flux and paste or drag-solder; inspect for bridges. Exposed pad — hot air.";
-    if (s == 3) return "Tack one pin, align to the pin-1 key, then solder the rest.";
-    if (s == 4) return "Tweezers and a fine tip; tack one side, then the other.";
-    if (s == 5) return "Mind diode and LED polarity (cathode mark).";
-    if (s == 6) return "Large thermal mass: more heat; electrolytic polarity.";
-    return "THT parts last, after cleaning SMD; low parts before tall ones.";
+    if (s == 1) return L("Паяйте первой сторону с меньшим числом и массой деталей.", "Solder the side with fewer and lighter parts first.");
+    if (s == 2) return L("Флюс, паяльная паста или волна по выводам; проверить мосты под лупой. Центральную площадку — феном.",
+                         "Flux and paste or drag-solder; inspect for bridges. Exposed pad — hot air.");
+    if (s == 3) return L("Сначала прихватить один вывод, выровнять по ключу, затем пропаять остальные.", "Tack one pin, align to the pin-1 key, then solder the rest.");
+    if (s == 4) return L("Пинцет и тонкое жало; одна сторона — прихват, затем вторая.", "Tweezers and a fine tip; tack one side, then the other.");
+    if (s == 5) return L("Соблюдать полярность диодов и светодиодов (метка катода).", "Mind diode and LED polarity (cathode mark).");
+    if (s == 6) return L("Учесть теплоёмкость: прогрев сильнее, полярность электролитов.", "Large thermal mass: more heat; electrolytic polarity.");
+    return L("Выводные — последними, после отмывки SMD; низкие раньше высоких.", "THT parts last, after cleaning SMD; low parts before tall ones.");
 }
 
 int el_step[];
@@ -231,40 +210,25 @@ string draw_side(int bottom, string sel, int labels, int pxw)
 }
 
 // ключ микросхемы словами: где вывод 1 относительно центра корпуса (вид сверху)
-string key_where_ru(int e)
+string key_where(int e)
 {
     if (!el_has_p1[e]) return "";
     real cx = (el_bx1[e] + el_bx2[e]) / 2, cy = (el_by1[e] + el_by2[e]) / 2;
     real dx = el_p1x[e] - cx, dy = el_p1y[e] - cy;
     if (el_bottom[e]) dx = -dx;                      // вид со стороны пайки
-    string v = "", g = "";
     real w = (el_bx2[e] - el_bx1[e]) / 2, hh = (el_by2[e] - el_by1[e]) / 2;
-    if (dy > hh * 0.25) v = "сверху";
-    else if (dy < -hh * 0.25) v = "снизу";
-    if (dx > w * 0.25) g = "справа";
-    else if (dx < -w * 0.25) g = "слева";
-    string s = g;
-    if (v != "") { if (s != "") s += " "; s += v; }
-    if (s == "") s = "в центре";
-    return s;
-}
-
-string key_where_en(int e)
-{
-    if (!el_has_p1[e]) return "";
-    real cx = (el_bx1[e] + el_bx2[e]) / 2, cy = (el_by1[e] + el_by2[e]) / 2;
-    real dx = el_p1x[e] - cx, dy = el_p1y[e] - cy;
-    if (el_bottom[e]) dx = -dx;
-    string v = "", g = "";
-    real w = (el_bx2[e] - el_bx1[e]) / 2, hh = (el_by2[e] - el_by1[e]) / 2;
-    if (dy > hh * 0.25) v = "top";
-    else if (dy < -hh * 0.25) v = "bottom";
-    if (dx > w * 0.25) g = "right";
-    else if (dx < -w * 0.25) g = "left";
-    string s = v;
-    if (g != "") { if (s != "") s += "-"; s += g; }
-    if (s == "") s = "center";
-    return s;
+    int v = 0, g = 0;
+    if (dy > hh * 0.25) v = 1; else if (dy < -hh * 0.25) v = -1;
+    if (dx > w * 0.25) g = 1; else if (dx < -w * 0.25) g = -1;
+    if (v == 1 && g == -1) return L("слева сверху", "top-left");
+    if (v == 1 && g == 1) return L("справа сверху", "top-right");
+    if (v == -1 && g == -1) return L("слева снизу", "bottom-left");
+    if (v == -1 && g == 1) return L("справа снизу", "bottom-right");
+    if (v == 1) return L("сверху", "top");
+    if (v == -1) return L("снизу", "bottom");
+    if (g == -1) return L("слева", "left");
+    if (g == 1) return L("справа", "right");
+    return L("в центре", "center");
 }
 
 // ключ стрелкой (не зависит от языка): куда смотреть от центра корпуса, вид на эту сторону

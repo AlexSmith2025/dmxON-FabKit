@@ -1,0 +1,202 @@
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="dmxON FabKit — von der Autodesk-Fusion-Electronics-Platine zur kompletten JLCPCB-Bestellung" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest"><img src="https://img.shields.io/github/v/release/AlexSmith2025/dmxON-FabKit-Fusion-Electronics?style=for-the-badge&color=b4744a&label=release" alt="Neueste Version"></a>
+  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases"><img src="https://img.shields.io/github/downloads/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/total?style=for-the-badge&color=24574a&label=downloads" alt="Downloads"></a>
+  <img src="https://img.shields.io/badge/Autodesk%20Fusion-Electronics-e2ab7f?style=for-the-badge&logo=autodesk&logoColor=white" alt="Autodesk Fusion Electronics">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3b4a5a?style=for-the-badge" alt="Windows 10 | 11">
+  <a href="https://www.paypal.com/donate/?business=smith.show2025%40gmail.com&no_recurring=0&item_name=dmxON+FabKit&currency_code=EUR"><img src="https://img.shields.io/badge/PayPal-Spenden-003087?style=for-the-badge&logo=paypal&logoColor=white" alt="Mit PayPal spenden"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Download-dmxON--FabKit.zip-b4744a?style=for-the-badge" alt="Neueste Version herunterladen"></a>
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.ru.md">Русский</a> · <a href="README.es.md">Español</a> · <b>Deutsch</b> · <a href="README.pl.md">Polski</a>
+</p>
+
+<p align="center">
+  <a href="#installation">Installation</a> ·
+  <a href="#schnellstart">Schnellstart</a> ·
+  <a href="#kompatibilität">Kompatibilität</a> ·
+  <a href="#ergebnis">Ergebnis</a> ·
+  <a href="#bestellung-bei-jlcpcb">Bestellung</a> ·
+  <a href="#projekt-unterstützen">Spenden</a>
+</p>
+
+**dmxON FabKit ist ein ULP für Autodesk Fusion Electronics (Fusion 360 Electronics), das aus einer Platine in einem Durchlauf eine komplette JLCPCB-Bestellung macht: Gerber-Zip mit JLCPCB-Namen, BOM und CPL mit automatischer LCSC-Teileauswahl und Ersatzteilen, ein interaktiver Bericht, A4-Bestückungsdokumentation und 1:1-Blätter für den Tonertransfer.**
+
+<p align="center">
+  <a href="https://www.paypal.com/donate/?business=smith.show2025%40gmail.com&no_recurring=0&item_name=dmxON+FabKit&currency_code=EUR"><img src="docs/assets/donate.de.svg" alt="dmxON FabKit mit PayPal unterstützen — smith.show2025@gmail.com" width="760"></a>
+</p>
+
+---
+
+## Was es macht
+
+| | |
+|---|---|
+| 🏭 | **Gerber und Bohrdaten für JLCPCB**: Namen GTL/GBL/G1…/GTS/GTP/GTO/GKO/XLN, ein Zip zum Hochladen; Lagen und Platinenparameter werden automatisch erkannt |
+| 🧾 | **BOM und CPL für die Bestückung** mit automatischer LCSC-Teileauswahl — Widerstände und Kondensatoren nach Wert, Gehäuse und Spannung, alles andere nach Herstellerteilenummer |
+| 📐 | **Footprint-Prüfung** gegen die JLC-Bibliothek (EasyEDA): Drehung und Mitte im CPL aus dem Pad-Abgleich; gespiegelte und unpassende Gehäuse werden markiert |
+| 🔁 | **Ersatzteile**: fehlt ein Teil, ist es nicht vorrätig oder passt das Gehäuse nicht, wird eine Alternative gesucht, gegen die Pads der Platine geprüft — die günstigste gewinnt |
+| 💲 | **Kosten**: Katalogpreise für die ganze Charge, Feeder-Gebühren für Extended-Teile, die teuersten Zeilen |
+| 📊 | **HTML-Bericht**: realistische Platinenansicht, Lagen-Umschalter, Gerber-Galerie, Bohrungen, Fertigbarkeitsprüfung, Platzierung mit Bezeichnern |
+| 📄 | **A4-Dokumentation** für die Handbestückung: Deckblatt, Fertigungsspezifikation, Lagen, Bestückungspläne im Normmaßstab, Lötreihenfolge Schritt für Schritt, IC-Markierungen, BOM; editierbares Schriftfeld; PDF |
+| 🖨️ | **Tonertransfer 1:1**: ein PDF pro Lage (Kupfer, Bestückungsdruck, Maske, Bohrungen), obere Blätter gespiegelt, 50-mm-Balken zur Maßstabsprüfung |
+| 📥 | **Fertige JLCPCB-BOM importieren** (xlsx, csv oder Text von der Bestellseite) — Ihre geprüften Teilenummern haben Vorrang |
+| 🌐 | **5 Sprachen**: Englisch, Russisch, Spanisch, Deutsch, Polnisch — Dialog, Bericht und alle Dokumente in der gewählten Sprache |
+
+---
+
+## Kompatibilität
+
+| | dmxON FabKit |
+|---|---|
+| **Autodesk Fusion (Electronics), Windows 10/11** | ✅ getestet mit Fusion **2705.1.11** (Oktober 2026) |
+| Autodesk Fusion unter macOS | ❌ nutzt Windows-Werkzeuge (`curl.exe`, `tar.exe`, `robocopy`, Windows Script Host, Microsoft Edge) |
+| EAGLE 9.x | ❌ braucht den Fusion-Befehl `MANUFACTURING EXPORT` für Gerber |
+| KiCad, Altium, EasyEDA | ❌ |
+
+Außerdem nötig: **Microsoft Edge** (in Windows enthalten) für PDFs; Internet für den JLCPCB-Katalog und EasyEDA-Footprints (alles andere funktioniert offline). Wenn ein neuer Fusion-Build etwas kaputt macht, bitte [ein Issue öffnen](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/issues).
+
+---
+
+## Installation
+
+1. [**`dmxON-FabKit.zip` herunterladen**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) und an beliebiger Stelle entpacken.
+2. In Fusion Electronics: **Automation → Run ULP → `INSTALL.ulp`** aus dem entpackten Ordner, Sprache wählen und **Installieren** drücken.
+3. **Fusion neu starten.** `dmxON_FabKit` steht nun in der Liste **Run ULP** neben den integrierten ULPs — sein Ordner `Dokumente\dmxON\dmxON-FabKit` kommt zuerst, die integrierten ULPs von Fusion bleiben erhalten.
+
+Der Installer kopiert das Projekt nach `Dokumente\dmxON\dmxON-FabKit` und trägt diesen Ordner über die eigenen Einstellungen von Fusion in die ULP-Ordner ein. Ein erneuter Aufruf von `INSTALL.ulp` aktualisiert die Dateien; **Entfernen** stellt die vorherigen Ordner von Fusion wieder her. Manuell: den entpackten Ordner vollständig lassen (`dmxON_FabKit.ulp` lädt `lib\` und `config\` daneben) und mit `RUN 'C:/Pfad/dmxON_FabKit.ulp'` starten.
+
+---
+
+## Schnellstart
+
+1. Die **Platine** in Fusion Electronics öffnen und **speichern** (Strg+S) — Fusion exportiert Gerber aus der zuletzt gespeicherten Version.
+2. **Automation → Run ULP → `dmxON_FabKit`**.
+3. Oben rechts im Dialog die **Sprache** wählen (Standard: Englisch), den Ordner wählen und **Paket erstellen** drücken.
+4. Fusion zeigt eventuell das Fenster **CAM Export File List** — **OK** drücken (das ist der normale Gerber-Export).
+5. Etwa eine Minute später öffnet sich der Paketordner. Mit `index.html` beginnen.
+
+Tipp: zuerst [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) ausführen — es richtet die JLCPCB-Designregeln und den Lagenaufbau ein und übergibt Platinendicke und Maskenfarbe an FabKit. Beide Werkzeuge teilen sich die Spracheinstellung.
+
+### Der Dialog
+
+| Register | Was es einstellt |
+|---|---|
+| **Sprache** (oben rechts) | English, Русский, Español, Deutsch, Polski — der Dialog wechselt sofort; Bericht und Dokumente entstehen in derselben Sprache |
+| **Ausgabe** | Ordner; was erstellen: Gerber, A4-Dokumentation, PDF, Tonerblätter; was in BOM/CPL kommt: THT, Pad-Mitte, ausgelassene Bezeichner |
+| **Teile** | Katalogsuche, Basic/Preferred, Ersatzteile, Footprint-Prüfung, Attribut-Neuprüfung, `LCSC_PART` schreiben, Platinenanzahl, min. Kondensatorspannung, Feeder-Gebühr, BOM-Import |
+| **Platine** | Dicke, Masken- und Druckfarbe, Oberfläche — für Bericht, Bestellformular und Ansicht |
+| **Schriftfeld** | Produkt, Dokument-Nr., Revision, Kunde, Bemerkung (pro Platine); Firma und Unterschriften (gemeinsam) |
+| **Info** | Version, Autor, Lizenz, Links |
+
+Alle Einstellungen werden gespeichert.
+
+---
+
+## Ergebnis
+
+```
+<Platine>_FabKit/
+├── index.html                          Startseite
+├── 01_JLCPCB_ORDER/
+│   ├── JLCPCB_GERBER/
+│   │   ├── <Platine>_Gerber_JLCPCB.zip ← auf jlcpcb.com hochladen
+│   │   └── unpacked/                   dieselben Dateien zur Ansicht
+│   ├── <Platine>_JLCPCB_BOM.csv        ← PCB Assembly: BOM
+│   └── <Platine>_JLCPCB_CPL.csv        ← PCB Assembly: CPL
+├── 02_REPORT/                          Bericht + Lagenvorschau
+├── 03_ASSEMBLY_DOCS/                   A4-Dokumentation (HTML + PDF)
+└── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 PDF-Blätter
+```
+
+Jeder Lauf **löscht das Paket der Platine und erstellt es neu** — aber nur, wenn FabKit den Ordner angelegt hat (er enthält die Markierung `.dmxon-fabkit`). Ein fremder Ordner mit gleichem Namen wird nie angefasst.
+
+---
+
+## Bestellung bei JLCPCB
+
+1. **jlcpcb.com → Order now → Add gerber file** → `01_JLCPCB_ORDER/JLCPCB_GERBER/<Platine>_Gerber_JLCPCB.zip`.
+2. Platinenparameter — aus dem Bericht (Abschnitt «Bestellung»).
+3. **PCB Assembly** → BOM `…_JLCPCB_BOM.csv`, CPL `…_JLCPCB_CPL.csv`.
+4. In der JLCPCB-Vorschau die Teile aus dem Berichtsabschnitt **«Achtung erforderlich»** prüfen.
+
+### Teilenummern — Rangfolge
+
+1. **BOM-Import** (Register Teile oder `-import Datei`).
+2. **Attribut** am Bauteil: `LCSC_PART`, `LCSC`, `JLCPCB_PART`, `JLC` …
+3. **Suche im JLCPCB-Katalog**: R/C nach Wert, Gehäuse und Spannung; alles andere nach der Herstellerteilenummer aus dem Wert oder einem Attribut `MPN` / `MANUFACTURER_PART_NUMBER`.
+4. **Ersatzteil**, wenn das Teil fehlt, nicht vorrätig ist oder das Gehäuse nicht passt.
+
+Nützliche Attribute: `JLC_PACKAGE`, `JLC_ROTATION`, `JLC_COMMENT`, `VOLTAGE`, `DNP` / `JLC_EXCLUDE`, `BOM=EXCLUDE`. Eigene Gehäuse- und Drehungszuordnung — `config/fk_package_map.txt`.
+
+---
+
+## Tonertransfer
+
+Die Blätter entstehen aus **denselben Gerber-Dateien** wie für die Fertigung: Kupferflächen, Abstände und Aussparungen sind exakt; weiße Punkte markieren die Bohrmitten. Mit einem Laserdrucker in **100 % («Tatsächliche Größe»)** drucken, niemals «An Seite anpassen», und den 50-mm-Balken prüfen. Obere Blätter sind gespiegelt, untere nicht.
+
+---
+
+## Stapelbetrieb
+
+```
+RUN dmxON_FabKit.ulp -batch <Ordner> [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import Datei] [-nogerber] [-nodocs] [-notoner] [-nopdf] [-keep]
+```
+
+| Schalter | Bedeutung |
+|---|---|
+| `-batch <Ordner>` | ohne Dialog, in diesen Ordner, keine Attribute schreiben |
+| `-lang <Code>` | Sprache von Bericht und Dokumenten (Standard: die zuletzt im Dialog gewählte) |
+| `-offline` | ohne Katalog und EasyEDA |
+| `-boards N` | Platinen in der Bestellung |
+| `-import <Datei>` | JLCPCB-BOM (xlsx/csv/txt) |
+| `-nogerber -nodocs -notoner -nopdf` | Teil des Pakets auslassen |
+| `-keep` | temporären Ordner zur Fehlersuche behalten |
+
+---
+
+## Fehlerbehebung
+
+| Symptom | Was tun |
+|---|---|
+| `dmxON_FabKit` fehlt nach der Installation in der Liste Run ULP | Fusion neu starten — die Ordnerliste wird beim Start gelesen |
+| Fenster **CAM Export File List** | **OK** drücken: Fusion bittet, den Gerber-Export zu bestätigen |
+| «Your PCB design has changed. CAM output is generated using the last saved version» | **Cancel** drücken, Platine speichern (Strg+S) und FabKit erneut starten — sonst entsteht Gerber aus der alten gespeicherten Version (z. B. ohne neue Designregeln) |
+| «JLCPCB-Katalog hat nicht geantwortet» | Internet und Proxy prüfen; das Paket wird trotzdem offline erstellt |
+| Kein PDF | Microsoft Edge (oder Chrome) muss im Standardordner installiert sein |
+| «Achtung erforderlich» | jede Zeile lesen: Spannungen, Polarität, Pinbelegung, Lagerbestand |
+
+---
+
+## Wie es funktioniert
+
+Phase 1 (ULP) analysiert die Platine und schreibt BOM/CPL und Entwürfe, Phase 2 (Fusion-Befehle) führt `MANUFACTURING EXPORT` aus, Phase 3 (dasselbe ULP mit `-finish`) erstellt Gerber, Vorschauen, Bericht, Dokumentation und Tonerblätter. Spanische, deutsche und polnische Texte stehen in `lib/fk_lang.ulp`, das aus `lang/strings.tsv` erzeugt wird. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Änderungen: [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## Projekt unterstützen
+
+dmxON FabKit ist **kostenlos**. Dahinter stecken Wochen Arbeit: ein Gerber- und Excellon-Parser, Teileauswahl über den JLCPCB-Katalog, Footprint-Abgleich, Dokumentation in fünf Sprachen und Prüfung an echten Bestellungen. Wenn es Ihnen einen Abend Bestellvorbereitung, ein falsches Teil oder eine misslungene Bestückung erspart hat — bitte unterstützen Sie die Weiterentwicklung: neue Versionen, Katalogänderungen bei JLCPCB und Anpassungen an neue Fusion-Versionen.
+
+<p align="center">
+  <a href="https://www.paypal.com/donate/?business=smith.show2025%40gmail.com&no_recurring=0&item_name=dmxON+FabKit&currency_code=EUR"><img src="docs/assets/donate.de.svg" alt="dmxON FabKit mit PayPal unterstützen" width="760"></a>
+</p>
+
+<p align="center">
+  <b>PayPal:</b> <a href="https://www.paypal.com/donate/?business=smith.show2025%40gmail.com&no_recurring=0&item_name=dmxON+FabKit&currency_code=EUR">smith.show2025@gmail.com</a> — jeder Betrag hilft. Danke! ⭐ Ein Stern auf GitHub hilft anderen, das Projekt zu finden.
+</p>
+
+---
+
+## Lizenz
+
+Kostenlose Nutzung mit Namensnennung; Kopieren des Codes, Änderung und kommerzielle Nutzung sind nicht gestattet — siehe [LICENSE.md](LICENSE.md). JLCPCB und LCSC sind Marken ihrer Inhaber; dieses Projekt steht in keiner Verbindung zu ihnen.
+
+**dmxON by AlexSmith 2026** · [dmxon512.com](https://dmxon512.com) · Schwesterprojekt: [dmxON JLC Rules](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics)

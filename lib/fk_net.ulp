@@ -44,7 +44,7 @@ int native_fetch(int i)
 
 string net_code(int rc)
 {
-    string s = "код " + istr(rc) + ", ответ " + istr(strlen(net_buf)) + " симв";
+    string s = "code " + istr(rc) + ", reply " + istr(strlen(net_buf)) + " chars";
     if (rc < 0) s += ", " + neterror();
     return s;
 }
@@ -73,13 +73,13 @@ void run_requests(string tmpdir, int from, string extra)
             if (req_body[i] != "" && pp < 0) pp = i;
         }
         if (pg >= 0) {
-            status("JLCPCB: проверка netget...");
+            status("JLCPCB: " + L("проверка", "checking") + " netget...");
             rc = native_fetch(pg);
             if (rc > 0 && strstr(net_buf, "{") >= 0) req_resp[pg] = net_buf;
             else { net_native = 0; net_diag += "netget: " + net_code(rc) + ". "; }
         }
         if (net_native && pp >= 0) {
-            status("JLCPCB: проверка netpost...");
+            status("JLCPCB: " + L("проверка", "checking") + " netpost...");
             rc = native_fetch(pp);
             if (rc > 0 && strstr(net_buf, "\"code\":200") >= 0) req_resp[pp] = net_buf;
             else { net_native = 0; net_diag += "netpost: " + net_code(rc) + ". "; }
@@ -88,11 +88,11 @@ void run_requests(string tmpdir, int from, string extra)
 
     // пакет с ограничением частоты (EasyEDA) всегда через curl: браузерный User-Agent там отклоняют
     if (net_native && extra == "") {
-        net_method = "встроенный netget/netpost";
+        net_method = "netget/netpost";
         for (i = from; i < n_req; i++) {
             if (req_resp[i] != "") continue;
             string msg;
-            sprintf(msg, "JLCPCB: запрос %d из %d", i + 1, n_req);
+            msg = "JLCPCB: " + Lf("запрос {0} из {1}", "request {0} of {1}", istr(i + 1), istr(n_req), "");
             status(msg);
             rc = native_fetch(i);
             if (rc > 0) req_resp[i] = net_buf;
@@ -114,7 +114,7 @@ void run_requests(string tmpdir, int from, string extra)
                 printf("output = \"%s\"\n", cfg_quote(resp_file(tmpdir, i)));
             }
         }
-        status("JLCPCB: " + istr(n_req - from) + " запросов через curl...");
+        status("JLCPCB: " + Lf("запросов через curl: {0}...", "{0} requests via curl...", istr(n_req - from), "", ""));
         rc = shell("curl.exe -s --create-dirs --parallel --parallel-max 4 " + extra + " -K \"" + to_win(cfg) + "\"");
         string found[];
         for (i = from; i < n_req; i++) {
@@ -125,7 +125,7 @@ void run_requests(string tmpdir, int from, string extra)
                 req_resp[i] = r;
             }
         }
-        net_diag += "curl: код выхода " + istr(rc) + ". ";
+        net_diag += "curl: exit code " + istr(rc) + ". ";
     }
 
     net_empty = 0;

@@ -4,7 +4,7 @@
 // Отчёт пишется в две фазы. Первая (здесь) пишет весь документ, оставляя строки-метки
 // <!--FK:RENDER-->, <!--FK:ORDER-->, <!--FK:GERBER-->; третья фаза (fk_finish) копирует
 // файл и вставляет на место меток вид платы, параметры заказа и слои Gerber.
-// Русский текст выводится числовыми ссылками (&#1046;) — файл остаётся чистым ASCII.
+// Текст — на языке интерфейса (ui_lang); не-ASCII выводится числовыми ссылками (&#1046;) — файл остаётся чистым ASCII.
 
 // ---------------------------------------------------------------- итоги первой фазы
 
@@ -142,12 +142,12 @@ string sec_end()
 
 string lead(string ru, string en)
 {
-    return "<p class=\"lead\">" + h(ru) + "<span class=\"en\">" + h(en) + "</span></p>";
+    return "<p class=\"lead\">" + h(L(ru, en)) + "</p>";
 }
 
 string card(string cls, string ru, string en, string val)
 {
-    return "<div class=\"card " + cls + "\">" + h(ru) + "<span class=\"en\">" + h(en) + "</span><b>" + h(val) + "</b></div>";
+    return "<div class=\"card " + cls + "\">" + h(L(ru, en)) + "<b>" + h(val) + "</b></div>";
 }
 
 string pill_type(string t)
@@ -219,19 +219,19 @@ void report_phase1(string path, string base, string stamp)
 {
     int g, e, q, s;
     output(path, "wt") {
-        printf("<!DOCTYPE html>\n<html lang=\"ru\">\n<head>\n<meta charset=\"utf-8\">\n");
+        printf("<!DOCTYPE html>\n<html lang=\"%s\">\n<head>\n<meta charset=\"utf-8\">\n", LANG_CODE[ui_lang]);
         printf("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n");
         printf("<meta name=\"generator\" content=\"%s\">\n", h(fk_title()));
-        printf("<title>%s</title>\n", h(base + " · " + "Production report"));
+        printf("<title>%s</title>\n", h(base + " · " + L("Производственный отчёт", "Production report")));
         printf("<style>%s</style>\n</head>\n<body>\n", RP_CSS);
 
         // ---- шапка
         printf("<header class=\"hero\"><div class=\"wrap\">\n");
         printf("<div class=\"brand\"><i></i>%s</div>\n", h(fk_sign()));
-        printf("<h1>%s<span class=\"en\">%s</span></h1>\n", h(base + " — производственный пакет"), h("Production package"));
-        string meta = stamp + " · " + istr(opt_boards) + " " + "плат / boards" + " · ";
-        if (opt_online) meta += "каталог JLCPCB: онлайн / JLCPCB catalogue: online";
-        else meta += "каталог JLCPCB: выключен / JLCPCB catalogue: off";
+        printf("<h1>%s<span class=\"en\">%s</span></h1>\n", h(base), h(L("Производственный пакет", "Production package")));
+        string meta = stamp + " · " + L("Плат в заказе", "Boards in the order") + ": " + istr(opt_boards) + " · ";
+        if (opt_online) meta += L("каталог JLCPCB: онлайн", "JLCPCB catalogue: online");
+        else meta += L("каталог JLCPCB: выключен", "JLCPCB catalogue: off");
         printf("<p class=\"meta\">%s</p>\n", h(meta));
         printf("<!--FK:RENDER-->\n");
         printf("<div class=\"cards\">\n");
@@ -300,16 +300,15 @@ void report_phase1(string path, string base, string stamp)
                    th2("Обозначения", "Designators"), th2("Номинал", "Value"), th2("Что не так", "Issue"));
             for (g = 0; g < n_g; g++) {
                 if (g_merged[g] || (g_note[g] == "" && g_lcsc[g] != "")) continue;
-                string ru = g_note[g], en = g_note_en[g];
+                string nt = g_note[g];
                 string cls = "warn";
                 if (g_lcsc[g] == "") {
                     cls = "miss";
-                    if (ru != "") { ru = "без номера; " + ru; en = "no part number; " + en; }
-                    else { ru = "без номера"; en = "no part number"; }
+                    nt = L("без номера", "no part number") + (nt != "" ? "; " + nt : "");
                 }
                 if (g_sub_applied[g]) cls = "sub";
-                printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s<span class=\"en\">%s</span></td></tr>\n",
-                       cls, h(desig_sp(g_desig[g])), h(g_comment[g]), h(ru), h(en));
+                printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td></tr>\n",
+                       cls, h(desig_sp(g_desig[g])), h(g_comment[g]), h(nt));
             }
             printf("</tbody></table></div>\n");
         }
@@ -337,16 +336,16 @@ void report_phase1(string path, string base, string stamp)
                 string comp = "", ov = "";
                 if (m >= 0) {
                     if (mp_stat[m] == 1) comp = "<span class=\"pill p-ok\">" + hs("по номерам выводов", "pin numbers") + "</span>";
-                    else comp = "<span class=\"pill p-warn\">" + hs("по форме", "by shape") + "</span><span class=\"en\">" +
-                                h("проверить цоколёвку / check pinout") + "</span>";
+                    else comp = "<span class=\"pill p-warn\">" + hs("по форме", "by shape") + "</span><br><span class=\"small\">" +
+                                hs("проверить цоколёвку", "check the pinout") + "</span>";
                     ov = "<div class=\"fp\">" + svg_pair(m) + "</div>";
                 }
                 string st = "";
                 if (g_sub_applied[g]) st = "<span class=\"pill p-ok\">" + hs("подставлена", "applied") + "</span>";
                 else st = "<span class=\"pill p-warn\">" + hs("не подставлена", "not applied") + "</span>";
-                printf("<tr class=\"sub\"><td>%s</td><td>%s</td><td>%s %s<br>%s<br>%s</td><td>%s<span class=\"en\">%s</span></td><td>%s</td><td class=\"num\">%d</td><td>%s</td></tr>\n",
+                printf("<tr class=\"sub\"><td>%s</td><td>%s</td><td>%s %s<br>%s<br>%s</td><td>%s</td><td>%s</td><td class=\"num\">%d</td><td>%s</td></tr>\n",
                        h(desig_sp(g_desig[g])), h(was), lcsc_link(g_sub_code[g]), pill_type(g_sub_type[g]), h(g_sub_model[g] + " · " + g_sub_pkg[g]),
-                       st, h(g_sub_why[g]), h(g_sub_why_en[g]), comp, g_sub_stock[g], ov);
+                       st, h(g_sub_why[g]), comp, g_sub_stock[g], ov);
             }
             printf("</tbody></table></div>\n");
             printf("<p class=\"small\">%s</p>\n", hs("Синее — площадки на плате, оранжевое — посадочное место аналога.",
@@ -357,18 +356,18 @@ void report_phase1(string path, string base, string stamp)
         // ---- стоимость
         if (opt_online) {
             printf("%s", h2s("cost", "Стоимость деталей (оценка)", "Parts cost (estimate)"));
-            printf("%s\n", lead("Цены каталога JLCPCB на момент выгрузки, для " + istr(opt_boards) + " плат, без запаса на потери, " +
-                                "без стоимости платы и монтажа. За каждую уникальную деталь Extended JLCPCB берёт плату за установку катушки (" +
-                                money(fee_usd()) + ").",
-                                "JLCPCB catalogue prices at export time, for " + istr(opt_boards) + " boards, without attrition, " +
-                                "PCB and assembly cost. Each unique Extended part adds a feeder loading fee (" + money(fee_usd()) + ")."));
+            printf("<p class=\"lead\">%s</p>\n", h(Lf("Цены каталога JLCPCB на момент выгрузки; плат в заказе: {0}; без запаса на потери, " +
+                                                          "без стоимости платы и монтажа. За каждую уникальную деталь Extended JLCPCB берёт плату за установку катушки ({1}).",
+                                                          "JLCPCB catalogue prices at export time, for {0} boards, without attrition, " +
+                                                          "PCB and assembly cost. Each unique Extended part adds a feeder loading fee ({1}).",
+                                                          istr(opt_boards), money(fee_usd()), "")));
             printf("<div class=\"cards\" style=\"grid-template-columns:repeat(auto-fill,minmax(190px,1fr))\">\n");
             printf("<div class=\"box\">%s<b style=\"display:block;font-size:22px\">%s</b></div>\n", hl("Детали", "Parts"), money(cost_parts));
-            printf("<div class=\"box\">%s<b style=\"display:block;font-size:22px\">%s</b></div>\n", hl("Установка Extended (" + istr(n_ext) + ")", "Extended loading (" + istr(n_ext) + ")"), money(cost_fee));
+            printf("<div class=\"box\">%s<b style=\"display:block;font-size:22px\">%s</b></div>\n", h(Lf("Установка Extended ({0})", "Extended loading ({0})", istr(n_ext), "", "")), money(cost_fee));
             printf("<div class=\"box\">%s<b style=\"display:block;font-size:22px\">%s</b></div>\n", hl("Итого", "Total"), money(cost_parts + cost_fee));
             printf("<div class=\"box\">%s<b style=\"display:block;font-size:22px\">%s</b></div>\n", hl("На одну плату", "Per board"), money((cost_parts + cost_fee) / opt_boards));
             printf("</div>\n");
-            if (n_unpriced > 0) printf("<p class=\"note\">%s</p>\n", hs("Без цены в каталоге: " + istr(n_unpriced) + " строк.", "No catalogue price: " + istr(n_unpriced) + " lines."));
+            if (n_unpriced > 0) printf("<p class=\"note\">%s</p>\n", h(Lf("Строк без цены в каталоге: {0}.", "Lines without a catalogue price: {0}.", istr(n_unpriced), "", "")));
             // самые дорогие строки
             string ck[];
             int ci[], nc = 0;
@@ -421,11 +420,11 @@ void report_phase1(string path, string base, string stamp)
             if (g_cpkg[g] != "") cat += " / " + g_cpkg[g];
             if (g_brand[g] != "") cat += " · " + g_brand[g];
             string more = h(desig_sp(g_desig[g]));
-            if (g_pkg[g] != g_jpkg[g]) more += "<br><span class=\"small\">" + hs("в библиотеке: " + g_pkg[g], "library: " + g_pkg[g]) + "</span>";
-            if (squeeze(g_value[g]) != g_comment[g]) more += "<br><span class=\"small\">" + hs("на схеме: " + squeeze(g_value[g]), "schematic: " + squeeze(g_value[g])) + "</span>";
-            if (g_note[g] != "") more += "<br><span class=\"note\">" + h(g_note[g]) + "</span><span class=\"en\">" + h(g_note_en[g]) + "</span>";
-            printf("<tr%s><td class=\"num\">%d</td><td class=\"num\">%d</td><td>%s</td><td>%s</td><td>%s<span class=\"en\">%s</span></td><td>%s</td><td>%s</td><td>%s</td><td class=\"num\">%s</td><td>%s</td></tr>\n",
-                   rcls, row, g_qty[g], lcsc_link(g_lcsc[g]), pill_type(g_type[g]), h(g_src[g]), h(src_en(g_src[g])), h(g_comment[g]),
+            if (g_pkg[g] != g_jpkg[g]) more += "<br><span class=\"small\">" + h(L("в библиотеке", "library") + ": " + g_pkg[g]) + "</span>";
+            if (squeeze(g_value[g]) != g_comment[g]) more += "<br><span class=\"small\">" + h(L("на схеме", "schematic") + ": " + squeeze(g_value[g])) + "</span>";
+            if (g_note[g] != "") more += "<br><span class=\"note\">" + h(g_note[g]) + "</span>";
+            printf("<tr%s><td class=\"num\">%d</td><td class=\"num\">%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td class=\"num\">%s</td><td>%s</td></tr>\n",
+                   rcls, row, g_qty[g], lcsc_link(g_lcsc[g]), pill_type(g_type[g]), h(src_txt(g_src[g])), h(g_comment[g]),
                    h(g_jpkg[g]), h(cat), st, more);
         }
         printf("</tbody></table></div>\n");
@@ -434,12 +433,12 @@ void report_phase1(string path, string base, string stamp)
         // ---- посадочные места
         if (opt_online && opt_geo) {
             printf("%s", h2s("fp", "Посадочные места и ориентация", "Footprints and orientation"));
-            printf("%s\n", lead("Синее — площадки на плате, оранжевый контур — посадочное место детали в библиотеке JLC (EasyEDA) после " +
-                                "совмещения. Крестик — начало корпуса на плате, оранжевый кружок — центр детали JLC: он и уходит в CPL. " +
-                                "Точки — вывод 1. По совмещению исправлен поворот у " + istr(n_rotfix) + " и центр у " + istr(n_posfix) + " деталей.",
-                                "Blue — board pads, orange outline — the JLC (EasyEDA) library footprint after alignment. Cross — footprint " +
-                                "origin on the board, orange circle — JLC part centre written to the CPL. Dots mark pin 1. Rotation fixed for " +
-                                istr(n_rotfix) + ", centre for " + istr(n_posfix) + " parts."));
+            printf("<p class=\"lead\">%s</p>\n", h(Lf("Синее — площадки на плате, оранжевый контур — посадочное место детали в библиотеке JLC (EasyEDA) после " +
+                                                          "совмещения. Крестик — начало корпуса на плате, оранжевый кружок — центр детали JLC: он и уходит в CPL. " +
+                                                          "Точки — вывод 1. По совмещению исправлен поворот деталей: {0}, центр: {1}.",
+                                                          "Blue — board pads, orange outline — the JLC (EasyEDA) library footprint after alignment. Cross — footprint " +
+                                                          "origin on the board, orange circle — JLC part centre written to the CPL. Dots mark pin 1. Rotation fixed for " +
+                                                          "{0}, centre for {1} parts.", istr(n_rotfix), istr(n_posfix), "")));
             printf("<div class=\"tw\"><table><thead><tr>%s%s%s%s%s%s%s</tr></thead><tbody>\n",
                    th2("Детали", "Parts"), th2("На плате → у JLC", "Board → JLC"), th2("Сверка", "Matched by"), th2n("Поворот", "Rotation"),
                    th2n("Сдвиг, мм", "Offset, mm"), th2("Итог", "Result"), th2("Вид", "View"));
@@ -450,9 +449,9 @@ void report_phase1(string path, string base, string stamp)
                     if ((pass == 0 && okp) || (pass == 1 && !okp)) continue;
                     string how = hs("по номерам выводов", "pin numbers");
                     if (!mp_byname[q]) how = hs("по форме", "shape");
-                    string st2 = h(mp_status(q)) + "<span class=\"en\">" + h(mp_status_en(q)) + "</span>";
+                    string st2 = h(mp_status(q));
                     string nt = mp_notes(q);
-                    if (nt != "") st2 += "<span class=\"note\">" + h(nt) + "</span><span class=\"en\">" + h(mp_notes_en(q)) + "</span>";
+                    if (nt != "") st2 += "<br><span class=\"note\">" + h(nt) + "</span>";
                     string rcl = "";
                     if (!okp) rcl = " class=\"warn\"";
                     if (mp_stat[q] == 3 || mp_mir[q]) rcl = " class=\"miss\"";
@@ -472,7 +471,7 @@ void report_phase1(string path, string base, string stamp)
             printf("<div class=\"tw\"><table><thead><tr>%s%s%s</tr></thead><tbody>\n",
                    th2("Обозначение", "Designator"), th2("Корпус", "Package"), th2("Причина", "Reason"));
             for (q = 0; q < n_ex; q++)
-                printf("<tr><td>%s</td><td>%s</td><td>%s<span class=\"en\">%s</span></td></tr>\n", h(ex_name[q]), h(ex_pkg[q]), h(ex_why[q]), h(ex_why_en[q]));
+                printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", h(ex_name[q]), h(ex_pkg[q]), h(ex_why[q]));
             printf("</tbody></table></div>\n");
         }
         printf("%s", sec_end());
@@ -481,17 +480,15 @@ void report_phase1(string path, string base, string stamp)
         printf("%s", h2s("diag", "Диагностика", "Diagnostics"));
         printf("<div class=\"box small\">\n");
         if (opt_online) {
-            printf("%s<br>\n", hs("Запросов к каталогам: " + istr(n_req) + ", способ: " + net_method + ", без ответа: " + istr(net_empty) + ".",
-                                  "Catalogue requests: " + istr(n_req) + ", method: " + net_method + ", unanswered: " + istr(net_empty) + "."));
+            printf("%s<br>\n", h(Lf("Запросов к каталогам: {0}, способ: {1}, без ответа: {2}.", "Catalogue requests: {0}, method: {1}, unanswered: {2}.",
+                                    istr(n_req), net_method, istr(net_empty))));
             if (net_diag != "") printf("%s<br>\n", h(net_diag));
         }
         if (n_imp > 0 || imp_diag != "")
         {
-            string ir = "Импорт BOM: " + istr(n_imp) + " обозначений.";
-            if (imp_cut > 0) ir += " Пропущено обрезанных списков обозначений («R1,R2…»): " + istr(imp_cut) + ".";
-            printf("%s<br>\n", hs(ir, "BOM import: " + istr(n_imp) + " designators. " + imp_diag));
+            printf("%s<br>\n", h(Lf("Импорт BOM, обозначений: {0}.", "BOM import: {0} designators.", istr(n_imp), "", "") + " " + imp_diag));
         }
-        if (n_scr > 0) printf("%s<br>\n", hs("Записано атрибутов LCSC_PART: " + istr(n_scr) + ".", "LCSC_PART attributes written: " + istr(n_scr) + "."));
+        if (n_scr > 0) printf("%s<br>\n", h(Lf("Записано атрибутов LCSC_PART: {0}.", "LCSC_PART attributes written: {0}.", istr(n_scr), "", "")));
         printf("<pre style=\"white-space:pre-wrap;margin:8px 0 0\">%s</pre>\n", h(log_txt));
         printf("</div>\n");
         printf("%s", sec_end());

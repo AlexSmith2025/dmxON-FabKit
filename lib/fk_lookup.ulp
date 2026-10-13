@@ -28,11 +28,11 @@ void lookup_group(int g)
         if (net_mode == 0 && param && opt_fixattr) param_pick(g, need);
         int vc = verify_code(g_lcsc[g]);
         if (vc < 0) {
-            if (net_mode == 1) add_note(g, "нет ответа от JLCPCB, номер не проверен", "no answer from JLCPCB, part number not verified");
+            if (net_mode == 1) add_note(g, L("нет ответа от JLCPCB, номер не проверен", "no answer from JLCPCB, part number not verified"));
             return;
         }
         if (vc == 0) {
-            add_note(g, "номер " + g_lcsc[g] + " не найден в каталоге JLCPCB", g_lcsc[g] + " is not in the JLCPCB catalogue");
+            add_note(g, Lf("номер {0} не найден в каталоге JLCPCB", "{0} is not in the JLCPCB catalogue", g_lcsc[g], "", ""));
             return;
         }
         g_take_pk(g);
@@ -48,30 +48,27 @@ void lookup_group(int g)
                 string ck = mpn_key(cand[i]);
                 if (strstr(mk, ck) >= 0 || strstr(ck, mk) >= 0) same = 1;
             }
-            if (!same) add_note(g, "проверить: " + g_lcsc[g] + " = " + pk_model + ", а номинал " + squeeze(g_value[g]),
-                             "check: " + g_lcsc[g] + " = " + pk_model + ", but the value is " + squeeze(g_value[g]));
+            if (!same) add_note(g, Lf("проверить: {0}, а номинал {1}", "check: {0}, but the value is {1}",
+                                      g_lcsc[g] + " = " + pk_model, squeeze(g_value[g]), ""));
         }
 
         // номер из атрибута против номинала на схеме
-        string bad = "", bad_en = "";
+        string bad = "";
         if (k == 'R' && g_parsed[g] && pk_res != "") {
             if (parse_value(ascii_only(pk_res), 'R') && !same_value(pv_value, g_pval[g])) {
-                bad = g_lcsc[g] + " = " + fmt_value(pv_value, 'R') + ", а номинал " + fmt_value(g_pval[g], 'R');
-                bad_en = g_lcsc[g] + " = " + fmt_value(pv_value, 'R') + ", but the value is " + fmt_value(g_pval[g], 'R');
+                bad = Lf("{0}, а номинал {1}", "{0}, but the value is {1}", g_lcsc[g] + " = " + fmt_value(pv_value, 'R'), fmt_value(g_pval[g], 'R'), "");
             }
         }
         if (k == 'C' && g_parsed[g] && pk_cap != "") {
             if (parse_value(ascii_only(pk_cap), 'C') && !same_value(pv_value, g_pval[g])) {
-                bad = g_lcsc[g] + " = " + fmt_value(pv_value, 'C') + ", а номинал " + fmt_value(g_pval[g], 'C');
-                bad_en = g_lcsc[g] + " = " + fmt_value(pv_value, 'C') + ", but the value is " + fmt_value(g_pval[g], 'C');
+                bad = Lf("{0}, а номинал {1}", "{0}, but the value is {1}", g_lcsc[g] + " = " + fmt_value(pv_value, 'C'), fmt_value(g_pval[g], 'C'), "");
             }
         }
         if (k == 'C' && vvolt != "" && g_volt[g] > 0) {
             real v = volts_in(ascii_only(vvolt));
             if (v > 0 && v < g_volt[g]) {
-                if (bad != "") { bad += "; "; bad_en += "; "; }
-                bad += g_lcsc[g] + " на " + num(v) + " В, нужно " + num(g_volt[g]) + " В";
-                bad_en += g_lcsc[g] + " is rated " + num(v) + " V, " + num(g_volt[g]) + " V required";
+                if (bad != "") bad += "; ";
+                bad += Lf("{0} на {1} В, нужно {2} В", "{0} is rated {1} V, {2} V required", g_lcsc[g], num(v), num(g_volt[g]));
             }
         }
         if (bad != "" && param && opt_fixattr) {
@@ -79,17 +76,15 @@ void lookup_group(int g)
             if (param_pick(g, need)) {
                 g_take_pk(g);
                 g_src[g] = "по номиналу";
-                add_note(g, "ВНИМАНИЕ: в атрибуте " + bad + " — заменён на " + g_lcsc[g] + " по номиналу",
-                            "WARNING: attribute " + bad_en + " — replaced with " + g_lcsc[g] + " by value");
-                if (pk_stock < need) add_note(g, "склад " + istr(pk_stock) + " < нужно " + istr(need), "stock " + istr(pk_stock) + " < needed " + istr(need));
+                add_warn(g, attn() + Lf("в атрибуте {0} — заменён на {1} по номиналу", "attribute {0} — replaced with {1} by value", bad, g_lcsc[g], ""));
+                if (pk_stock < need) add_warn(g, Lf("склад {0} < нужно {1}", "stock {0} < needed {1}", istr(pk_stock), istr(need), ""));
                 return;
             }
-            add_note(g, "ВНИМАНИЕ: " + bad + "; по номиналу замена не найдена, оставлен " + old,
-                        "WARNING: " + bad_en + "; no replacement by value, kept " + old);
+            add_warn(g, attn() + Lf("{0}; по номиналу замена не найдена, оставлен {1}", "{0}; no replacement by value, kept {1}", bad, old, ""));
         } else if (bad != "") {
-            add_note(g, "ВНИМАНИЕ: " + bad, "WARNING: " + bad_en);
+            add_warn(g, attn() + bad);
         }
-        if (vstock < need) add_note(g, "склад " + istr(vstock) + " < нужно " + istr(need), "stock " + istr(vstock) + " < needed " + istr(need));
+        if (vstock < need) add_warn(g, Lf("склад {0} < нужно {1}", "stock {0} < needed {1}", istr(vstock), istr(need), ""));
         return;
     }
 
@@ -116,20 +111,19 @@ void lookup_group(int g)
             // номинал сам похож на номер детали, а нашёлся только атрибут MPN —
             // скорее всего атрибут остался от другой детали: только подсказываем
             if (cand_attr[i] && n_valc > 0) {
-                add_note(g, "по номиналу не найден; атрибут MPN " + cand[i] + " = " + pk_code + " (" + pk_model +
-                            ") не подставлен: номинал указывает на другую деталь",
-                         "not found by value; MPN attribute " + cand[i] + " = " + pk_code + " (" + pk_model +
-                            ") not used: the value points to a different part");
+                add_note(g, Lf("по номиналу не найден; атрибут MPN {0} не подставлен: номинал указывает на другую деталь",
+                               "not found by value; MPN attribute {0} not used: the value points to a different part",
+                               cand[i] + " = " + pk_code + " (" + pk_model + ")", "", ""));
                 break;
             }
             found = 1;
             g_src[g] = "по номеру";
             if (m == 2) {
                 g_src[g] = "по началу номера";
-                add_note(g, "в каталоге " + pk_model + " (проверить суффикс)", "catalogue has " + pk_model + " (check the suffix)");
+                add_note(g, Lf("в каталоге {0} (проверить суффикс)", "catalogue has {0} (check the suffix)", pk_model, "", ""));
             }
             if (cand_attr[i] && squeeze(g_value[g]) != "")
-                add_note(g, "номер взят по атрибуту MPN " + cand[i], "part number taken from MPN attribute " + cand[i]);
+                add_note(g, Lf("номер взят по атрибуту MPN {0}", "part number taken from MPN attribute {0}", cand[i], "", ""));
         }
     }
 
@@ -138,5 +132,5 @@ void lookup_group(int g)
         return;
     }
     g_take_pk(g);
-    if (pk_stock < need) add_note(g, "склад " + istr(pk_stock) + " < нужно " + istr(need), "stock " + istr(pk_stock) + " < needed " + istr(need));
+    if (pk_stock < need) add_warn(g, Lf("склад {0} < нужно {1}", "stock {0} < needed {1}", istr(pk_stock), istr(need), ""));
 }
