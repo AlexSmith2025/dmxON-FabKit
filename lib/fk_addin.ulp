@@ -1,0 +1,82 @@
+// Связь с надстройкой dmxON для Fusion (fusion-addin/dmxON) · dmxON by AlexSmith 2026 · см. LICENSE.md
+//
+// ULP не может сам менять настройки Fusion и работать с облаком, это делает надстройка на Python:
+// регистрирует папки dmxON в списках ULP / правил / CAM, ставит обновления, делает бэкап папки проекта.
+// ULP оставляет ей запрос — JSON-файл в Документы/dmxON/.inbox; надстройка забирает его, когда Fusion свободен.
+// Надстройка раз в 30 с обновляет метку Документы/dmxON/.dmxon-addin — по ней видно, что она запущена.
+
+string dmx_base_dir = "";
+
+// Документы/dmxON
+string dmx_base()
+{
+    if (dmx_base_dir == "") {
+        string h = home_from(argv[0]);
+        if (h == "") h = home_from(path_ulp[0]);
+        dmx_base_dir = h + "/Documents/dmxON";
+    }
+    return dmx_base_dir;
+}
+
+// папка надстроек Fusion
+string addin_dir()
+{
+    string h = home_from(argv[0]);
+    if (h == "") h = home_from(path_ulp[0]);
+    return h + "/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/AddIns/dmxON";
+}
+
+// надстройка запущена в этом Fusion
+int addin_alive()
+{
+    string f = dmx_base() + "/.dmxon-addin";
+    if (!file_exists(f)) return 0;
+    return time() - filetime(f) < 120;
+}
+
+// версия надстройки из её dmxON.manifest («1.0.0»; пусто — нет)
+string addin_version(string dir)
+{
+    string lines[];
+    if (!file_exists(dir + "/dmxON.manifest")) return "";
+    int n = fileread(lines, dir + "/dmxON.manifest");
+    for (int i = 0; i < n; i++) {
+        int p = strstr(lines[i], "\"version\"");
+        if (p < 0) continue;
+        string t = strsub(lines[i], p + 9);
+        int a = strstr(t, "\"");
+        if (a < 0) return "";
+        t = strsub(t, a + 1);
+        int b = strstr(t, "\"");
+        return b < 0 ? "" : strsub(t, 0, b);
+    }
+    return "";
+}
+
+// сравнение версий «1.2.10» и «1.10.0»: -1, 0, 1
+int version_cmp(string a, string b)
+{
+    string x[], y[];
+    int nx = strsplit(x, a, '.'), ny = strsplit(y, b, '.');
+    for (int i = 0; i < 4; i++) {
+        int u = i < nx ? strtol(x[i]) : 0, v = i < ny ? strtol(y[i]) : 0;
+        if (u != v) return u < v ? -1 : 1;
+    }
+    return 0;
+}
+
+string json_s(string s)
+{
+    s = replace_all(s, "\\", "\\\\");
+    s = replace_all(s, "\"", "\\\"");
+    return "\"" + s + "\"";
+}
+
+// запрос надстройке: what — «register» или «backup»; extra — дополнительные поля «,"ключ":"значение"»
+void addin_request(string what, string extra)
+{
+    string d = dmx_base() + "/.inbox";
+    shell("mkdir " + qp(d) + " 2>nul");
+    string f = d + "/" + t2string(time(), "Uyyyy-MM-dd_hhmmss") + "_" + what + ".json";
+    output(f, "wt") printf("{\"do\":%s,\"lang\":%s%s}\n", json_s(what), json_s(LANG_CODE[ui_lang]), extra);
+}

@@ -62,10 +62,20 @@ void gerber_classify(string listfile)
             for (k = 0; k < n_gf; k++) if (gf_code[k] == "XLN") code = "XLN" + istr(k);
             gf_add(p, code, L("Сверловка (металлизированные и нет)", "Drill (plated + non-plated)"), 99);
         }
-        else if (ext == ".gtl" || ext == ".gbl" || ext == ".gts" || ext == ".gbs" || ext == ".gtp" || ext == ".gbp" ||
-                 ext == ".gto" || ext == ".gbo" || ext == ".gko") {
-            // уже в формате JLCPCB (свой CAM job)
-            gf_add(p, strupr(strsub(ext, 1)), strupr(strsub(ext, 1)), 50);
+        else {
+            // уже в формате JLCPCB (задание CAM dmxON JLCPCB): слой — по расширению
+            string e = strupr(strsub(ext, 1));
+            if (e == "GTL") gf_add(p, e, L("Медь, верхний слой", "Top copper"), 10);
+            else if (e == "GBL") gf_add(p, e, L("Медь, нижний слой", "Bottom copper"), 90);
+            else if (e == "GTS") gf_add(p, e, L("Паяльная маска, верх", "Top solder mask"), 5);
+            else if (e == "GBS") gf_add(p, e, L("Паяльная маска, низ", "Bottom solder mask"), 95);
+            else if (e == "GTP") gf_add(p, e, L("Паста (трафарет), верх", "Top paste (stencil)"), 4);
+            else if (e == "GBP") gf_add(p, e, L("Паста (трафарет), низ", "Bottom paste (stencil)"), 96);
+            else if (e == "GTO") gf_add(p, e, L("Шелкография, верх", "Top silkscreen"), 3);
+            else if (e == "GBO") gf_add(p, e, L("Шелкография, низ", "Bottom silkscreen"), 97);
+            else if (e == "GKO") gf_add(p, e, L("Контур платы", "Board outline"), 1);
+            else if (strlen(e) >= 2 && e[0] == 'G' && isdigit(e[1]))
+                gf_add(p, e, Lf("Медь, внутренний слой {0}", "Inner copper {0}", strsub(e, 1), "", ""), 20 + strtol(strsub(e, 1)));
         }
     }
     // внутренние слои по порядку: G1, G2, ...

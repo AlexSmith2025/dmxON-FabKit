@@ -12,8 +12,8 @@ Phase 1   dmxON_FabKit.ulp            (board editor)
 
 Phase 2   Fusion commands
   [ATTRIBUTE … LCSC_PART …]          optional
-  MANUFACTURING EXPORT '<tmp>/cam.zip'
-  RUN dmxON_FabKit.ulp -finish '<tmp>/state.txt'
+  MANUFACTURING EXPORT '<tmp>/cam.zip'       or, with the dmxON add-in and the dmxON JLCPCB
+  RUN dmxON_FabKit.ulp -finish '<tmp>/state.txt'   CAM job: request «fabkit_cam» → Electron.mfgexport
 
 Phase 3   dmxON_FabKit.ulp -finish
   unpack → JLCPCB names → zip → Gerber/Excellon parsing → previews and render →
@@ -49,10 +49,40 @@ HTML drafts carry marker lines (`<!--FK:RENDER-->`, `<!--FK:ORDER-->`, `<!--FK:G
 | `fk_gerber.ulp` | Gerber/Excellon: names, parsing, SVG |
 | `fk_import.ulp` | JLCPCB BOM import |
 | `fk_report.ulp` | HTML report (phase 1) |
-| `fk_docs.ulp` | A4 sheets and title block |
-| `fk_finish.ulp` | phase 3 |
+| `fk_addin.ulp` | link to the dmxON add-in: heartbeat, request files, add-in version |
+| `fk_sheet.ulp` | sheets per ISO 5457 / ISO 7200 or GOST R 2.104-2023: frames, grid zones, title blocks (forms 1, 2, 2a), elongated formats A3×n; documents of the set (identifiers, names) |
+| `fk_sch.ulp` | circuit diagram (GOST Э3 / IEC 61082-1): the schematic as SVG on a sheet of the chosen standard |
+| `fk_docs.ulp` | documentation set: specification (GOST R 2.106) or parts list (ISO 7573), assembly drawing with placed designators and detail sheets, list of elements, assembly instruction |
+| `fk_finish.ulp` | phase 3: Gerber, fabrication drawing, document list, sheet numbering, PDF |
 
-`INSTALL.ulp` (project root) copies the project to `Documents\dmxON\dmxON-FabKit` and adds it to `EAGLE:Directories.Ulp` through `cfgset`; Fusion applies directory changes after a restart.
+`INSTALL.ulp` (project root) copies the project to `Documents\dmxON\dmxON-FabKit` and installs the dmxON add-in, which registers the folder in Fusion's ULP list (see below). It also undoes the `EAGLE:Directories.*` entries written by 2.1.0 — Fusion does not read them.
+
+## Documentation standards
+
+`doc_std` (`dmxon.std`, shared with dmxON JLC Rules): 0 ISO, 1 GOST. ISO: document list → fabrication drawing → assembly drawing → parts list → circuit diagram → assembly instruction. GOST: specification → assembly drawing (СБ) → PCB drawing → circuit diagram (Э3) → list of elements (ПЭ3) → assembly instruction (ТИ). A sheet is one HTML line `<!--FK:PAGE key|id|type|title-->` + page; phase 3 counts `{{S:key}}` / `{{N:key}}` per document.
+
+Assembly drawing: `lbl_place()` puts each designator inside the part when it fits at ≥ 1.8 mm on paper (ISO 3098), otherwise next to it without touching other designators or bodies. If some do not fit at the overview scale, a larger standard scale is searched and the side is split into detail sheets (zones A, B, … / А, Б, …) framed on the overview.
+
+## Circuit diagram and two Fusion defects
+
+- Symbol geometry read through an instance (`I.gate.symbol.wires/pins/texts…`) comes transformed twice: `p_read = M·(M·l + p) + p`. The true point is `M⁻¹·(p_read − p)`. `sc_collect()` checks 200 pins against the net wire ends both ways and applies the correction only where it matches (should Fusion fix this, the correction switches itself off). Smashed texts (`I.texts()`) and nets are correct.
+- Any `polygons()` loop of a symbol stops the ULP. Symbol polygons are read from the schematic XML that Fusion keeps for the open document (`S.name`) with `xmlelements()` and placed with the instance transform.
+- The user's frame (a `FRAME` device or a symbol with frames) is left out: frame and title block come from the standard. A wide schematic goes on A3×3 … A3×7 so that the text is at least ~1.3 mm on paper; a non-basic format is marked «*» in the GOST specification.
+
+## The dmxON add-in (`fusion-addin/dmxON`)
+
+A Fusion add-in in Python does what a ULP cannot. It is shared by dmxON FabKit and dmxON JLC Rules (both repositories carry the same copy; `INSTALL.ulp` installs the newer one into `%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\dmxON`).
+
+- **Folders.** Fusion reads its ULP, design-rule and CAM folders from its own preferences (`ElectronUlpDirectory`, `ElectronDesignRulesDirectory`, `ElectronCamDirectory` in `NGlobalOptions.xml`), not from `EAGLE:Directories.*`. The add-in sets them with the text commands `Options.Set` + `Options.Save` + `Options.Reload` (effective at once): the dmxON folders of the installed tools first, Fusion's built-in folders after them; a built-in path that points into an old `webdeploy\production\<build>` folder is moved to the current build.
+- **The dmxON tab** in the PCB and schematic editors: FabKit, JLC Rules, Backup, Updates, Settings, Help. Buttons only queue a custom event; the work runs after the command ends (`Electron.run RUN '…'` for the ULPs).
+- **Requests from ULPs.** A ULP writes a JSON file into `Documents\dmxON\.inbox` (`addin_request()` in `fk_addin.ulp` / `jr_addin.ulp`); a background thread notices it and fires a custom event, handled when Fusion is idle. `Documents\dmxON\.dmxon-addin` is a heartbeat refreshed every 30 s — `addin_alive()` tells a ULP whether the add-in runs.
+  - `register` — re-apply the folders (after `INSTALL.ulp`).
+  - `fabkit_cam` — Gerber through `Electron.mfgexport <dir> <camjob>` with the dmxON JLCPCB CAM job (no «CAM Export File List» window), zipped into FabKit's `cam.zip`, then `RUN dmxON_FabKit.ulp -finish …`.
+  - `backup` — back up the design folder (below), adding the FabKit package.
+- **Backup.** Every file of the active design's cloud folder (recursively): an Electronics design (`.fprj`) is opened and its schematic and board — found through `childReferences` — are written as EAGLE 9 files (`adsk.electron … exportManager.createEagleSchExportOptions / createEagleBrdExportOptions`); a schematic or board outside a design of the folder is opened through its parent design (opening it directly may ask which design to use); libraries → `.lbr`; 3D designs → Fusion archive `.f3d`; drawings → PDF; other files → `DataFile.download`. Documents opened on the way are closed again. Result: `Documents\dmxON\Backups\<project>\<folders>\<folder>_<date>.zip` with `manifest.json` (cloud id and version of every file) and `RESTORE.txt`; the newest N backups per folder are kept.
+- **Updates.** Once a day (and on the Updates button) `https://api.github.com/repos/<repo>/releases/latest` is compared with the `VERSION` file of each installed tool; the release asset zip is unpacked over `Documents\dmxON\<tool>`; a newer add-in inside it replaces this one after a Fusion restart.
+- **Language** of the add-in: its own setting, else `dmxon.lang` of the ULPs (read from Fusion's `electronoptiongroup_eagle.rc`), else the language sent with the last ULP request.
+
 
 ## ULP specifics in Fusion
 

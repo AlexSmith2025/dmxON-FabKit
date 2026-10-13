@@ -1,42 +1,45 @@
 #usage "en: <b>Install dmxON FabKit into Autodesk Fusion</b><p>"
-       "Copies the project to Documents\\dmxON and adds it to Fusion's ULP folders. "
-       "After restarting Fusion, dmxON_FabKit appears in Automation → Run ULP.<p>"
+       "Copies the project to Documents\\dmxON and installs the dmxON add-in: the dmxON tab "
+       "(FabKit, JLC Rules, backup, updates) appears in the PCB and schematic editors, "
+       "and dmxON_FabKit appears in Automation → Run ULP.<p>"
        "<author>dmxON by AlexSmith 2026</author>",
        "ru: <b>Установка dmxON FabKit во Fusion</b><p>"
-       "Копирует проект в Документы\\dmxON и добавляет его в папки ULP Fusion. "
-       "После перезапуска Fusion dmxON_FabKit появится в Automation → Run ULP.<p>"
+       "Копирует проект в Документы\\dmxON и ставит надстройку dmxON: в редакторах платы и схемы "
+       "появляется вкладка dmxON (FabKit, JLC Rules, бэкап, обновления), "
+       "а dmxON_FabKit — в Automation → Run ULP.<p>"
        "<author>dmxON by AlexSmith 2026</author>",
        "es: <b>Instalar dmxON FabKit en Autodesk Fusion</b><p>"
-       "Copia el proyecto en Documentos\\dmxON y lo añade a las carpetas de ULP de Fusion. "
-       "Tras reiniciar Fusion, dmxON_FabKit aparece en Automation → Run ULP.<p>"
+       "Copia el proyecto en Documentos\\dmxON e instala el complemento dmxON: la pestaña dmxON "
+       "(FabKit, JLC Rules, copia de seguridad, actualizaciones) aparece en los editores de placa y esquema, "
+       "y dmxON_FabKit en Automation → Run ULP.<p>"
        "<author>dmxON by AlexSmith 2026</author>",
        "de: <b>dmxON FabKit in Autodesk Fusion installieren</b><p>"
-       "Kopiert das Projekt nach Dokumente\\dmxON und fügt es den ULP-Ordnern von Fusion hinzu. "
-       "Nach einem Neustart von Fusion steht dmxON_FabKit unter Automation → Run ULP.<p>"
+       "Kopiert das Projekt nach Dokumente\\dmxON und installiert das dmxON-Add-in: Der Reiter dmxON "
+       "(FabKit, JLC Rules, Sicherung, Updates) erscheint im Platinen- und Schaltplan-Editor, "
+       "dmxON_FabKit unter Automation → Run ULP.<p>"
        "<author>dmxON by AlexSmith 2026</author>",
        "pl: <b>Instalacja dmxON FabKit w Autodesk Fusion</b><p>"
-       "Kopiuje projekt do Dokumenty\\dmxON i dodaje go do folderów ULP Fusion. "
-       "Po ponownym uruchomieniu Fusion dmxON_FabKit pojawi się w Automation → Run ULP.<p>"
+       "Kopiuje projekt do Dokumenty\\dmxON i instaluje dodatek dmxON: w edytorach płytki i schematu "
+       "pojawia się karta dmxON (FabKit, JLC Rules, kopia zapasowa, aktualizacje), "
+       "a dmxON_FabKit w Automation → Run ULP.<p>"
        "<author>dmxON by AlexSmith 2026</author>"
 
 // Установщик dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
 //
-// Папки Fusion меняются через официальный доступ ULP к настройкам (cfgset "EAGLE:Directories.*"),
-// поэтому Fusion сам сохраняет их при выходе; применяются они после перезапуска Fusion.
-// Исходное «папки по умолчанию» запоминается одно на оба проекта dmxON (dmxon.install.usedefault):
-// когда удалён последний из них, Fusion возвращается к нему.
+// Fusion хранит папки ULP / правил / CAM в своих настройках (Preferences → Electronics → Directory),
+// доступ к которым есть только у надстроек на Python. Поэтому установщик кладёт проект в Документы/dmxON
+// и ставит надстройку dmxON (fusion-addin/dmxON) в папку надстроек Fusion; она добавляет папки сама —
+// при запуске Fusion и сразу по запросу из .inbox, если уже работает.
 
 #include "lib/fk_strings.ulp"
 #include "lib/fk_lang.ulp"
 #include "lib/fk_core.ulp"
+#include "lib/fk_addin.ulp"
 
-string IN_NAME  = "dmxON FabKit";
-string IN_DIR   = "dmxON-FabKit";
-string IN_MAIN  = "dmxON_FabKit";
-string IN_KEY   = "dmxon.install.fabkit";
-string IN_OTHER = "dmxon.install.jlc";            // второй проект dmxON
-string DIR_KEYS[] = { "Ulp" };                     // куда добавляется папка
-int N_KEYS = 1;
+string IN_NAME   = "dmxON FabKit";
+string IN_DIR    = "dmxON-FabKit";
+string IN_MAIN   = "dmxON_FabKit";
+string OTHER_DIR = "dmxON-JLC-Rules/dmxON_JLC_Setup.ulp";   // второй инструмент dmxON
 
 string in_dir(string p)
 {
@@ -45,23 +48,36 @@ string in_dir(string p)
     return p;
 }
 
-// папка для вида настроек k
-string in_target(string dst, int k)
-{
-    return dst;
-}
-
-// список папок «a;b;c» без пути p (без учёта регистра)
-string in_without(string list, string p)
+// список папок «a;b;c» без путей внутри base (без учёта регистра)
+string in_without(string list, string base)
 {
     string a[];
     int n = strsplit(a, list, ';');
     string t = "";
+    base = strlwr(in_dir(base));
     for (int i = 0; i < n; i++) {
-        if (a[i] == "" || strlwr(in_dir(a[i])) == strlwr(p)) continue;
+        string p = strlwr(in_dir(a[i]));
+        if (a[i] == "" || p == base || strstr(p, base + "/") == 0) continue;
         t += (t == "" ? "" : ";") + a[i];
     }
     return t;
+}
+
+// установщик 2.1.0 писал папки в EAGLE:Directories.* — Fusion их не читает; вернуть как было
+string LEGACY_KEYS[] = { "Ulp", "Dru", "Cam" };
+
+void legacy_cleanup()
+{
+    string was = cfgget("dmxon.install.usedefault", "");
+    if (was == "" && cfgget("dmxon.install.fabkit.dst", "") == "" && cfgget("dmxon.install.jlc.dst", "") == "") return;
+    for (int k = 0; k < 3; k++) {
+        string key = "EAGLE:Directories." + LEGACY_KEYS[k];
+        cfgset(key, in_without(cfgget(key, ""), dmx_base()));
+    }
+    if (was != "") cfgset("EAGLE:Directories.UseDefault", was);
+    cfgset("dmxon.install.usedefault", "");
+    cfgset("dmxon.install.fabkit.dst", "");
+    cfgset("dmxon.install.jlc.dst", "");
 }
 
 lang_load();
@@ -73,8 +89,11 @@ if (home == "") {
     exit(EXIT_FAILURE);
 }
 runner_init(home + "/AppData/Local/Temp");
-string dst = home + "/Documents/dmxON/" + IN_DIR;
-int installed = cfgget(IN_KEY + ".dst", "") != "";
+string dst = dmx_base() + "/" + IN_DIR;
+string adst = addin_dir();
+string asrc = src + "/fusion-addin/dmxON";
+int installed = file_exists(dst + "/" + IN_MAIN + ".ulp");
+int alive = addin_alive();
 
 int action = 0;
 int sel_lang = ui_lang;
@@ -83,10 +102,11 @@ while (1) {
     string txt = "<h3>" + IN_NAME + " " + FK_VERSION + "</h3>" +
         "<p>" + L("Установка в Autodesk Fusion:", "Installation into Autodesk Fusion:") + "</p><ul>" +
         "<li>" + Lf("проект копируется в <tt>{0}</tt>", "the project is copied to <tt>{0}</tt>", dst, "", "") + "</li>" +
-        "<li>" + Lf("папка добавляется в список ULP Fusion — <b>{0}</b> появится в Automation → Run ULP",
-                    "the folder is added to Fusion's ULP list — <b>{0}</b> appears in Automation → Run ULP", IN_MAIN, "", "") + "</li>" +
-        "<li>" + L("встроенные ULP Fusion остаются на месте", "Fusion's built-in ULPs stay in place") + "</li></ul>" +
-        "<p><b>" + L("После установки перезапустите Fusion.", "Restart Fusion after installing.") + "</b></p>" +
+        "<li>" + L("ставится надстройка dmxON: в редакторах платы и схемы появляется вкладка <b>dmxON</b> — FabKit, JLC Rules, бэкап папки проекта, обновления с GitHub",
+                   "the dmxON add-in is installed: the <b>dmxON</b> tab appears in the PCB and schematic editors — FabKit, JLC Rules, backup of the design folder, updates from GitHub") + "</li>" +
+        "<li>" + Lf("папки dmxON добавляются в списки ULP, правил и CAM Fusion — <b>{0}</b> есть и в Automation → Run ULP; встроенные ULP остаются",
+                    "the dmxON folders are added to Fusion's ULP, design rules and CAM lists — <b>{0}</b> is also in Automation → Run ULP; the built-in ULPs stay", IN_MAIN, "", "") + "</li></ul>" +
+        (alive ? "" : "<p><b>" + L("После установки один раз перезапустите Fusion.", "Restart Fusion once after installing.") + "</b></p>") +
         (installed ? "<p>" + L("Уже установлено — «Установить» обновит файлы.", "Already installed — «Install» updates the files.") + "</p>" : "");
     action = dlgDialog(L("Установка", "Installation") + " · " + IN_NAME) {
         dlgHBoxLayout {
@@ -95,9 +115,9 @@ while (1) {
             dlgComboBox(LANG_NAME, sel_lang) { if (sel_lang != ui_lang) { ui_lang = sel_lang; lang_save(); dlgAccept(9); } }
         }
         dlgHBoxLayout {
-            dlgVBoxLayout dlgSpacing(220);
+            dlgVBoxLayout dlgSpacing(240);
             dlgVBoxLayout {
-                dlgHBoxLayout dlgSpacing(560);
+                dlgHBoxLayout dlgSpacing(580);
                 dlgTextView(txt);
             }
         }
@@ -112,20 +132,16 @@ while (1) {
     break;
 }
 if (action <= 0) exit(0);
+legacy_cleanup();
 
-// ---- удалить: убрать свои папки; последний проект dmxON возвращает Fusion к прежнему виду
+// ---- удалить: папку инструмента; надстройку — вместе с последним инструментом dmxON
 if (action == 2) {
-    string was = cfgget(IN_KEY + ".dst", dst);
-    for (int r = 0; r < N_KEYS; r++) {
-        string k = DIR_KEYS[r];
-        cfgset("EAGLE:Directories." + k, in_without(cfgget("EAGLE:Directories." + k, ""), in_target(was, r)));
-    }
-    cfgset(IN_KEY + ".dst", "");
-    if (cfgget(IN_OTHER + ".dst", "") == "") {
-        if (cfgget("dmxon.install.usedefault", "") == "1") cfgset("EAGLE:Directories.UseDefault", "1");
-        cfgset("dmxon.install.usedefault", "");
-    }
-    dlgMessageBox(L("Папки Fusion возвращены. Перезапустите Fusion.\nСкопированные файлы остались в:", "Fusion folders restored. Restart Fusion.\nThe copied files remain in:") + "\n" + dst, "OK");
+    shell("rmdir /s /q " + qp(dst));
+    int last = !file_exists(dmx_base() + "/" + OTHER_DIR);
+    addin_request("register", "");
+    if (last) shell("rmdir /s /q " + qp(adst));
+    dlgMessageBox(L("dmxON FabKit удалён.", "dmxON FabKit removed.") +
+                  (last ? "\n" + L("Перезапустите Fusion, чтобы убрать вкладку dmxON.", "Restart Fusion to remove the dmxON tab.") : ""), "OK");
     exit(0);
 }
 
@@ -133,27 +149,34 @@ if (action == 2) {
 if (strlwr(src) != strlwr(dst)) {
     // robocopy: коды 0–7 — успех; .git и сам установщик не копируются
     shell("mkdir " + qp(dst) + " 2>nul");
-    shell("robocopy " + qp(src) + " " + qp(dst) + " /E /NFL /NDL /NJH /NJS /NP /XD .git .github /XF INSTALL.ulp >nul");
+    shell("robocopy " + qp(src) + " " + qp(dst) + " /E /NFL /NDL /NJH /NJS /NP /XD .git .github __pycache__ /XF INSTALL.ulp >nul");
 }
 if (!file_exists(dst + "/" + IN_MAIN + ".ulp")) {
     dlgMessageBox(L("Не удалось скопировать файлы в:", "Cannot copy the files to:") + "\n" + dst, "OK");
     exit(EXIT_FAILURE);
 }
-
-// исходное состояние Fusion — один раз, до первой установки любого проекта dmxON
-if (cfgget("dmxon.install.usedefault", "") == "") cfgset("dmxon.install.usedefault", cfgget("EAGLE:Directories.UseDefault", "1"));
-int was_default = cfgget("EAGLE:Directories.UseDefault", "1") == "1";
-for (int k = 0; k < N_KEYS; k++) {
-    string key = "EAGLE:Directories." + DIR_KEYS[k];
-    string cur = was_default ? "" : cfgget(key, "");
-    string add = in_target(dst, k);
-    string lst = in_without(cur, add);
-    cfgset(key, add + (lst != "" ? ";" + lst : ""));       // своя папка — первой
+// надстройка: ставится, если её нет или в пакете новее
+string av = addin_version(asrc), ai = addin_version(adst);
+int addin_new = 0;
+if (av != "" && (ai == "" || version_cmp(av, ai) > 0)) {
+    shell("mkdir " + qp(adst) + " 2>nul");
+    shell("robocopy " + qp(asrc) + " " + qp(adst) + " /E /NFL /NDL /NJH /NJS /NP /XD __pycache__ >nul");
+    addin_new = addin_version(adst) == av;
 }
-// встроенные папки Fusion добавляются к списку сами (системные папки)
-cfgset("EAGLE:Directories.UseSystemDirs", "1");
-cfgset("EAGLE:Directories.UseDefault", "0");
-cfgset(IN_KEY + ".dst", dst);
+if (addin_version(adst) == "") {
+    dlgMessageBox(L("Не удалось установить надстройку dmxON в:", "Cannot install the dmxON add-in to:") + "\n" + adst, "OK");
+    exit(EXIT_FAILURE);
+}
+addin_request("register", "");
 
-dlgMessageBox(Lf("Готово. Перезапустите Fusion — {0} появится в Automation → Run ULP.",
-                 "Done. Restart Fusion — {0} will appear in Automation → Run ULP.", IN_MAIN, "", "") + "\n\n" + dst, "OK");
+string msg = L("Готово.", "Done.") + "\n\n";
+if (alive && !addin_new)
+    msg += Lf("Вкладка dmxON уже работает, {0} обновлён — он есть и в Automation → Run ULP.",
+              "The dmxON tab is already running and {0} is updated — it is also in Automation → Run ULP.", IN_NAME, "", "");
+else if (alive)
+    msg += L("Надстройка dmxON обновлена — перезапустите Fusion, чтобы она заработала в новой версии.",
+             "The dmxON add-in is updated — restart Fusion to run the new version.");
+else
+    msg += Lf("Перезапустите Fusion — в редакторах платы и схемы появится вкладка dmxON, а {0} — в Automation → Run ULP.",
+              "Restart Fusion — the dmxON tab appears in the PCB and schematic editors, and {0} in Automation → Run ULP.", IN_MAIN, "", "");
+dlgMessageBox(msg + "\n\n" + dst, "OK");

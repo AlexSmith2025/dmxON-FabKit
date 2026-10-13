@@ -129,11 +129,153 @@ int calc_step(int e)
     return 5;
 }
 
+// номинал похож на сопротивление или ёмкость (33R, 4k7, 10K, 1M, 100n, 4.7uF)
+int passive_value(string v)
+{
+    string u = strupr(squeeze(v));
+    if (u == "" || !isdigit(u[0])) return 0;
+    int letters = 0;
+    for (int i = 0; u[i]; i++) {
+        char c = u[i];
+        if (isdigit(c) || c == '.' || c == ',') continue;
+        if (c == 'R' || c == 'K' || c == 'M' || c == 'U' || c == 'N' || c == 'P' || c == 'F' || c == 'H') { letters++; continue; }
+        return 0;
+    }
+    return letters > 0 && letters <= 3;
+}
+
+int needs_key(int e)
+{
+    string p = des_prefix(el_name[e]);
+    if (el_npads[e] <= 2 && is_chip(el_jpkg[e]) && passive_value(el_value[e]) && p != "D" && p != "LED" && p != "VD" && p != "HL") return 0;
+    if (p == "R" || p == "RN" || p == "RA" || p == "L" || p == "FB" || p == "F" || p == "Y" || p == "X" || p == "J" || p == "S" || p == "SW") return 0;
+    if (p == "C" && el_npads[e] <= 2) {
+        // керамика — без ключа; электролит/тантал — по корпусу
+        string j = strupr(el_jpkg[e]);
+        if (strstr(j, "CASE-") >= 0) return 1;
+        if (is_chip(el_jpkg[e])) return 0;          // керамика 0402…2512 — без полярности
+        if (el_bx2[e] - el_bx1[e] > 4.5) return 1;
+        return 0;
+    }
+    return 1;
+}
+
+// ---------------------------------------------------------------- подписи без наложений (чертежи в масштабе)
+//
+// Каждая подпись — внутри корпуса, если там помещается шрифтом не мельче заданного, иначе рядом
+// (сверху, снизу, сбоку, по углам; у высоких корпусов — вертикально), не задевая другие подписи и корпуса.
+// Что не поместилось, остаётся без подписи на этом листе — его показывает фрагмент в крупном масштабе.
+
+real lb_x[], lb_y[], lb_fs[];   // центр подписи (мм платы) и высота шрифта
+int lb_rot[], lb_ok[];          // 1 — подпись вертикальная; 1 — подпись поставлена
+real pl_x1[], pl_y1[], pl_x2[], pl_y2[];
+int n_pl = 0;
+int lb_side = 0;
+
+// прямоугольник подписи свободен (в пределах поля, без подписей и, если bodies, без чужих корпусов)
+int lb_free(int e, real a1, real b1, real a2, real b2, int bodies, real vx0, real vy0, real vx1, real vy1)
+{
+    if (a1 < vx0 || a2 > vx1 || b1 < vy0 || b2 > vy1) return 0;
+    int i;
+    for (i = 0; i < n_pl; i++)
+        if (a1 < pl_x2[i] && pl_x1[i] < a2 && b1 < pl_y2[i] && pl_y1[i] < b2) return 0;
+    if (bodies) {
+        for (i = 0; i < n_el; i++) {
+            if (i == e || (el_bottom[i] != lb_side && !el_tht[i])) continue;
+            if (a1 < el_bx2[i] && el_bx1[i] < a2 && b1 < el_by2[i] && el_by1[i] < b2) return 0;
+        }
+    }
+    return 1;
+}
+
+// поставить подпись e в центр (cx, cy) размером w × hh, если место свободно
+int lb_put(int e, real cx, real cy, real w, real hh, int rot, real fs, int bodies, real vx0, real vy0, real vx1, real vy1)
+{
+    real a1 = cx - w / 2, a2 = cx + w / 2, b1 = cy - hh / 2, b2 = cy + hh / 2;
+    if (!lb_free(e, a1, b1, a2, b2, bodies, vx0, vy0, vx1, vy1)) return 0;
+    pl_x1[n_pl] = a1; pl_y1[n_pl] = b1; pl_x2[n_pl] = a2; pl_y2[n_pl] = b2; n_pl++;
+    lb_x[e] = cx; lb_y[e] = cy; lb_rot[e] = rot; lb_fs[e] = fs; lb_ok[e] = 1;
+    return 1;
+}
+
+// разместить подписи стороны: fsmin/fsmax — высота шрифта в мм платы; v* — поле; возвращает число неразмещённых
+int lbl_place(int bottom, real fsmin, real fsmax, real vx0, real vy0, real vx1, real vy1)
+{
+    lb_side = bottom;
+    n_pl = 0;
+    numeric string key[];
+    int idx[], ord[], n = 0, e, k;
+    for (e = 0; e < n_el; e++) {
+        lb_ok[e] = 0;
+        if (el_bottom[e] != bottom) continue;
+        real a = (el_bx2[e] - el_bx1[e]) * (el_by2[e] - el_by1[e]);
+        string kk;
+        sprintf(kk, "%012.4f", a);
+        key[n] = kk;
+        idx[n] = e;
+        n++;
+    }
+    sort(n, ord, key);
+    // 1) внутри корпусов — самые надёжные места
+    for (k = n - 1; k >= 0; k--) {
+        e = idx[ord[k]];
+        real bw = el_bx2[e] - el_bx1[e], bh = el_by2[e] - el_by1[e];
+        int rot = bh > bw * 1.15;
+        real lng = rot ? bh : bw, sht = rot ? bw : bh;
+        real cw = strlen(el_name[e]) * 0.62 + 0.3;          // ширина подписи в высотах шрифта
+        real fs = lng * 0.92 / cw;
+        if (fs > sht * 0.8) fs = sht * 0.8;
+        if (fs > fsmax) fs = fsmax;
+        if (fs < fsmin) continue;
+        real w = cw * fs, hh = fs * 0.9;
+        lb_put(e, (el_bx1[e] + el_bx2[e]) / 2, (el_by1[e] + el_by2[e]) / 2, rot ? hh : w, rot ? w : hh, rot, fs, 0, vx0, vy0, vx1, vy1);
+    }
+    // 2) рядом с корпусом, мелкие детали первыми
+    int fails = 0;
+    for (k = 0; k < n; k++) {
+        e = idx[ord[k]];
+        if (lb_ok[e]) continue;
+        real fs = fsmin, cw = strlen(el_name[e]) * 0.62 + 0.3;
+        real w = cw * fs, hh = fs * 0.9, g = fs * 0.2;
+        real x1 = el_bx1[e], y1 = el_by1[e], x2 = el_bx2[e], y2 = el_by2[e];
+        real cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+        if (lb_put(e, cx, y2 + g + hh / 2, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, cx, y1 - g - hh / 2, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, x2 + g + w / 2, cy, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, x1 - g - w / 2, cy, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, x2 + g + hh / 2, cy, hh, w, 1, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, x1 - g - hh / 2, cy, hh, w, 1, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, x2 + g + w / 2, y2 + g + hh / 2, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, x1 - g - w / 2, y2 + g + hh / 2, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, x2 + g + w / 2, y1 - g - hh / 2, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, x1 - g - w / 2, y1 - g - hh / 2, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        // чуть дальше — на высоту строки
+        if (lb_put(e, cx, y2 + g + hh * 1.5, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        if (lb_put(e, cx, y1 - g - hh * 1.5, w, hh, 0, fs, 1, vx0, vy0, vx1, vy1)) continue;
+        fails++;
+    }
+    return fails;
+}
+
 // ---------------------------------------------------------------- чертёж стороны
 
 // размер подписей в мм платы: отчёт на экране и чертёж в масштабе задают свои пределы
 real ds_fsmin = 0.55, ds_fsmax = 2.2;
 string ds_wh = "";            // размер чертежа в мм (style), если пусто — в пикселях
+int ds_place = 0;             // подписи из lbl_place (чертёж в масштабе)
+int ds_crop = 0;              // показать только участок платы ds_v*
+real ds_vx0 = 0, ds_vy0 = 0, ds_vx1 = 0, ds_vy1 = 0;
+// рамки фрагментов на общем виде: участки платы и их буквы
+real tl_x1[], tl_y1[], tl_x2[], tl_y2[];
+string tl_lab[];
+int n_tl = 0;
+
+// элемент виден в показанном участке
+int ds_in(int e)
+{
+    if (!ds_crop) return 1;
+    return el_bx2[e] >= ds_vx0 && el_bx1[e] <= ds_vx1 && el_by2[e] >= ds_vy0 && el_by1[e] <= ds_vy1;
+}
 
 // sel: строка вида "|R1|C5|" — выделенные элементы; "" = ничего не выделять
 // labels: 0 = подписи только выделенных, 1 = подписи всех
@@ -141,6 +283,7 @@ string draw_side(int bottom, string sel, int labels, int pxw)
 {
     real mg = 3.0;
     real x0 = bb_x1 - mg, x1 = bb_x2 + mg, y0 = bb_y1 - mg, y1 = bb_y2 + mg;
+    if (ds_crop) { x0 = ds_vx0; x1 = ds_vx1; y0 = ds_vy0; y1 = ds_vy1; }
     real W = x1 - x0, H = y1 - y0;
     int pxh = int(pxw * H / W);
     string s, t, tr;
@@ -157,6 +300,7 @@ string draw_side(int bottom, string sel, int labels, int pxw)
     for (int pass = 0; pass < 2; pass++) {
         for (e = 0; e < n_el; e++) {
             if (el_bottom[e] != bottom && !el_tht[e]) continue;
+            if (!ds_in(e)) continue;
             if (el_bottom[e] != bottom && el_tht[e]) {
                 // выводная с другой стороны видна только площадками
                 if (pass == 0) s += "<g class=\"pd0\">" + el_pads[e] + "</g>";
@@ -175,7 +319,7 @@ string draw_side(int bottom, string sel, int labels, int pxw)
     }
     // ключи: вывод 1 / катод
     for (e = 0; e < n_el; e++) {
-        if (el_bottom[e] != bottom || !el_has_p1[e]) continue;
+        if (el_bottom[e] != bottom || !el_has_p1[e] || !ds_in(e) || !needs_key(e)) continue;
         int hi = (sel == "" || strstr(sel, "|" + el_name[e] + "|") >= 0);
         if (!hi) continue;
         real r = 0.35;
@@ -183,10 +327,31 @@ string draw_side(int bottom, string sel, int labels, int pxw)
         sprintf(t, "<circle class=\"k1\" cx=\"%s\" cy=\"%s\" r=\"%s\"/>", f3(el_p1x[e]), f3(el_p1y[e]), f3(r));
         s += t;
     }
+    // рамки фрагментов (общий вид)
+    for (int q = 0; q < n_tl; q++) {
+        sprintf(t, "<rect class=\"tf\" x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\"/>", f3(tl_x1[q]), f3(tl_y1[q]),
+                f3(tl_x2[q] - tl_x1[q]), f3(tl_y2[q] - tl_y1[q]));
+        s += t;
+    }
     s += "</g>";
+    for (q = 0; q < n_tl; q++) {
+        real fz = ds_fsmax * 1.6;
+        real tx = bottom ? x1 - tl_x2[q] + fz * 0.5 : tl_x1[q] - x0 + fz * 0.5;
+        sprintf(t, "<text class=\"tl\" x=\"%s\" y=\"%s\" font-size=\"%s\" style=\"text-anchor:start\">%s</text>", f3(tx), f3(y1 - tl_y2[q] + fz * 1.05), f3(fz), h(tl_lab[q]));
+        s += t;
+    }
     // подписи (вне трансформации, чтобы текст не зеркалился)
     for (e = 0; e < n_el; e++) {
-        if (el_bottom[e] != bottom) continue;
+        if (el_bottom[e] != bottom || !ds_in(e)) continue;
+        if (ds_place && sel == "") {
+            if (!labels || !lb_ok[e]) continue;
+            real px = bottom ? x1 - lb_x[e] : lb_x[e] - x0, py = y1 - lb_y[e];
+            string rt = "";
+            if (lb_rot[e]) sprintf(rt, " transform=\"rotate(-90 %s %s)\"", f3(px), f3(py));
+            sprintf(t, "<text class=\"la\" x=\"%s\" y=\"%s\" font-size=\"%s\"%s>%s</text>", f3(px), f3(py + lb_fs[e] * 0.36), f3(lb_fs[e]), rt, h(el_name[e]));
+            s += t;
+            continue;
+        }
         int hi = (sel != "" && strstr(sel, "|" + el_name[e] + "|") >= 0);
         if (!labels && !hi) continue;
         real cx = (el_bx1[e] + el_bx2[e]) / 2, cy = (el_by1[e] + el_by2[e]) / 2;
@@ -254,21 +419,6 @@ string key_arrow(int e)
 }
 
 // нужен ли ключ на чертеже: микросхемы, транзисторы, диоды, светодиоды, полярные конденсаторы
-int needs_key(int e)
-{
-    string p = des_prefix(el_name[e]);
-    if (p == "R" || p == "RN" || p == "RA" || p == "L" || p == "FB" || p == "F" || p == "Y" || p == "X" || p == "J" || p == "S" || p == "SW") return 0;
-    if (p == "C" && el_npads[e] <= 2) {
-        // керамика — без ключа; электролит/тантал — по корпусу
-        string j = strupr(el_jpkg[e]);
-        if (strstr(j, "CASE-") >= 0) return 1;
-        if (is_chip(el_jpkg[e])) return 0;          // керамика 0402…2512 — без полярности
-        if (el_bx2[e] - el_bx1[e] > 4.5) return 1;
-        return 0;
-    }
-    return 1;
-}
-
 // ---------------------------------------------------------------- сбор геометрии (контекст платы)
 
 // отрезки контура для сборки замкнутой фигуры

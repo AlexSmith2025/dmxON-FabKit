@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------- продукт
 
 string FK_NAME    = "dmxON FabKit";
-string FK_VERSION = "2.1.0";              // при каждой переделке поднимать (см. CHANGELOG.md)
+string FK_VERSION = "2.2.0";              // при каждой переделке поднимать (см. CHANGELOG.md)
 string FK_DATE    = "2026-10-13";
 string FK_AUTHOR  = "dmxON by AlexSmith";
 string FK_YEAR    = "2026";
@@ -34,6 +34,7 @@ int    NET_TIMEOUT  = 25;
 
 string opt_root      = "";     // куда выгружать
 int    opt_open      = 1;      // открыть папку после выгрузки
+int    opt_backup    = 1;      // бэкап папки проекта через надстройку dmxON (общий ключ dmxon.backup)
 int    opt_online    = 1;      // искать номера в каталогах
 int    opt_basic     = 1;      // предпочитать Basic/Preferred
 int    opt_tht       = 1;      // выгружать выводные детали
@@ -59,6 +60,7 @@ int    batch_mode    = 0;
 // штамп (заполняется в диалоге, хранится отдельно для каждой платы)
 string tb_product = "", tb_docno = "", tb_company = "", tb_designer = "", tb_checker = "";
 string tb_approver = "", tb_customer = "", tb_rev = "1.0", tb_note = "";
+string tb_pcbno = "";            // обозначение печатной платы (детали)
 
 real fee_usd()
 {
@@ -92,6 +94,35 @@ void lang_save()
 int lang_index(string c)
 {
     for (int i = 0; i < N_LANG; i++) if (LANG_CODE[i] == strlwr(c)) return i;
+    return -1;
+}
+
+// ---------------------------------------------------------------- стандарт документации
+// ISO — ISO 5457 / ISO 7200 / ISO 7573 / IEC 81346 и IPC; ГОСТ — ЕСКД (ГОСТ Р 2.104-2023 и др.).
+// Выбор общий для dmxON FabKit и dmxON JLC Rules (настройка dmxon.std).
+string STD_CODE[] = { "iso", "gost" };
+string STD_NAME[] = { "ISO", "ГОСТ" };
+int N_STD = 2;
+int doc_std = 0;                 // 0 ISO, 1 ГОСТ
+string STD_CFG = "dmxon.std";
+
+void std_load()
+{
+    string c = cfgget(STD_CFG, "iso");
+    doc_std = 0;
+    for (int i = 0; i < N_STD; i++) if (STD_CODE[i] == c) doc_std = i;
+}
+
+void std_save()
+{
+    cfgset(STD_CFG, STD_CODE[doc_std]);
+}
+
+int std_index(string c)
+{
+    c = strlwr(c);
+    if (c == "гост") c = "gost";
+    for (int i = 0; i < N_STD; i++) if (STD_CODE[i] == c) return i;
     return -1;
 }
 

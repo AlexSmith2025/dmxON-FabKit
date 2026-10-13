@@ -3,35 +3,35 @@
        "checked against the board footprints, an animated report, A4 assembly documentation with an editable "
        "title block, and 1:1 PDF prints for toner transfer. Interface and documents: English, Russian, Spanish, German, Polish.<p>"
        "<b>Usage:</b> run from the board editor: <tt>RUN dmxON_FabKit</tt><br>"
-       "Batch: <tt>RUN dmxON_FabKit -batch &lt;folder&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import file] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "Batch: <tt>RUN dmxON_FabKit -batch &lt;folder&gt; [-lang en|ru|es|de|pl] [-std iso|gost] [-offline] [-boards N] [-import file] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
        "<author>dmxON by AlexSmith 2026 · free to use with attribution · see LICENSE.md</author>",
        "ru: <b>dmxON FabKit</b> — полный производственный пакет JLCPCB из платы Fusion Electronics<p>"
        "Gerber (имена JLCPCB + архив), BOM и CPL с автоматическим подбором номеров LCSC, замены с оптимизацией цены "
        "и сверкой посадочных мест, анимированный отчёт, документация A4 для ручной сборки с редактируемым "
        "штампом и PDF 1:1 для ЛУТ. Интерфейс и документы: английский, русский, испанский, немецкий, польский.<p>"
        "<b>Запуск:</b> из редактора платы: <tt>RUN dmxON_FabKit</tt><br>"
-       "Пакетный режим: <tt>RUN dmxON_FabKit -batch &lt;папка&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import файл] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "Пакетный режим: <tt>RUN dmxON_FabKit -batch &lt;папка&gt; [-lang en|ru|es|de|pl] [-std iso|gost] [-offline] [-boards N] [-import файл] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
        "<author>dmxON by AlexSmith 2026 · свободное использование с указанием автора · см. LICENSE.md</author>",
        "es: <b>dmxON FabKit</b> — paquete de fabricación JLCPCB completo desde una placa de Fusion Electronics<p>"
        "Gerber (nombres JLCPCB + zip), BOM y CPL con selección automática de piezas LCSC, sustitutos optimizados por precio "
        "y comprobados con las huellas de la placa, informe animado, documentación A4 de montaje con cajetín editable "
        "e impresiones PDF 1:1 para transferencia de tóner. Interfaz y documentos: inglés, ruso, español, alemán, polaco.<p>"
        "<b>Uso:</b> desde el editor de placas: <tt>RUN dmxON_FabKit</tt><br>"
-       "Por lotes: <tt>RUN dmxON_FabKit -batch &lt;carpeta&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import archivo] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "Por lotes: <tt>RUN dmxON_FabKit -batch &lt;carpeta&gt; [-lang en|ru|es|de|pl] [-std iso|gost] [-offline] [-boards N] [-import archivo] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
        "<author>dmxON by AlexSmith 2026 · uso libre citando al autor · ver LICENSE.md</author>",
        "de: <b>dmxON FabKit</b> — komplettes JLCPCB-Fertigungspaket aus einer Fusion-Electronics-Platine<p>"
        "Gerber (JLCPCB-Namen + Zip), BOM und CPL mit automatischer LCSC-Teileauswahl, preisoptimierte Ersatzteile, "
        "geprüft gegen die Footprints der Platine, animierter Bericht, A4-Bestückungsdokumentation mit editierbarem "
        "Schriftfeld und 1:1-PDF-Drucke für die Tonertransfer-Methode. Oberfläche und Dokumente: Englisch, Russisch, Spanisch, Deutsch, Polnisch.<p>"
        "<b>Aufruf:</b> im Board-Editor: <tt>RUN dmxON_FabKit</tt><br>"
-       "Stapelbetrieb: <tt>RUN dmxON_FabKit -batch &lt;Ordner&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import Datei] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "Stapelbetrieb: <tt>RUN dmxON_FabKit -batch &lt;Ordner&gt; [-lang en|ru|es|de|pl] [-std iso|gost] [-offline] [-boards N] [-import Datei] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
        "<author>dmxON by AlexSmith 2026 · freie Nutzung mit Namensnennung · siehe LICENSE.md</author>",
        "pl: <b>dmxON FabKit</b> — kompletny pakiet produkcyjny JLCPCB z płytki Fusion Electronics<p>"
        "Gerber (nazwy JLCPCB + zip), BOM i CPL z automatycznym doborem części LCSC, zamienniki optymalizowane cenowo "
        "i sprawdzone z footprintami płytki, animowany raport, dokumentacja montażowa A4 z edytowalną tabliczką "
        "oraz wydruki PDF 1:1 do metody termotransferu. Interfejs i dokumenty: angielski, rosyjski, hiszpański, niemiecki, polski.<p>"
        "<b>Uruchomienie:</b> w edytorze płytki: <tt>RUN dmxON_FabKit</tt><br>"
-       "Tryb wsadowy: <tt>RUN dmxON_FabKit -batch &lt;folder&gt; [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import plik] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
+       "Tryb wsadowy: <tt>RUN dmxON_FabKit -batch &lt;folder&gt; [-lang en|ru|es|de|pl] [-std iso|gost] [-offline] [-boards N] [-import plik] [-nogerber] [-nodocs] [-notoner] [-nopdf]</tt><p>"
        "<author>dmxON by AlexSmith 2026 · bezpłatne użycie z podaniem autora · zob. LICENSE.md</author>"
 
 // dmxON FabKit · dmxON by AlexSmith 2026
@@ -48,6 +48,7 @@
 #include "lib/fk_strings.ulp"
 #include "lib/fk_lang.ulp"
 #include "lib/fk_core.ulp"
+#include "lib/fk_addin.ulp"
 #include "lib/fk_values.ulp"
 #include "lib/fk_packages.ulp"
 #include "lib/fk_net.ulp"
@@ -60,12 +61,15 @@
 #include "lib/fk_gerber.ulp"
 #include "lib/fk_import.ulp"
 #include "lib/fk_report.ulp"
+#include "lib/fk_sheet.ulp"
+#include "lib/fk_sch.ulp"
 #include "lib/fk_docs.ulp"
 #include "lib/fk_finish.ulp"
 
 // ---------------------------------------------------------------- фаза 3
 
 lang_load();
+std_load();
 if (argc > 2 && argv[1] == "-finish") {
     finish_main(argv[2]);
     exit(0);
@@ -182,6 +186,7 @@ board(B) {
     string brd = filename(B.name);
     string base = brd;
     if (ends_with(strupr(base), ".BRD")) base = strsub(base, 0, strlen(base) - 4);
+    base = trim(replace_all(replace_all(base, " (~recovered)", ""), "(~recovered)", ""));
     base = safe_name(base);
     string stamp = t2string(time(), "yyyy-MM-dd hh:mm");
     string date = t2string(time(), "yyyy-MM-dd");
@@ -194,6 +199,7 @@ board(B) {
     opt_root = cfgget(cfg_key("root"), def_root);
     if (strstr(strupr(replace_all(opt_root, "\\", "/")), "/APPDATA/LOCAL/TEMP") >= 0) opt_root = def_root;
     opt_open     = strtol(cfgget(cfg_key("open"), "1"));
+    opt_backup   = strtol(cfgget("dmxon.backup", "1"));
     opt_online   = strtol(cfgget(cfg_key("online"), "1"));
     opt_basic    = strtol(cfgget(cfg_key("basic"), "1"));
     opt_tht      = strtol(cfgget(cfg_key("tht"), "1"));
@@ -209,6 +215,7 @@ board(B) {
     opt_docs     = strtol(cfgget(cfg_key("docs"), "1"));
     opt_toner    = strtol(cfgget(cfg_key("toner"), "1"));
     opt_pdf      = strtol(cfgget(cfg_key("pdf"), "1"));
+    dc_sch       = strtol(cfgget(cfg_key("sch"), "1"));
     opt_thick    = cfgget(cfg_key("thick"), "auto");
     opt_mask     = cfgget(cfg_key("mask"), "Green");
     opt_silk     = cfgget(cfg_key("silk"), "White");
@@ -224,6 +231,7 @@ board(B) {
     tb_rev      = cfgget(cfg_key(tk + "rev"), "1.0");
     tb_customer = cfgget(cfg_key(tk + "customer"), "");
     tb_note     = cfgget(cfg_key(tk + "note"), "");
+    tb_pcbno    = cfgget(cfg_key(tk + "pcbno"), base + "-PCB");
     tb_company  = cfgget(cfg_key("tb.company"), "");
     tb_designer = cfgget(cfg_key("tb.designer"), "");
     tb_checker  = cfgget(cfg_key("tb.checker"), "");
@@ -239,21 +247,28 @@ board(B) {
         else if (argv[a] == "-nogerber") opt_gerber = 0;
         else if (argv[a] == "-nodocs") opt_docs = 0;
         else if (argv[a] == "-notoner") opt_toner = 0;
+        else if (argv[a] == "-nobackup") opt_backup = 0;
         else if (argv[a] == "-nopdf") opt_pdf = 0;
+        else if (argv[a] == "-nosch") dc_sch = 0;
         else if (argv[a] == "-keep") keep_tmp = 1;
         else if (argv[a] == "-lang") { if (a + 1 < argc) { int li = lang_index(argv[++a]); if (li >= 0) ui_lang = li; } }
+        else if (argv[a] == "-std") { if (a + 1 < argc) { int si = std_index(argv[++a]); if (si >= 0) doc_std = si; } }
     }
 
     // ---- диалог
     if (!batch_mode) {
         int i_mask = list_index(strjoin(MASKS, '|'), opt_mask), i_silk = list_index(strjoin(SILKS, '|'), opt_silk);
         int i_fin = list_index(strjoin(FINISHES, '|'), opt_finish), i_th = list_index(strjoin(THICKS, '|'), opt_thick);
-        int res = 0, sel_lang = ui_lang;
+        int res = 0, sel_lang = ui_lang, sel_std = doc_std;
         while (1) {
         sel_lang = ui_lang;
+        sel_std = doc_std;
         res = dlgDialog(fk_title() + " — " + base) {
             dlgHBoxLayout {
                 dlgStretch(1);
+                dlgLabel(L("Стандарт", "Standard"));
+                dlgComboBox(STD_NAME, sel_std) { if (sel_std != doc_std) { doc_std = sel_std; std_save(); } }
+                dlgSpacing(12);
                 dlgLabel(L("Язык", "Language"));
                 dlgComboBox(LANG_NAME, sel_lang) { if (sel_lang != ui_lang) { ui_lang = sel_lang; lang_save(); dlgAccept(9); } }
             }
@@ -271,10 +286,13 @@ board(B) {
                         dlgLabel(Lf("Пакет создаётся в подпапке «{0}». Прежний пакет этой платы удаляется целиком.",
                                     "The package goes to «{0}». A previous package of this board is replaced completely.", base + "_FabKit", "", ""));
                         dlgCheckBox(L("Открыть папку после выгрузки", "Open the folder when done"), opt_open);
+                        dlgCheckBox(L("Бэкап всей папки проекта на этот компьютер (надстройка dmxON)",
+                                      "Back up the whole design folder to this computer (dmxON add-in)"), opt_backup);
                     }
                     dlgGroup(L("Что создать", "What to build")) {
                         dlgCheckBox(L("Gerber и сверловка для JLCPCB (архив + превью слоёв)", "Gerber and drill for JLCPCB (zip + layer previews)"), opt_gerber);
                         dlgCheckBox(L("Документация A4 для ручной сборки", "A4 documentation for manual assembly"), opt_docs);
+                        dlgCheckBox(L("Схема электрическая в документации (Э3 / circuit diagram)", "Circuit diagram in the documentation"), dc_sch);
                         dlgCheckBox(L("PDF документации (через Microsoft Edge)", "PDF of the documentation (via Microsoft Edge)"), opt_pdf);
                         dlgCheckBox(L("Листы 1:1 для ЛУТ (PDF)", "1:1 toner-transfer sheets (PDF)"), opt_toner);
                     }
@@ -340,6 +358,8 @@ board(B) {
                             dlgCell(0, 1) dlgStringEdit(tb_product);
                             dlgCell(1, 0) dlgLabel(L("Обозначение", "Document No."));
                             dlgCell(1, 1) dlgStringEdit(tb_docno);
+                            dlgCell(5, 0) dlgLabel(L("Обозначение платы", "PCB part number"));
+                            dlgCell(5, 1) dlgStringEdit(tb_pcbno);
                             dlgCell(2, 0) dlgLabel(L("Редакция", "Revision"));
                             dlgCell(2, 1) dlgStringEdit(tb_rev);
                             dlgCell(3, 0) dlgLabel(L("Заказчик", "Customer"));
@@ -402,6 +422,7 @@ board(B) {
     if (!batch_mode) {
         cfgset(cfg_key("root"), opt_root);
         cfgset(cfg_key("open"), istr(opt_open));
+        cfgset("dmxon.backup", istr(opt_backup));
         cfgset(cfg_key("online"), istr(opt_online));
         cfgset(cfg_key("basic"), istr(opt_basic));
         cfgset(cfg_key("tht"), istr(opt_tht));
@@ -416,6 +437,7 @@ board(B) {
         cfgset(cfg_key("gerber"), istr(opt_gerber));
         cfgset(cfg_key("docs"), istr(opt_docs));
         cfgset(cfg_key("toner"), istr(opt_toner));
+        cfgset(cfg_key("sch"), istr(dc_sch));
         cfgset(cfg_key("pdf"), istr(opt_pdf));
         cfgset(cfg_key("thick"), opt_thick);
         cfgset(cfg_key("mask"), opt_mask);
@@ -426,6 +448,7 @@ board(B) {
         cfgset(cfg_key(tk + "rev"), tb_rev);
         cfgset(cfg_key(tk + "customer"), tb_customer);
         cfgset(cfg_key(tk + "note"), tb_note);
+        cfgset(cfg_key(tk + "pcbno"), tb_pcbno);
         cfgset(cfg_key("tb.company"), tb_company);
         cfgset(cfg_key("tb.designer"), tb_designer);
         cfgset(cfg_key("tb.checker"), tb_checker);
@@ -846,11 +869,12 @@ board(B) {
     // ---- состояние для третьей фазы
     st_set("outdir", outdir); st_set("tmp", tmp); st_set("runner", fk_runner); st_set("base", base); st_set("date", date);
     st_seti("gerber", opt_gerber); st_seti("docs", opt_docs); st_seti("toner", opt_toner); st_seti("pdf", opt_pdf);
-    st_seti("open", opt_open); st_seti("batch", batch_mode); st_seti("boards", opt_boards); st_seti("keep_tmp", keep_tmp);
+    st_seti("open", opt_open); st_seti("backup", opt_backup); st_seti("batch", batch_mode); st_seti("boards", opt_boards); st_seti("keep_tmp", keep_tmp);
     st_set("mask", opt_mask); st_set("silk", opt_silk); st_set("finish", opt_finish); st_set("thick", opt_thick);
     st_set("tb_product", tb_product); st_set("tb_docno", tb_docno); st_set("tb_company", tb_company); st_set("tb_designer", tb_designer);
     st_set("tb_checker", tb_checker); st_set("tb_approver", tb_approver); st_set("tb_customer", tb_customer); st_set("tb_rev", tb_rev);
-    st_set("tb_note", tb_note);
+    st_set("tb_note", tb_note); st_set("tb_pcbno", tb_pcbno);
+    st_seti("std", doc_std); st_seti("a3", dc_a3); st_seti("class", dc_class); st_set("sch_fmt", sch_fmt_txt);
     st_set("bx1", f3(bb_x1)); st_set("by1", f3(bb_y1)); st_set("bx2", f3(bb_x2)); st_set("by2", f3(bb_y2));
     st_seti("n_top", n_top); st_seti("n_bot", n_bot); st_seti("layers", n_layers); st_seti("lang", ui_lang);
     string summary;
@@ -872,8 +896,19 @@ board(B) {
     // ---- фаза 2: команды Fusion
     // Gerber нужны и заводу, и листам ЛУТ (они строятся из Gerber в третьей фазе)
     string cmd = attr_cmd;
+    string fin = "RUN '" + replace_all(argv[0], "\\", "/") + "' -finish '" + stfile + "';\n";
+    // с надстройкой dmxON и заданием CAM dmxON JLCPCB Gerber выгружаются без окна One-Click Export,
+    // сразу с именами JLCPCB; надстройка затем сама запускает третью фазу
+    int nl = n_layers < 2 ? 2 : (n_layers + 1) / 2 * 2;
+    string camjob = dmx_base() + "/dmxON-JLC-Rules/rules/dmxON_JLCPCB_" + istr(nl) + "L.cam";
+    if ((opt_gerber || opt_toner) && nl <= 8 && file_exists(camjob) && addin_alive()) {
+        addin_request("fabkit_cam", ",\"cam\":" + json_s(camjob) + ",\"zip\":" + json_s(tmp + "/cam.zip") + ",\"finish\":" + json_s(trim(fin)));
+        output(tmp + "/phase2.scr", "wt") printf("%s(dmxON add-in: Electron.mfgexport %s)\n%s", cmd, camjob, fin);
+        fk_log(L("фаза 2: Gerber выгружает надстройка dmxON", "phase 2: the dmxON add-in exports Gerber"));
+        exit(cmd);
+    }
     if (opt_gerber || opt_toner) cmd += "MANUFACTURING EXPORT '" + tmp + "/cam.zip';\n";
-    cmd += "RUN '" + replace_all(argv[0], "\\", "/") + "' -finish '" + stfile + "';\n";
+    cmd += fin;
     output(tmp + "/phase2.scr", "wt") printf("%s", cmd);      // копия для диагностики
     fk_log(L("фаза 2: выгрузка Fusion", "phase 2: Fusion export"));
     exit(cmd);

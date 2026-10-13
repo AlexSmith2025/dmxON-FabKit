@@ -49,6 +49,11 @@
 | 🖨️ | **Toner transfer 1:1**: a PDF per layer (copper, silkscreen, mask, drill), top sheets mirrored, a 50 mm bar to check the scale |
 | 📥 | **Import a finished JLCPCB BOM** (xlsx, csv or text from the order page) — your verified part numbers win |
 | 🌐 | **5 languages**: English, Russian, Spanish, German, Polish — the dialog, the report and all documents in the language you pick |
+| 📏 | **Documentation to ISO or GOST**: sheets and title blocks per ISO 5457 / ISO 7200 or GOST R 2.104-2023; document list, fabrication and assembly drawings, parts list (ISO 7573) or specification (GOST R 2.106-2019), list of elements; IPC and IEC references in the notes |
+| 🔌 | **Circuit diagram** from your schematic in the standard frame (GOST Э3 / IEC 61082-1) on A4, A3 or an elongated A3×n sheet, so the text stays readable |
+| 🧩 | **dmxON tab in Fusion** (add-in): FabKit, JLC Rules, backup and updates in one click; Gerber without the CAM confirmation window |
+| 💾 | **Backup of the whole design folder**: schematics, boards and libraries as EAGLE files, 3D designs as `.f3d`, drawings as PDF, plus the package — restorable on any account or computer |
+| 🔄 | **Updates from GitHub**: a daily check, install on request |
 
 ---
 
@@ -56,7 +61,7 @@
 
 | | dmxON FabKit |
 |---|---|
-| **Autodesk Fusion (Electronics), Windows 10/11** | ✅ tested on Fusion **2705.1.11** (October 2026) |
+| **Autodesk Fusion (Electronics), Windows 10/11** | ✅ tested on Fusion **2705.1.30** (October 2026) |
 | Autodesk Fusion on macOS | ❌ uses Windows tools (`curl.exe`, `tar.exe`, `robocopy`, Windows Script Host, Microsoft Edge) |
 | EAGLE 9.x | ❌ needs Fusion's `MANUFACTURING EXPORT` command for Gerber |
 | KiCad, Altium, EasyEDA | ❌ |
@@ -69,19 +74,19 @@ Also needed: **Microsoft Edge** (built into Windows) for PDFs; internet for the 
 
 1. [**Download `dmxON-FabKit.zip`**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) and unpack it anywhere.
 2. In Fusion Electronics: **Automation → Run ULP → `INSTALL.ulp`** from the unpacked folder, choose the language and press **Install**.
-3. **Restart Fusion.** `dmxON_FabKit` now sits in the **Run ULP** list next to the built-in ULPs — its own folder `Documents\dmxON\dmxON-FabKit` comes first, Fusion's built-in ULPs stay where they are.
+3. **Restart Fusion once.** The PCB and schematic editors get a **dmxON** tab — FabKit, JLC Rules, Backup, Updates, Settings, Help — and `dmxON_FabKit` is also in **Run ULP**.
 
-The installer copies the project to `Documents\dmxON\dmxON-FabKit` and adds that folder to Fusion's ULP directories through Fusion's own settings. Running `INSTALL.ulp` again updates the files; **Remove** gives Fusion its previous folders back. Manual alternative: keep the unpacked folder intact (`dmxON_FabKit.ulp` loads `lib\` and `config\` next to it) and run it with `RUN 'C:/path/dmxON_FabKit.ulp'`.
+The installer copies the project to `Documents\dmxON\dmxON-FabKit` and installs the **dmxON add-in** (`%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\dmxON`). The add-in puts the dmxON folders first in Fusion's ULP, design rules and CAM lists (Preferences → General → Electronics → Directory) — Fusion's built-in ULPs stay — and repairs those paths after Fusion updates. Running `INSTALL.ulp` again updates the files; **Remove** deletes the copied project and, with the last dmxON tool, the add-in. Without a restart the add-in can be started from **Utilities → Add-Ins → Scripts and Add-Ins → dmxON → Run**. Manual alternative without the add-in: keep the unpacked folder intact and run `RUN 'C:/path/dmxON_FabKit.ulp'`.
 
 ---
 
 ## Quick start
 
 1. Open the **board** in Fusion Electronics and **save it** (Ctrl+S) — Fusion exports Gerber from the last saved version.
-2. Run **Automation → Run ULP → `dmxON_FabKit`**.
-3. Pick the **language** in the top-right corner of the dialog (English by default), choose the folder and press **Build package**.
-4. Fusion may show a **CAM Export File List** window — press **OK** (that is the regular Gerber export).
-5. About a minute later the package folder opens. Start with `index.html`.
+2. Press **dmxON → FabKit** (or **Automation → Run ULP → `dmxON_FabKit`**).
+3. Pick the **standard** (ISO or GOST) and the **language** in the top-right corner, choose the folder and press **Build package**.
+4. With the dmxON add-in and dmxON JLC Rules installed, Gerber is exported silently through the dmxON JLCPCB CAM job. Without them Fusion may show a **CAM Export File List** window — press **OK**.
+5. About a minute later the package folder opens. Start with `index.html`. With the backup option on, the add-in then saves the whole design folder to `Documents\dmxON\Backups`.
 
 Tip: run [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) first — it sets up JLCPCB design rules and the layer stack-up, and passes the board thickness and mask colour to FabKit. Both tools share the language setting.
 
@@ -90,7 +95,8 @@ Tip: run [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-
 | Tab | What it sets |
 |---|---|
 | **Language** (top right) | English, Русский, Español, Deutsch, Polski — the dialog switches at once; the report and documents are written in the same language |
-| **Output** | folder; what to build: Gerber, A4 docs, PDF, toner sheets; what goes into BOM/CPL: THT, pad centre, skipped designators |
+| **Standard** (top right) | ISO or GOST — which documentation set is written; shared with dmxON JLC Rules |
+| **Output** | folder; backup of the design folder; what to build: Gerber, documentation, circuit diagram, PDF, toner sheets; what goes into BOM/CPL: THT, pad centre, skipped designators |
 | **Parts** | catalogue search, Basic/Preferred, substitutes, footprint check, attribute re-check, writing `LCSC_PART`, board quantity, minimum capacitor voltage, feeder fee, BOM import |
 | **PCB** | thickness, mask and silkscreen colour, finish — for the report, the order form and the render |
 | **Title** | product, document number, revision, customer, note (per board); company and signatures (shared) |
@@ -112,7 +118,7 @@ All settings are remembered.
 │   ├── <board>_JLCPCB_BOM.csv          ← PCB Assembly: BOM
 │   └── <board>_JLCPCB_CPL.csv          ← PCB Assembly: CPL
 ├── 02_REPORT/                          report + layer previews
-├── 03_ASSEMBLY_DOCS/                   A4 documentation (HTML + PDF)
+├── 03_ASSEMBLY_DOCS/                   documentation to ISO or GOST (HTML + PDF)
 └── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 PDF sheets
 ```
 
@@ -147,13 +153,16 @@ Sheets are built from **the same Gerber files** the factory gets: pours, clearan
 ## Batch mode
 
 ```
-RUN dmxON_FabKit.ulp -batch <folder> [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import file] [-nogerber] [-nodocs] [-notoner] [-nopdf] [-keep]
+RUN dmxON_FabKit.ulp -batch <folder> [-std iso|gost] [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import file] [-nogerber] [-nodocs] [-nosch] [-notoner] [-nopdf] [-nobackup] [-keep]
 ```
 
 | Flag | Meaning |
 |---|---|
 | `-batch <folder>` | no dialog, into this folder, no attribute writes |
 | `-lang <code>` | language of the report and documents (default: the language last picked in the dialog) |
+| `-std iso\|gost` | documentation standard (default: the one last picked in the dialog) |
+| `-nosch` | no circuit diagram |
+| `-nobackup` | no backup of the design folder |
 | `-offline` | no catalogue and EasyEDA |
 | `-boards N` | boards in the order |
 | `-import <file>` | JLCPCB BOM (xlsx/csv/txt) |
@@ -166,8 +175,9 @@ RUN dmxON_FabKit.ulp -batch <folder> [-lang en|ru|es|de|pl] [-offline] [-boards 
 
 | Symptom | What to do |
 |---|---|
-| `dmxON_FabKit` is not in the Run ULP list after installing | restart Fusion — it reads its folder list at start-up |
-| **CAM Export File List** window | press **OK**: Fusion asks to confirm the Gerber export |
+| No **dmxON** tab after installing | restart Fusion once, or start the add-in: **Utilities → Add-Ins → Scripts and Add-Ins → dmxON → Run** |
+| **CAM Export File List** window | press **OK**: Fusion asks to confirm the Gerber export. With the dmxON add-in and dmxON JLC Rules installed the window does not appear |
+| «Backup skipped: the dmxON add-in is not running» | install with `INSTALL.ulp` and restart Fusion |
 | «Your PCB design has changed. CAM output is generated using the last saved version» | press **Cancel**, save the board (Ctrl+S) and run FabKit again — otherwise Gerber is made from the old saved version (for example without new design rules) |
 | «catalogue did not answer» | check internet and proxy; the package is still built offline |
 | No PDF | Microsoft Edge (or Chrome) must be installed in its default folder |
@@ -177,7 +187,7 @@ RUN dmxON_FabKit.ulp -batch <folder> [-lang en|ru|es|de|pl] [-offline] [-boards 
 
 ## How it works
 
-Phase 1 (ULP) analyses the board and writes BOM/CPL and drafts, phase 2 (Fusion commands) runs `MANUFACTURING EXPORT`, phase 3 (the same ULP with `-finish`) builds Gerber, previews, report, documentation and toner sheets. Texts in Spanish, German and Polish come from `lib/fk_lang.ulp`, generated from `lang/strings.tsv`. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · changelog: [CHANGELOG.md](CHANGELOG.md).
+Phase 1 (ULP) analyses the board and writes BOM/CPL and drafts, phase 2 (Fusion commands) runs `MANUFACTURING EXPORT`, phase 3 (the same ULP with `-finish`) builds Gerber, previews, report, documentation and toner sheets. Texts in Spanish, German and Polish come from `lib/fk_lang.ulp`, generated from `lang/strings.tsv`. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · changelog: [CHANGELOG.md](CHANGELOG.md). The **dmxON add-in** (`fusion-addin/dmxON`, Python) does what a ULP cannot: Fusion's directory preferences, the dmxON tab, silent Gerber through `Electron.mfgexport`, cloud backups and updates; the ULPs leave it requests in `Documents\dmxON\.inbox`.
 
 ---
 

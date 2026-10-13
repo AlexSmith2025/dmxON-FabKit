@@ -1,0 +1,434 @@
+// fk_sch.ulp — схема электрическая принципиальная (ГОСТ 2.701-2008, 2.702-2011, код Э3) /
+// circuit diagram (IEC 61082-1) на листах выбранного стандарта
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+//
+// Схема берётся из контекста платы (project.schematic) и рисуется в SVG без рамки пользователя:
+// рамку и основную надпись даёт стандарт. Лист схемы ложится на A4, A3 или удлинённый A3×n
+// (ГОСТ 2.301, ISO 5457) так, чтобы текст схемы на бумаге был не мельче ~1,3 мм. Схемы — без масштаба.
+//
+// Fusion отдаёт геометрию символа, взятую через экземпляр, преобразованной дважды:
+// получено = M·(M·l + p) + p вместо M·l + p (M — поворот и зеркало экземпляра, p — его точка),
+// значит истинная точка = M⁻¹·(получено − p). Нужна ли поправка, решает проверка: выводы символов
+// должны совпадать с концами проводов цепей (если Fusion это исправит, поправка отключится сама).
+
+int sc_n = 0;                       // листов схемы
+int sc_num[];                       // номер листа во Fusion
+real sc_bx1[], sc_by1[], sc_bx2[], sc_by2[];
+int sc_fixs[];                      // 1 — поправка двойного преобразования на этом листе
+string sch_fmt_txt = "";            // форматы листов («A3×5»), для перечня документов и спецификации
+
+real sc_u = 0;                      // мм в единице Fusion
+int sc_fix = 0;                     // поправка для текущего экземпляра
+real sc_ix = 0, sc_iy = 0, sc_c = 1, sc_s = 0, sc_ia = 0;
+int sc_mir = 0;
+real sc_px = 0, sc_py = 0;          // результат sc_pt, мм
+string sc_iname = "", sc_ivalue = "", sc_ipart = "", sc_igate = "";
+real sc_x1 = 0, sc_y1 = 0, sc_x2 = 0, sc_y2 = 0;
+int sc_bset = 0;
+
+// концы проводов цепей (для проверки поправки)
+int sc_ex[], sc_ey[], sc_ne = 0;
+
+int sc_near(int x, int y)
+{
+    for (int i = 0; i < sc_ne; i++) if (abs(sc_ex[i] - x) < 400 && abs(sc_ey[i] - y) < 400) return 1;
+    return 0;
+}
+
+// точка символа (при sc_fix — с поправкой) в мм
+void sc_pt(int x, int y)
+{
+    real X = x, Y = y;
+    if (sc_fix) {
+        real dx = X - sc_ix, dy = Y - sc_iy;
+        X = dx * sc_c + dy * sc_s;
+        Y = -dx * sc_s + dy * sc_c;
+        if (sc_mir) X = -X;
+    }
+    sc_px = X * sc_u;
+    sc_py = Y * sc_u;
+}
+
+void sc_bb(real x, real y)
+{
+    if (!sc_bset) { sc_x1 = x; sc_x2 = x; sc_y1 = y; sc_y2 = y; sc_bset = 1; return; }
+    if (x < sc_x1) sc_x1 = x;
+    if (x > sc_x2) sc_x2 = x;
+    if (y < sc_y1) sc_y1 = y;
+    if (y > sc_y2) sc_y2 = y;
+}
+
+// угол текста символа после поправки
+real sc_ang(real a)
+{
+    if (!sc_fix) return a;
+    real r = a - sc_ia;
+    while (r < 0) r += 360;
+    while (r >= 360) r -= 360;
+    return r;
+}
+
+// значение текста: >NAME, >VALUE, >PART, >GATE и атрибуты детали
+string sc_val(string v)
+{
+    if (strlen(v) < 2 || v[0] != '>') return v;
+    string k = strupr(strsub(v, 1));
+    if (k == "NAME") return sc_iname;
+    if (k == "VALUE") return sc_ivalue;
+    if (k == "PART") return sc_ipart;
+    if (k == "GATE") return sc_igate;
+    return "";
+}
+
+// ---------------------------------------------------------------- SVG
+string sc_f(real v)
+{
+    string s;
+    sprintf(s, "%.2f", v);
+    return s;
+}
+
+void sc_line(int x1, int y1, int x2, int y2, real curve, string cls)
+{
+    sc_pt(x1, y1);
+    real a = sc_px, b = sc_py;
+    sc_pt(x2, y2);
+    if (sc_fix && sc_mir) curve = -curve;
+    printf("<path class=\"%s\" d=\"%s\"/>", cls, seg_path(a, b, sc_px, sc_py, curve));
+}
+
+void sc_circle(int x, int y, int r, int w)
+{
+    sc_pt(x, y);
+    printf("<circle class=\"%s\" cx=\"%s\" cy=\"%s\" r=\"%s\"/>", w == 0 ? "cf" : "cs", sc_f(sc_px), sc_f(sc_py), sc_f(r * sc_u));
+}
+
+// текст: читаемость как во Fusion — угол больше 90° и до 270° включительно поворачивается на 180°
+void sc_text(string v, int x, int y, int size, real angle, int align, int spin, string cls)
+{
+    if (v == "") return;
+    sc_pt(x, y);
+    real a = sc_ang(angle);
+    int ha = 0, va = 0;                                  // 0 лево/низ, 1 центр, 2 право/верх
+    if (align == ALIGN_BOTTOM_CENTER || align == ALIGN_CENTER || align == ALIGN_TOP_CENTER) ha = 1;
+    if (align == ALIGN_BOTTOM_RIGHT || align == ALIGN_CENTER_RIGHT || align == ALIGN_TOP_RIGHT) ha = 2;
+    if (align == ALIGN_CENTER_LEFT || align == ALIGN_CENTER || align == ALIGN_CENTER_RIGHT) va = 1;
+    if (align == ALIGN_TOP_LEFT || align == ALIGN_TOP_CENTER || align == ALIGN_TOP_RIGHT) va = 2;
+    if (!spin && a > 90.01 && a <= 270.01) { a -= 180; ha = 2 - ha; va = 2 - va; }
+    real sz = size * sc_u;
+    string anc = ha == 0 ? "start" : (ha == 1 ? "middle" : "end");
+    real dy = va == 0 ? 0 : (va == 1 ? sz * 0.5 : sz);
+    printf("<text class=\"%s\" transform=\"translate(%s %s) scale(1 -1) rotate(%s)\" font-size=\"%s\" text-anchor=\"%s\" dy=\"%s\">%s</text>",
+           cls, sc_f(sc_px), sc_f(sc_py), sc_f(-a), sc_f(sz * 1.36), anc, sc_f(dy), h(v));
+}
+
+// ---------------------------------------------------------------- полигоны символов
+// Во Fusion любой цикл polygons() у символа завершает ULP. Полигоны берутся из XML файла схемы,
+// который Fusion держит для открытого документа (S.name), в координатах символа; положение
+// экземпляра применяется здесь: точка = поворот(зеркало(l)) + p.
+string sp_key[], sp_data[];         // «библиотека|символ» → «x,y,curve;…|…» (мм)
+int sp_n = 0;
+
+void sc_polylib(string file)
+{
+    sp_n = 0;
+    string x;
+    if (file == "" || !file_exists(file) || fileread(x, file) <= 0) return;
+    string libs[];
+    int nl = xmlelements(libs, x, "eagle/drawing/schematic/libraries/library");
+    for (int i = 0; i < nl; i++) {
+        string ln = xmlattribute(libs[i], "library", "name");
+        string syms[];
+        int ns = xmlelements(syms, libs[i], "library/symbols/symbol");
+        for (int j = 0; j < ns; j++) {
+            string polys[];
+            int np = xmlelements(polys, syms[j], "symbol/polygon");
+            if (!np) continue;
+            string d = "";
+            for (int k = 0; k < np; k++) {
+                string vs[];
+                int nv = xmlelements(vs, polys[k], "polygon/vertex");
+                string pd = "";
+                for (int m = 0; m < nv; m++) {
+                    string cv = xmlattribute(vs[m], "vertex", "curve");
+                    pd += (m ? ";" : "") + xmlattribute(vs[m], "vertex", "x") + "," + xmlattribute(vs[m], "vertex", "y") + "," + (cv == "" ? "0" : cv);
+                }
+                d += (k ? "|" : "") + pd;
+            }
+            sp_key[sp_n] = ln + "|" + xmlattribute(syms[j], "symbol", "name");
+            sp_data[sp_n] = d;
+            sp_n++;
+        }
+    }
+}
+
+// полигоны символа текущего экземпляра (sc_ix… — его точка, поворот и зеркало)
+void sc_polys(string key)
+{
+    int i, f = -1;
+    for (i = 0; i < sp_n; i++) if (sp_key[i] == key) { f = i; break; }
+    if (f < 0) return;
+    string pl[];
+    int np = strsplit(pl, sp_data[f], '|');
+    real ox = sc_ix * sc_u, oy = sc_iy * sc_u;
+    for (int k = 0; k < np; k++) {
+        string vs[];
+        int nv = strsplit(vs, pl[k], ';');
+        if (nv < 3) continue;
+        real px[], py[], pc[];
+        for (int m = 0; m < nv; m++) {
+            string c3[];
+            strsplit(c3, vs[m], ',');
+            real lx = strtod(c3[0]), ly = strtod(c3[1]);
+            if (sc_mir) lx = -lx;
+            px[m] = ox + lx * sc_c - ly * sc_s;
+            py[m] = oy + lx * sc_s + ly * sc_c;
+            pc[m] = sc_mir ? -strtod(c3[2]) : strtod(c3[2]);
+        }
+        string d = "M" + sc_f(px[0]) + " " + sc_f(py[0]);
+        for (m = 0; m < nv; m++) {
+            int n2 = (m + 1) % nv;
+            if (pc[m] == 0) { d += "L" + sc_f(px[n2]) + " " + sc_f(py[n2]); continue; }
+            real ch = sqrt((px[n2] - px[m]) * (px[n2] - px[m]) + (py[n2] - py[m]) * (py[n2] - py[m]));
+            real a = pc[m] < 0 ? -pc[m] : pc[m];
+            real r = ch / (2 * sin(a * PI / 360.0));
+            string t;
+            sprintf(t, "A%s %s 0 %d %d %s %s", sc_f(r), sc_f(r), a > 180, pc[m] > 0, sc_f(px[n2]), sc_f(py[n2]));
+            d += t;
+        }
+        printf("<path class=\"cf\" d=\"%sZ\"/>", d);
+    }
+}
+
+// габарит надписи (как её нарисует sc_text)
+void sc_tbb(string v, int x, int y, int size, real angle, int align, int spin)
+{
+    if (v == "") return;
+    sc_pt(x, y);
+    real a = sc_ang(angle);
+    int ha = 0, va = 0;
+    if (align == ALIGN_BOTTOM_CENTER || align == ALIGN_CENTER || align == ALIGN_TOP_CENTER) ha = 1;
+    if (align == ALIGN_BOTTOM_RIGHT || align == ALIGN_CENTER_RIGHT || align == ALIGN_TOP_RIGHT) ha = 2;
+    if (align == ALIGN_CENTER_LEFT || align == ALIGN_CENTER || align == ALIGN_CENTER_RIGHT) va = 1;
+    if (align == ALIGN_TOP_LEFT || align == ALIGN_TOP_CENTER || align == ALIGN_TOP_RIGHT) va = 2;
+    if (!spin && a > 90.01 && a <= 270.01) { a -= 180; ha = 2 - ha; va = 2 - va; }
+    real sz = size * sc_u, len = strlen(v) * sz * 0.8;
+    real ux = cos(a * PI / 180), uy = sin(a * PI / 180);
+    real l0 = ha == 0 ? 0 : (ha == 1 ? -len / 2 : -len), h0 = va == 0 ? -sz * 0.25 : (va == 1 ? -sz * 0.6 : -sz * 1.1);
+    for (int q = 0; q < 4; q++) {
+        real l = l0 + (q % 2 ? len : 0), hh = h0 + (q < 2 ? 0 : sz * 1.35);
+        sc_bb(sc_px + l * ux - hh * uy, sc_py + l * uy + hh * ux);
+    }
+}
+
+// ---------------------------------------------------------------- проход 1: листы, габариты, поправка
+void sc_collect()
+{
+    sc_u = u2mm(1000000) / 1000000.0;
+    sc_n = 0;
+    project.schematic(S) {
+        sc_polylib(S.name);
+        S.sheets(SH) {
+            sc_ne = 0;
+            SH.nets(N) N.segments(SEG) SEG.wires(W) {
+                sc_ex[sc_ne] = W.x1; sc_ey[sc_ne] = W.y1; sc_ne++;
+                sc_ex[sc_ne] = W.x2; sc_ey[sc_ne] = W.y2; sc_ne++;
+            }
+            // поправка: по 200 выводам — совпадение с проводами как есть и с поправкой
+            int raw = 0, cor = 0, tested = 0;
+            SH.instances(I) {
+                if (tested >= 200) break;
+                sc_ix = I.x; sc_iy = I.y; sc_ia = I.angle; sc_mir = I.mirror;
+                sc_c = cos(I.angle * PI / 180); sc_s = sin(I.angle * PI / 180);
+                I.gate.symbol.pins(P) {
+                    if (tested >= 200) break;
+                    tested++;
+                    if (sc_near(P.x, P.y)) raw++;
+                    sc_fix = 1; sc_pt(P.x, P.y);
+                    if (sc_near(int(sc_px / sc_u + (sc_px >= 0 ? 0.5 : -0.5)), int(sc_py / sc_u + (sc_py >= 0 ? 0.5 : -0.5)))) cor++;
+                    sc_fix = 0;
+                }
+            }
+            int fix = cor > raw;
+            // габарит: цепи, символы (без рамок), метки
+            sc_bset = 0;
+            sc_fix = 0;
+            SH.wires(W) if (W.layer != 97 && W.layer != 98) { sc_pt(W.x1, W.y1); sc_bb(sc_px, sc_py); sc_pt(W.x2, W.y2); sc_bb(sc_px, sc_py); }
+            SH.texts(T) if (T.layer != 97 && T.layer != 98) sc_tbb(T.value, T.x, T.y, T.size, T.angle, T.align, T.spin);
+            SH.nets(N) N.segments(SEG) {
+                SEG.wires(W) { sc_pt(W.x1, W.y1); sc_bb(sc_px, sc_py); sc_pt(W.x2, W.y2); sc_bb(sc_px, sc_py); }
+                SEG.labels(LB) sc_tbb(LB.text.value, LB.text.x, LB.text.y, LB.text.size, LB.text.angle, LB.text.align, LB.text.spin);
+            }
+            SH.busses(B) B.segments(SEG) SEG.wires(W) { sc_pt(W.x1, W.y1); sc_bb(sc_px, sc_py); sc_pt(W.x2, W.y2); sc_bb(sc_px, sc_py); }
+            SH.instances(I) {
+                int fr = strstr(strupr(I.part.deviceset.name), "FRAME") >= 0;
+                I.gate.symbol.frames(F) fr = 1;
+                if (fr) continue;
+                sc_ix = I.x; sc_iy = I.y; sc_ia = I.angle; sc_mir = I.mirror;
+                sc_c = cos(I.angle * PI / 180); sc_s = sin(I.angle * PI / 180);
+                sc_iname = I.name; sc_ivalue = I.value; sc_ipart = I.part.name; sc_igate = I.gate.name;
+                sc_fix = fix;
+                I.gate.symbol.wires(W) if (W.layer != 97 && W.layer != 98) { sc_pt(W.x1, W.y1); sc_bb(sc_px, sc_py); sc_pt(W.x2, W.y2); sc_bb(sc_px, sc_py); }
+                I.gate.symbol.circles(C) { sc_pt(C.x, C.y); real r = C.radius * sc_u; sc_bb(sc_px - r, sc_py - r); sc_bb(sc_px + r, sc_py + r); }
+                I.gate.symbol.rectangles(R) { sc_pt(R.x1, R.y1); sc_bb(sc_px, sc_py); sc_pt(R.x2, R.y2); sc_bb(sc_px, sc_py); }
+                I.gate.symbol.pins(P) {
+                    sc_pt(P.x, P.y); sc_bb(sc_px, sc_py);
+                    P.wires(W) { sc_pt(W.x1, W.y1); sc_bb(sc_px, sc_py); sc_pt(W.x2, W.y2); sc_bb(sc_px, sc_py); }
+                    P.texts(T) sc_tbb(T.value, T.x, T.y, T.size, T.angle, T.align, T.spin);
+                }
+                I.gate.symbol.texts(T) if (T.layer != 97 && T.layer != 98) sc_tbb(sc_val(T.value), T.x, T.y, T.size, T.angle, T.align, T.spin);
+                sc_fix = 0;
+                I.texts(T) if (T.layer != 97 && T.layer != 98) sc_tbb(sc_val(T.value), T.x, T.y, T.size, T.angle, T.align, T.spin);
+            }
+            if (!sc_bset) continue;
+            sc_num[sc_n] = SH.number;
+            sc_bx1[sc_n] = sc_x1 - 3; sc_by1[sc_n] = sc_y1 - 3; sc_bx2[sc_n] = sc_x2 + 3; sc_by2[sc_n] = sc_y2 + 3;
+            sc_fixs[sc_n] = fix;
+            sc_n++;
+        }
+    }
+}
+
+// ---------------------------------------------------------------- проход 2: элементы листа в SVG
+void sc_draw(int snum, int fix)
+{
+    project.schematic(S) {
+        S.sheets(SH) {
+            if (SH.number != snum) continue;
+            sc_fix = 0;
+            // графика листа (рамки пользователя — нет)
+            SH.wires(W) if (W.layer != 97 && W.layer != 98) sc_line(W.x1, W.y1, W.x2, W.y2, W.curve, "cs");
+            SH.circles(C) sc_circle(C.x, C.y, C.radius, C.width);
+            SH.texts(T) if (T.layer != 97 && T.layer != 98) sc_text(T.value, T.x, T.y, T.size, T.angle, T.align, T.spin, "ct");
+            // цепи и шины
+            SH.busses(B) B.segments(SEG) {
+                SEG.wires(W) sc_line(W.x1, W.y1, W.x2, W.y2, W.curve, "cb");
+                SEG.labels(LB) { sc_text(LB.text.value, LB.text.x, LB.text.y, LB.text.size, LB.text.angle, LB.text.align, LB.text.spin, "cl"); }
+            }
+            SH.nets(N) N.segments(SEG) {
+                SEG.wires(W) sc_line(W.x1, W.y1, W.x2, W.y2, W.curve, "cn");
+                SEG.junctions(J) { sc_pt(J.x, J.y); printf("<circle class=\"cf\" cx=\"%s\" cy=\"%s\" r=\"%s\"/>", sc_f(sc_px), sc_f(sc_py), sc_f(J.diameter * sc_u / 2)); }
+                SEG.labels(LB) {
+                    if (LB.xref) LB.wires(W) sc_line(W.x1, W.y1, W.x2, W.y2, W.curve, "cn");
+                    sc_text(LB.text.value, LB.text.x, LB.text.y, LB.text.size, LB.text.angle, LB.text.align, LB.text.spin, "cl");
+                }
+            }
+            // символы
+            SH.instances(I) {
+                int fr = strstr(strupr(I.part.deviceset.name), "FRAME") >= 0;
+                I.gate.symbol.frames(F) fr = 1;
+                if (fr) continue;
+                sc_ix = I.x; sc_iy = I.y; sc_ia = I.angle; sc_mir = I.mirror;
+                sc_c = cos(I.angle * PI / 180); sc_s = sin(I.angle * PI / 180);
+                sc_iname = I.name; sc_ivalue = I.value; sc_ipart = I.part.name; sc_igate = I.gate.name;
+                sc_fix = fix;
+                I.gate.symbol.wires(W) if (W.layer != 97 && W.layer != 98) sc_line(W.x1, W.y1, W.x2, W.y2, W.curve, "cs");
+                I.gate.symbol.circles(C) sc_circle(C.x, C.y, C.radius, C.width);
+                I.gate.symbol.rectangles(R) {
+                    real cx = (R.x1 + R.x2) / 2.0, cy = (R.y1 + R.y2) / 2.0, hw = (R.x2 - R.x1) / 2.0, hh = (R.y2 - R.y1) / 2.0;
+                    real ca = cos(R.angle * PI / 180), sa = sin(R.angle * PI / 180);
+                    string d = "";
+                    for (int q = 0; q < 4; q++) {
+                        real lx = (q == 0 || q == 3) ? -hw : hw, ly = q < 2 ? -hh : hh;
+                        sc_pt(int(cx + lx * ca - ly * sa), int(cy + lx * sa + ly * ca));
+                        d += (q ? "L" : "M") + sc_f(sc_px) + " " + sc_f(sc_py);
+                    }
+                    printf("<path class=\"cf\" d=\"%sZ\"/>", d);
+                }
+                sc_polys(I.gate.symbol.library + "|" + I.gate.symbol.name);
+                I.gate.symbol.pins(P) {
+                    P.wires(W) sc_line(W.x1, W.y1, W.x2, W.y2, W.curve, "cs");
+                    P.circles(C) sc_circle(C.x, C.y, C.radius, C.width);
+                    P.texts(T) sc_text(T.value, T.x, T.y, T.size, T.angle, T.align, T.spin, "cp");
+                }
+                // тексты символа: несмещённые (smashed — ниже, у них координаты верные)
+                I.gate.symbol.texts(T) if (T.layer != 97 && T.layer != 98) sc_text(sc_val(T.value), T.x, T.y, T.size, T.angle, T.align, T.spin, "ct");
+                sc_fix = 0;
+                I.texts(T) if (T.layer != 97 && T.layer != 98) sc_text(sc_val(T.value), T.x, T.y, T.size, T.angle, T.align, T.spin, "ct");
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- документ: листы схемы
+real SC_KMIN = 0.72;                 // мельче — текст схемы на бумаге < 1,3 мм
+string SC_FNAME[] = { "A4", "A3", "A2", "A3×3", "A3×4", "A1", "A3×5", "A3×6", "A3×7", "A0" };
+real SC_FW[] = { 210, 420, 594, 891, 1189, 841, 1486, 1783, 2080, 1189 };
+real SC_FH[] = { 297, 297, 420, 420, 420, 594, 420, 420, 420, 841 };
+int SC_NF = 10;
+
+string SC_CSS =
+    "svg.sch{display:block}svg.sch *{vector-effect:non-scaling-stroke}" +
+    "svg.sch path,svg.sch circle{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round}" +
+    "svg.sch .cs{stroke-width:1px}svg.sch .cn{stroke-width:.9px}svg.sch .cb{stroke-width:2.4px}" +
+    "svg.sch .cf{fill:#000;stroke:none}svg.sch text{fill:#000;stroke:none;font-style:inherit}" +
+    "svg.sch .cp{fill:#333}";
+
+// формат листа i: номер в SC_FNAME, книжная ориентация, размер листа и масштаб вписывания.
+// ISO 5457: A0…A3 только альбомные; ГОСТ 2.301 допускает и книжные. Берётся наименьший по площади
+// формат, где текст схемы не мельче SC_KMIN; при равной площади — где крупнее.
+int sc_pick = 0, sc_port = 0;
+real sc_k = 1, sc_pw = 210, sc_ph = 297;
+
+void sc_format(int i, int first)
+{
+    real W = sc_bx2[i] - sc_bx1[i], H = sc_by2[i] - sc_by1[i];
+    real best_area = 1.0e12, best_k = 0, fb_k = 0;
+    int fb = SC_NF - 1, fbp = 0;
+    sc_pick = -1; sc_port = 0;
+    for (int f = 0; f < SC_NF; f++) {
+        for (int o = 0; o < 2; o++) {
+            int basic = f > 0 && strstr(SC_FNAME[f], "×") < 0;
+            if (o == 1 && (doc_std != 1 || !basic)) continue;
+            real pw = o ? SC_FH[f] : SC_FW[f], ph = o ? SC_FW[f] : SC_FH[f];
+            real kf = min(area_wp(pw) / W, (area_hp(ph, first, 0) - 6) / H);
+            real ar = pw * ph;
+            if (kf >= SC_KMIN && (ar < best_area - 1 || (abs(ar - best_area) <= 1 && kf > best_k))) {
+                best_area = ar; best_k = kf; sc_pick = f; sc_port = o;
+            }
+            if (kf > fb_k) { fb_k = kf; fb = f; fbp = o; }
+        }
+    }
+    if (sc_pick < 0) { sc_pick = fb; sc_port = fbp; }
+    sc_pw = sc_port ? SC_FH[sc_pick] : SC_FW[sc_pick];
+    sc_ph = sc_port ? SC_FW[sc_pick] : SC_FH[sc_pick];
+    sc_k = min(area_wp(sc_pw) / W, (area_hp(sc_ph, first, 0) - 6) / H);
+    if (sc_k > 1.5) sc_k = 1.5;
+}
+
+string sch_formats()
+{
+    string t = "";
+    for (int i = 0; i < sc_n; i++) {
+        sc_format(i, i == 0);
+        if (strstr("|" + t + "|", "|" + SC_FNAME[sc_pick] + "|") < 0) t += (t == "" ? "" : ", ") + SC_FNAME[sc_pick];
+    }
+    return t;
+}
+
+void docs_sch()
+{
+    if (sc_n == 0) sc_collect();
+    if (sc_n == 0) return;
+    sch_fmt_txt = sch_formats();
+    doc_open("SCH", 1);
+    printf("<style>%s</style>\n", SC_CSS);
+    for (int i = 0; i < sc_n; i++) {
+        real W = sc_bx2[i] - sc_bx1[i], H = sc_by2[i] - sc_by1[i];
+        sc_format(i, dd_sheet == 0);
+        int pick = sc_pick;
+        real k = sc_k;
+        if (pick >= 2 || sc_port) { sh_cw = sc_pw; sh_ch = sc_ph; sh_cname = SC_FNAME[pick]; }
+        string title = doc_type("SCH") + (sc_n > 1 ? " · " + L("лист", "sheet") + " " + istr(sc_num[i]) : "");
+        printf("%s", sh_open(pick == 1 && !sc_port, title, ""));
+        string st;
+        sprintf(st, "left:0;top:0;width:%smm;height:%smm", f3(sh_aw), f3(sh_ah));
+        printf("<div class=\"vw\" style=\"%s\"><svg class=\"sch\" viewBox=\"0 0 %s %s\" style=\"width:%smm;height:%smm\" xmlns=\"http://www.w3.org/2000/svg\">",
+               st, sc_f(W), sc_f(H), f3(W * k), f3(H * k));
+        printf("<g transform=\"matrix(1 0 0 -1 %s %s)\">", sc_f(-sc_bx1[i]), sc_f(sc_by2[i]));
+        sc_draw(sc_num[i], sc_fixs[i]);
+        printf("</g></svg></div>");
+        printf("%s", sh_close());
+        sh_cw = 0; sh_ch = 0; sh_cname = "";
+    }
+}

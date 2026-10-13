@@ -418,99 +418,270 @@ string sec_gerber()
     return s;
 }
 
-// ---------------------------------------------------------------- листы документации третьей фазы
+// ---------------------------------------------------------------- чертёж печатной платы (третья фаза)
 
-// строка таблицы листа: подпись и значение (значение — готовый HTML)
-string fs_row(string ru, string en, string val)
+// класс точности по ГОСТ Р 53429-2009 по наименьшей ширине проводника (таблица 1: 0,75 … 0,05 мм)
+int gost_class(real w)
 {
-    return "<tr><td>" + h(L(ru, en)) + "</td><td>" + val + "</td></tr>";
+    real t[] = { 0.75, 0.45, 0.25, 0.15, 0.10, 0.075, 0.05 };
+    if (w <= 0) return 4;
+    for (int i = 0; i < 7; i++) if (w >= t[i] - 0.0005) return i + 1;
+    return 7;
 }
 
-string doc_fabspec()
+string color_txt(string c)
 {
-    if (n_gf == 0) return "";
-    string tt = L("Параметры изготовления платы", "PCB fabrication specification");
-    string s = pg_open(tt, h("JLCPCB"));
-    s += "<div class=\"area\"><div style=\"display:grid;grid-template-columns:1fr 1fr;gap:6mm\"><div>";
-    s += "<table class=\"t\"><tr><th>" + h(L("Параметр", "Parameter")) + "</th><th>" + h(L("Значение", "Value")) + "</th></tr>";
-    s += fs_row("Материал", "Material", "FR-4");
-    s += fs_row("Слоёв меди", "Copper layers", istr(fn_layers));
-    s += fs_row("Размер, мм", "Size, mm", h(board_size_txt()));
-    s += fs_row("Толщина, мм", "Thickness, mm", thick_jlc());
-    s += fs_row("Медь снаружи", "Outer copper", "1 oz (35 &micro;m)");
-    s += fs_row("Маска / шелкография", "Mask / silkscreen", h(opt_mask + " / " + opt_silk));
-    s += fs_row("Покрытие", "Surface finish", h(opt_finish));
-    if (fn_minw > 0) s += fs_row("Мин. ширина линии", "Min track", num(round(fn_minw * 1000) / 1000.0) + " mm");
-    if (n_tool > 0) s += fs_row("Мин. отверстие", "Min hole", num(drill_min()) + " mm");
-    s += fs_row("Отверстий / инструментов", "Holes / tools", istr(n_hole) + " / " + istr(n_tool));
-    s += fs_row("Количество", "Quantity", istr(opt_boards));
-    s += fs_row("Архив Gerber", "Gerber archive", h(fn_base + "_Gerber_JLCPCB.zip"));
-    s += "</table>";
-    if (n_dfm > 0) s += "<div style=\"font-weight:700;margin:3mm 0 1mm\">" + h(L("Проверка технологичности", "Manufacturability check")) + "</div><div style=\"font-size:7.6pt\">" + dfm_html() + "</div>";
-    s += "</div><div>";
-    // стек слоёв: одна строка на слой
-    s += "<div style=\"font-weight:700;margin-bottom:1.5mm\">" + h(L("Стек слоёв", "Layer stack")) + "</div>";
-    s += "<table class=\"t c\">";
-    int k, i;
-    for (k = 0; k < n_gf; k++) {
-        i = gf_ord[k];
-        if (starts_with(gf_code[i], "XLN") || gf_code[i] == "GKO") continue;
+    if (c == "Green") return L("зелёный", "green");
+    if (c == "Purple") return L("фиолетовый", "purple");
+    if (c == "Red") return L("красный", "red");
+    if (c == "Yellow") return L("жёлтый", "yellow");
+    if (c == "Blue") return L("синий", "blue");
+    if (c == "White") return L("белый", "white");
+    if (c == "Black") return L("чёрный", "black");
+    return c;
+}
+
+string finish_txt(string f)
+{
+    if (f == "HASL (with lead)") return L("горячее лужение HASL (Sn-Pb)", "HASL (tin-lead)");
+    if (f == "LeadFree HASL") return L("горячее лужение HASL без свинца", "lead-free HASL");
+    if (f == "ENIG") return L("иммерсионное золото ENIG по IPC-4552B", "ENIG per IPC-4552B");
+    if (f == "OSP") return L("органическое покрытие OSP", "OSP (organic solderability preservative)");
+    return f;
+}
+
+// технические требования к плате
+string fab_notes()
+{
+    string c = istr(dc_class);
+    real th = strtod(thick_jlc());
+    string s = "";
+    if (doc_std == 1)
+        s += Lf("Плату изготовить по ГОСТ Р 53429-2009, класс точности {0}; требования к качеству — по IPC-6012F, класс {1}; приёмка — по IPC-A-600M.",
+                "Fabricate per GOST R 53429-2009, accuracy class {0}; quality per IPC-6012F, Class {1}; acceptance per IPC-A-600M.",
+                istr(gost_class(fn_minw)), c, "") + "\n";
+    else
+        s += Lf("Изготовить по IPC-6012F, класс {0}; приёмка — по IPC-A-600M, класс {0}.",
+                "Fabricate per IPC-6012F, Class {0}; acceptability per IPC-A-600M, Class {0}.", c, "", "") + "\n";
+    s += Lf("Материал основания — стеклотекстолит FR-4 по IPC-4101F/21; толщина платы {0} мм ±10 %.",
+            "Base material: FR-4 per IPC-4101F/21; board thickness {0} mm ±10 %.", dnum(th), "", "") + "\n";
+    s += Lf("Слоёв меди: {0}; толщина наружной меди 35 мкм (1 oz) после металлизации; структура слоёв — по таблице.",
+            "Copper layers: {0}; outer copper 35 µm (1 oz) finished; layer structure per table.", istr(fn_layers), "", "") + "\n";
+    s += Lf("Паяльная маска — жидкая фотопроявляемая по IPC-SM-840E, класс T, цвет {0}, с двух сторон; маркировка — непроводящей краской, цвет {1}.",
+            "Solder mask: LPI per IPC-SM-840E, Class T, {0}, both sides; legend in non-conductive ink, {1}.",
+            color_txt(opt_mask), color_txt(opt_silk), "") + "\n";
+    s += Lf("Финишное покрытие: {0}; паяемость — по J-STD-003D.", "Surface finish: {0}; solderability per J-STD-003D.", finish_txt(opt_finish), "", "") + "\n";
+    s += L("Электрический контроль всех цепей (100 %) — по IPC-9252B.", "100 % electrical test of all nets per IPC-9252B.") + "\n";
+    if (fn_minw > 0 && n_tool > 0)
+        s += Lf("Наименьшая ширина проводника {0} мм; наименьший диаметр отверстия {1} мм.",
+                "Minimum conductor width {0} mm; minimum finished hole {1} mm.", dnum(round(fn_minw * 1000) / 1000.0), dnum(drill_min()), "") + "\n";
+    s += Lf("Рисунок проводников — по файлам Gerber {0} (RS-274X), координаты отверстий — по файлу Excellon.",
+            "Conductive pattern per Gerber data {0} (RS-274X); hole positions per the Excellon file.", fn_base + "_Gerber_JLCPCB.zip", "", "") + "\n";
+    s += Lf("Предельные отклонения размеров контура ±{0} мм; размеры — в миллиметрах.",
+            "Outline tolerance ±{0} mm; dimensions in millimetres.", dnum(0.2), "", "") + "\n";
+    s += Lf("Коробление и скручивание — не более {0} % (плата с поверхностным монтажом).",
+            "Bow and twist max {0} % (board with surface-mount parts).", dnum(0.75), "", "") + "\n";
+    if (opt_finish != "HASL (with lead)")
+        s += L("Плата — без свинца, по директиве RoHS 2011/65/EU.", "Lead-free, RoHS compliant (Directive 2011/65/EU).") + "\n";
+    return s;
+}
+
+// вид платы с отверстиями и габаритными размерами (ISO 129-1): масштаб — в fv_sc
+real fv_sc = 1;
+
+string fab_view(real aw, real ah)
+{
+    real bx1 = strtod(st_get("bx1")), by1 = strtod(st_get("by1")), bx2 = strtod(st_get("bx2")), by2 = strtod(st_get("by2"));
+    real bw = bx2 - bx1, bh = by2 - by1;
+    real sc = pick_scale(bw, bh, aw - 18, ah - 18);
+    fv_sc = sc;
+    real m = 3 / sc, md = 16 / sc;
+    real W = bw + m + md, H = bh + m + md;
+    string s, t;
+    sprintf(s, "<svg class=\"dimv\" viewBox=\"0 0 %s %s\" style=\"width:%smm;height:%smm\" xmlns=\"http://www.w3.org/2000/svg\">",
+            f3(W), f3(H), f3(W * sc), f3(H * sc));
+    string outline = "";
+    if (file_exists(fn_outline)) fileread(outline, fn_outline);
+    outline = trim(outline);
+    string tr;
+    sprintf(tr, "matrix(1 0 0 -1 %s %s)", f3(m - bx1), f3(by2 + m));
+    if (outline != "")
+        s += "<path transform=\"" + tr + "\" d=\"" + outline + "\" fill=\"none\" stroke=\"#000\" stroke-width=\"" + f3(0.5 / sc) + "\"/>";
+    else {
+        sprintf(t, "<rect x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" fill=\"none\" stroke=\"#000\" stroke-width=\"%s\"/>", f3(m), f3(m), f3(bw), f3(bh), f3(0.5 / sc));
+        s += t;
+    }
+    // отверстия из файла сверловки
+    s += "<g transform=\"" + tr + "\" fill=\"none\" stroke=\"#000\" stroke-width=\"" + f3(0.18 / sc) + "\">";
+    for (int i = 0; i < n_hole; i++) {
+        sprintf(t, "<circle cx=\"%s\" cy=\"%s\" r=\"%s\"/>", f4(hl_x[i]), f4(hl_y[i]), f4(hl_d[i] / 2));
+        s += t;
+    }
+    s += "</g>";
+    // размеры: тонкие линии 0,25 мм, стрелки 3 мм, текст 3,5 мм над размерной линией
+    real lw = 0.25 / sc, al = 3 / sc, aw2 = 0.5 / sc, fs = 3.5 / 0.72 / sc;
+    real yd = m + bh + 9 / sc, xd = m + bw + 9 / sc;
+    sprintf(t, "<g stroke=\"#000\" stroke-width=\"%s\">", f3(lw));
+    s += t;
+    sprintf(t, "<line x1=\"%s\" y1=\"%s\" x2=\"%s\" y2=\"%s\"/><line x1=\"%s\" y1=\"%s\" x2=\"%s\" y2=\"%s\"/><line x1=\"%s\" y1=\"%s\" x2=\"%s\" y2=\"%s\"/>",
+            f3(m), f3(m + bh + 1 / sc), f3(m), f3(yd + 2 / sc), f3(m + bw), f3(m + bh + 1 / sc), f3(m + bw), f3(yd + 2 / sc),
+            f3(m), f3(yd), f3(m + bw), f3(yd));
+    s += t;
+    sprintf(t, "<line x1=\"%s\" y1=\"%s\" x2=\"%s\" y2=\"%s\"/><line x1=\"%s\" y1=\"%s\" x2=\"%s\" y2=\"%s\"/><line x1=\"%s\" y1=\"%s\" x2=\"%s\" y2=\"%s\"/>",
+            f3(m + bw + 1 / sc), f3(m), f3(xd + 2 / sc), f3(m), f3(m + bw + 1 / sc), f3(m + bh), f3(xd + 2 / sc), f3(m + bh),
+            f3(xd), f3(m), f3(xd), f3(m + bh));
+    s += t;
+    s += "</g><g fill=\"#000\">";
+    sprintf(t, "<path d=\"M%s %sl%s %sv%sz M%s %sl%s %sv%sz M%s %sl%s %sh%sz M%s %sl%s %sh%sz\"/>",
+            f3(m), f3(yd), f3(al), f3(-aw2), f3(2 * aw2),
+            f3(m + bw), f3(yd), f3(-al), f3(-aw2), f3(2 * aw2),
+            f3(xd), f3(m), f3(-aw2), f3(al), f3(2 * aw2),
+            f3(xd), f3(m + bh), f3(-aw2), f3(-al), f3(2 * aw2));
+    s += t;
+    sprintf(t, "<text x=\"%s\" y=\"%s\" font-size=\"%s\" text-anchor=\"middle\">%s</text>", f3(m + bw / 2), f3(yd - 1 / sc), f3(fs), dnum(round(bw * 100) / 100.0));
+    s += t;
+    sprintf(t, "<text x=\"%s\" y=\"%s\" font-size=\"%s\" text-anchor=\"middle\" transform=\"rotate(-90 %s %s)\">%s</text>",
+            f3(xd - 1 / sc), f3(m + bh / 2), f3(fs), f3(xd - 1 / sc), f3(m + bh / 2), dnum(round(bh * 100) / 100.0));
+    s += t;
+    s += "</g></svg>";
+    return s;
+}
+
+// таблицы: структура слоёв и сверловка
+string fab_tables()
+{
+    string s = "<div class=\"fx\" style=\"display:flex;gap:4mm;align-items:flex-start\">";
+    s += "<table><tr><th></th><th>" + h(L("Слой", "Layer")) + "</th><th>" + h(L("Назначение", "Purpose")) + "</th><th>" + h(L("Файл", "File")) + "</th></tr>";
+    for (int k = 0; k < n_gf; k++) {
+        int i = gf_ord[k];
+        if (starts_with(gf_code[i], "XLN")) continue;
         s += "<tr><td style=\"width:3mm;background:" + layer_rgb(gf_code[i]) + "\"></td><td><b>" + gf_code[i] + "</b></td><td>" + h(gf_name[i]) +
              "</td><td>" + h(gf_dst[i]) + "</td></tr>";
     }
     s += "</table>";
-    // сверловка: три узкие колонки
     if (n_tool > 0) {
-        s += "<div style=\"font-weight:700;margin:3mm 0 1.5mm\">" + h(L("Сверловка", "Drilling")) + " " +
-             "<span class=\"en\" style=\"font-weight:400\">" + istr(n_hole) + " / " + istr(n_tool) + " T</span></div>";
-        s += "<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:2mm\">";
-        int per = (n_tool + 2) / 3;
-        for (int c = 0; c < 3; c++) {
-            s += "<table class=\"t c\"><tr><th>T</th><th>&Oslash;, mm</th><th>" + h(L("Шт", "Qty")) + "</th></tr>";
-            for (k = c * per; k < (c + 1) * per && k < n_tool; k++) {
-                string r;
-                sprintf(r, "<tr><td>T%02d</td><td class=\"n\">%.3f</td><td class=\"n\">%d</td></tr>", tl_no[k], tl_d[k], tl_hits[k]);
-                s += r;
-            }
-            s += "</table>";
-        }
-        s += "</div>";
+        s += "<table><tr><th>T</th><th>&Oslash;, " + h(L("мм", "mm")) + "</th><th>" + h(L("Кол.", "Qty")) + "</th></tr>";
+        for (int j = 0; j < n_tool; j++)
+            s += "<tr><td>T" + (tl_no[j] < 10 ? "0" : "") + istr(tl_no[j]) + "</td><td class=\"n\">" + dnum(round(tl_d[j] * 1000) / 1000.0) +
+                 "</td><td class=\"n\">" + istr(tl_hits[j]) + "</td></tr>";
+        s += "<tr><td><b>" + h(L("Итого", "Total")) + "</b></td><td></td><td class=\"n\"><b>" + istr(n_hole) + "</b></td></tr></table>";
     }
-    s += "</div></div></div>" + pg_close(tt, "—");
-    return s;
+    return s + "</div>";
 }
 
-string doc_layers()
+real fab_tables_h()
+{
+    int rows = 1;
+    for (int k = 0; k < n_gf; k++) if (!starts_with(gf_code[gf_ord[k]], "XLN")) rows++;
+    if (n_tool + 2 > rows) rows = n_tool + 2;
+    return rows * 4.6 + 2;
+}
+
+string fab_doc()
 {
     if (n_gf == 0) return "";
-    string s = "";
-    int k = 0, i;
-    int per = 6;
+    doc_open("FAB", 1);
+    string s = sh_open(dc_a3, doc_name("FAB"), "-");
+    string nts = fab_notes();
+    real nw = sh_aw < 185 ? sh_aw : 185;
+    real nh = notes_height(nts, nw), th = fab_tables_h();
+    real vh, ty;
+    string st;
+    if (dc_a3) {
+        real band = nh > th ? nh : th;
+        vh = sh_ah - band - 6;
+        ty = sh_ah - th;
+    } else {
+        vh = sh_ah - nh - th - 10;
+        ty = vh + 4;
+    }
+    sprintf(st, "left:0;top:0;width:%smm;height:%smm", f3(sh_aw), f3(vh));
+    s += "<div class=\"vw\" style=\"" + st + "\">" + fab_view(sh_aw, vh) + "</div>";
+    sh_scale = scale_txt(fv_sc);
+    sprintf(st, "position:absolute;left:0;top:%smm", f3(ty));
+    s += "<div style=\"" + st + "\">" + fab_tables() + "</div>";
+    s += "<div class=\"nb\">" + notes_html(nts, nw) + "</div>";
+    s += sh_close();
+    // слои по отдельности
+    int per = dc_a3 ? 8 : 6, cols = dc_a3 ? 4 : 2;
     int pages = (n_gf + per - 1) / per;
-    string tt = L("Слои платы", "PCB layers");
     for (int p = 0; p < pages; p++) {
-        string rt = h(L("часть", "part") + " " + istr(p + 1) + " / " + istr(pages));
-        s += pg_open(tt, rt) + "<div class=\"area\"><div class=\"lgrid\">";
-        for (k = p * per; k < (p + 1) * per && k < n_gf; k++) {
-            i = gf_ord[k];
-            s += "<div class=\"lcell\"><div class=\"im\"><img src=\"../02_REPORT/img/L_" + gf_code[i] + ".svg\" alt=\"\"></div><div class=\"tx\"><b>" +
-                 gf_code[i] + "</b> " + h(gf_name[i]) + "<br><span class=\"en\">" + h(gf_dst[i]) + "</span></div></div>";
+        string tt = L("Слои платы", "PCB layers");
+        s += sh_open(dc_a3, tt, "");
+        s += "<div class=\"vl\">" + h(tt) + "</div><div class=\"lgrid\" style=\"grid-template-columns:repeat(" + istr(cols) + ",1fr)\">";
+        for (int k = p * per; k < (p + 1) * per && k < n_gf; k++) {
+            int i = gf_ord[k];
+            s += "<div class=\"lcell\"><div class=\"im\"><img src=\"../02_REPORT/img/L_" + gf_code[i] + ".svg\" alt=\"\"></div><div class=\"tx2\"><b>" +
+                 gf_code[i] + "</b> " + h(gf_name[i]) + "<br>" + h(gf_dst[i]) + "</div></div>";
         }
-        s += "</div></div>" + pg_close(tt, "—");
+        s += "</div>" + sh_close();
     }
     return s;
 }
 
-string doc_cover_img()
+// ---------------------------------------------------------------- перечень документов (ISO)
+
+string DOC_KEYS = "DL|FAB|ASM|PL|SCH|AI|SPEC|PE";
+
+// собранный документ построчно (лист — одна строка)
+string dc_al[];
+int dc_na = 0;
+
+int count_tok(string s, string tok)
 {
-    if (n_gf == 0) return "";
-    real w = strtod(st_get("bx2")) - strtod(st_get("bx1")) + 4, hh = strtod(st_get("by2")) - strtod(st_get("by1")) + 4;
-    real mw = 140, mh = 70;
-    real ww = mw;
-    if (hh > 0 && w * mh / hh < ww) ww = w * mh / hh;
-    string s;
-    sprintf(s, "<div class=\"rnd\" style=\"width:%smm\"><div class=\"st\">", f3(ww));
-    s += "<img src=\"../02_REPORT/img/top_flat.svg\" alt=\"\">" + "</div><div class=\"cap\">" + h(L("Верх", "Top")) + "</div></div>";
+    int n = 0, p = 0;
+    while (1) {
+        int a = strstr(s, tok, p);
+        if (a < 0) break;
+        n++;
+        p = a + strlen(tok);
+    }
+    return n;
+}
+
+// число листов документа: меток {{S:ключ}}
+int pages_of(string key)
+{
+    int n = 0;
+    for (int i = 0; i < dc_na; i++) n += count_tok(dc_al[i], "{{S:" + key + "}}");
+    return n;
+}
+
+string doclist_doc()
+{
+    doc_open("DL", 1);
+    string s = sh_open(0, doc_type("DL"), "");
+    real bw = strtod(st_get("bx2")) - strtod(st_get("bx1")), bh = strtod(st_get("by2")) - strtod(st_get("by1"));
+    real iw = 110;
+    if (bh > 0 && bw * 75 / bh < iw) iw = bw * 75 / bh;
+    string st;
+    s += "<div class=\"dl\" style=\"padding:2mm 3mm\"><h2>" + h(tb_product) + "</h2><div class=\"sub\">" +
+         h(L("Комплект документации для изготовления и сборки печатного узла", "Manufacturing and assembly documentation package")) + "</div>";
+    if (n_gf > 0) {
+        sprintf(st, "width:%smm", f3(iw));
+        s += "<div class=\"rnd\" style=\"" + st + "\"><img src=\"../02_REPORT/img/top_flat.svg\" alt=\"\"></div>";
+    }
+    s += "<table><tr><th>" + h(L("Плата", "Board")) + "</th><td>" + h(fn_base) + " · " + h(board_size_txt()) + " " + h(L("мм", "mm")) + "</td></tr>";
+    s += "<tr><th>" + h(L("Слоёв меди", "Copper layers")) + "</th><td>" + istr(fn_layers) + "</td></tr>";
+    s += "<tr><th>" + h(L("Компонентов", "Components")) + "</th><td>" + istr(st_geti("n_top") + st_geti("n_bot")) + "</td></tr>";
+    s += "<tr><th>" + h(L("Плат в партии", "Batch")) + "</th><td>" + istr(opt_boards) + "</td></tr>";
+    if (tb_customer != "") s += "<tr><th>" + h(L("Заказчик", "Customer")) + "</th><td>" + h(tb_customer) + "</td></tr>";
+    s += "</table>";
+    s += "<table><tr><th>№</th><th>" + h(L("Идентификационный номер", "Identification number")) + "</th><th>" + h(L("Вид документа", "Document type")) +
+         "</th><th>" + h(L("Листов", "Sheets")) + "</th><th>" + h(L("Формат", "Size")) + "</th></tr>";
+    string ks[];
+    int nk = strsplit(ks, "DL|FAB|ASM|PL|SCH|AI", '|');
+    int no = 0;
+    for (int k = 0; k < nk; k++) {
+        int np = ks[k] == "DL" ? 1 : pages_of(ks[k]);
+        if (np == 0) continue;
+        no++;
+        string fmt = (ks[k] == "FAB" || ks[k] == "ASM" || ks[k] == "AI") && dc_a3 ? "A3" : "A4";
+        if (ks[k] == "SCH") fmt = h(st_get("sch_fmt"));
+        s += "<tr><td>" + istr(no) + "</td><td>" + h(doc_id(ks[k])) + "</td><td>" + h(doc_type(ks[k])) + "</td><td>" + istr(np) + "</td><td>" + fmt + "</td></tr>";
+    }
+    s += "</table><div class=\"sub\">" + h(Lf("Подготовлено: {0}", "Prepared with: {0}", fk_title(), "", "")) + "</div></div>";
+    s += sh_close();
     return s;
 }
 
@@ -533,63 +704,48 @@ void assemble_report(string src, string dst)
     }
 }
 
+// номера листов: {{S:ключ}} — по порядку внутри документа, {{N:ключ}} — всего листов документа
+void number_sheets()
+{
+    string ks[];
+    int nk = strsplit(ks, DOC_KEYS, '|');
+    for (int k = 0; k < nk; k++) {
+        int tot = pages_of(ks[k]);
+        if (tot == 0) continue;
+        string tok = "{{S:" + ks[k] + "}}", ntok = "{{N:" + ks[k] + "}}";
+        int no = 0;
+        for (int i = 0; i < dc_na; i++) {
+            if (strstr(dc_al[i], "{{") < 0) continue;
+            dc_al[i] = replace_all(dc_al[i], ntok, istr(tot));
+            while (1) {
+                int a = strstr(dc_al[i], tok);
+                if (a < 0) break;
+                no++;
+                dc_al[i] = strsub(dc_al[i], 0, a) + istr(no) + strsub(dc_al[i], a + strlen(tok));
+            }
+        }
+    }
+}
+
 void assemble_docs(string src, string dst)
 {
     string lines[];
     int n = fileread(lines, src);
     dc_date = st_get("date");
-    string d_fab = asc(doc_fabspec()), d_lay = asc(doc_layers()), d_cov = asc(doc_cover_img());
-    // все листы по порядку: заголовки для содержания
-    string all[];
-    int na = 0, i, k;
+    string d_fab = asc(fab_doc());
+    string fl[];
+    int nf = strsplit(fl, d_fab, '\n');
+    int i, k, dl = -1;
+    dc_na = 0;
     for (i = 0; i < n; i++) {
         string t = trim(lines[i]);
-        if (t == "<!--FK:FABSPEC-->") all[na++] = d_fab;
-        else if (t == "<!--FK:LAYERS-->") all[na++] = d_lay;
-        else all[na++] = replace_all(lines[i], "<!--FK:COVERIMG-->", d_cov);
+        if (t == "<!--FK:FAB-->") { for (k = 0; k < nf; k++) if (fl[k] != "") dc_al[dc_na++] = fl[k]; }
+        else if (t == "<!--FK:DOCLIST-->") { dl = dc_na; dc_al[dc_na++] = ""; }
+        else dc_al[dc_na++] = lines[i];
     }
-    // проход 1: заголовки листов; листы одного раздела («Порядок пайки — шаг …») — одной строкой с диапазоном
-    string tk_t[];
-    int tk_a[], tk_b[], n_tk = 0;
-    int n_sheets = 0;
-    string dash = " &#8212; ";
-    for (i = 0; i < na; i++) {
-        int p = 0;
-        while (1) {
-            int a = strstr(all[i], "<!--FK:PAGE ", p);
-            if (a < 0) break;
-            int b = strstr(all[i], "-->", a);
-            if (b < 0) break;
-            string tt = strsub(all[i], a + 12, b - a - 12);
-            int d1 = strstr(tt, dash);
-            if (d1 > 0) tt = strsub(tt, 0, d1);
-            n_sheets++;
-            if (n_tk > 0 && tk_t[n_tk - 1] == tt) tk_b[n_tk - 1] = n_sheets;
-            else { tk_t[n_tk] = tt; tk_a[n_tk] = n_sheets; tk_b[n_tk] = n_sheets; n_tk++; }
-            p = b + 3;
-        }
-    }
-    string toc = "";
-    for (k = 0; k < n_tk; k++) {
-        string nums = istr(tk_a[k]);
-        if (tk_b[k] > tk_a[k]) nums += "&ndash;" + istr(tk_b[k]);
-        toc += "<div><b>" + nums + "</b><span>" + tk_t[k] + "</span></div>";
-    }
-    int sht = 0;
-    output(dst, "wt") {
-        for (i = 0; i < na; i++) {
-            string s = all[i];
-            if (strstr(s, "<!--FK:TOC-->") >= 0) s = replace_all(s, "<!--FK:TOC-->", toc);
-            s = replace_all(s, "{{SHEETS}}", istr(n_sheets));
-            while (1) {
-                int a = strstr(s, "{{SHEET}}");
-                if (a < 0) break;
-                sht++;
-                s = strsub(s, 0, a) + istr(sht) + strsub(s, a + 9);
-            }
-            printf("%s\n", s);
-        }
-    }
+    if (dl >= 0) dc_al[dl] = replace_all(asc(doclist_doc()), "\n", " ");
+    number_sheets();
+    output(dst, "wt") for (i = 0; i < dc_na; i++) printf("%s\n", dc_al[i]);
 }
 
 // ---------------------------------------------------------------- PDF через Microsoft Edge
@@ -807,6 +963,12 @@ void finish_main(string stfile)
     opt_mask = st_get("mask"); opt_silk = st_get("silk"); opt_finish = st_get("finish"); opt_thick = st_get("thick");
     tb_product = st_get("tb_product"); tb_docno = st_get("tb_docno"); tb_company = st_get("tb_company"); tb_designer = st_get("tb_designer");
     tb_checker = st_get("tb_checker"); tb_approver = st_get("tb_approver"); tb_customer = st_get("tb_customer"); tb_rev = st_get("tb_rev"); tb_note = st_get("tb_note");
+    tb_pcbno = st_get("tb_pcbno");
+    doc_std = st_geti("std");
+    if (doc_std < 0 || doc_std >= N_STD) doc_std = 0;
+    dc_a3 = st_geti("a3");
+    dc_class = st_geti("class");
+    if (dc_class < 1) dc_class = 2;
     log_txt = "";
     n_gf = 0;
 
@@ -840,9 +1002,23 @@ void finish_main(string stfile)
     output(fn_out + "/" + FK_MARKER, "wt") printf("%s\n%s\n", fk_title(), st_get("date"));
     if (!st_geti("keep_tmp")) shell("rmdir /s /q " + qp(fn_tmp));
 
+    // бэкап папки проекта делает надстройка dmxON, когда Fusion освободится
+    string bk = "";
+    if (st_geti("backup")) {
+        if (addin_alive()) {
+            addin_request("backup", ",\"tool\":\"fabkit\",\"out\":" + json_s(fn_out));
+            bk = L("Бэкап папки проекта сохранит надстройка dmxON: Документы\\dmxON\\Backups.",
+                   "The dmxON add-in backs up the design folder to Documents\\dmxON\\Backups.");
+        }
+        else bk = L("Бэкап пропущен: надстройка dmxON не запущена (её ставит INSTALL.ulp).",
+                    "Backup skipped: the dmxON add-in is not running (INSTALL.ulp installs it).");
+        fk_log(bk);
+    }
+
     if (opt_open && !batch_mode) system("explorer.exe \"" + to_win(fn_out) + "\"");
     if (batch_mode) return;
     string msg = st_get("summary");
+    if (bk != "") msg += "\n\n" + bk;
     if (n_gf > 0) msg += "\n\nGerber: " + Lf("файлов: {0}, слоёв меди: {1}", "{0} files, {1} copper layers", istr(n_gf), istr(fn_layers), "");
     if (fn_err != "") msg += "\n\n" + fn_err;
     msg += "\n\n" + replace_all(fn_out, "\\", "/");

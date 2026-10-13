@@ -5,7 +5,33 @@ Numbering: `MAJOR.MINOR.PATCH` — new feature → MINOR, fix → PATCH.
 
 ---
 
-## 2.1.0 — 2026-10-13
+## 2.2.0 — 2026-10-13
+
+**New**
+
+- **Documentation to ISO or GOST.** A **Standard** selector next to the language (shared with dmxON JLC Rules):
+  - **ISO**: sheets per ISO 5457 (frame, grid zones, centring marks), title block per ISO 7200, document list, fabrication drawing, assembly drawing, parts list per ISO 7573, assembly instruction; notes reference IPC-6012F / IPC-A-600M, IPC J-STD-001J / IPC-A-610J, IPC-4101F, IPC-SM-840E, J-STD-003D, IPC-9252B, IEC 61340-5-1:2024, J-STD-033D / J-STD-020F, IEC 81346-2:2019.
+  - **GOST (ESKD)**: title blocks per GOST R 2.104-2023 (forms 1, 2, 2a and the extra columns), specification per GOST R 2.106-2019, assembly drawing (СБ), PCB drawing per GOST 2.417-91 with the GOST R 53429-2009 accuracy class, list of elements (ПЭ3) and circuit diagram (Э3) per GOST 2.701-2008 / 2.702-2011.
+- **Circuit diagram** sheets (GOST Э3 / IEC 61082-1 circuit diagram) drawn from the schematic, without your own frame: the frame and title block follow the chosen standard; a wide schematic goes onto an elongated sheet (A3×3 … A3×7, GOST 2.301 / ISO 5457) so the text stays readable. Works around two Fusion ULP defects: symbol geometry read through an instance comes transformed twice (corrected, checked against the net wires), and `polygons()` of a symbol stops the ULP (symbol polygons are read from the schematic file instead).
+- **Assembly drawing that can be read**: designators at least 1.8 mm high on paper (ISO 3098), inside the part when they fit, otherwise next to it, never on top of another designator or body. When the board is too dense, the overview sheet shows detail frames A, B, … and each detail follows on its own sheet at a larger standard scale.
+- **dmxON add-in for Fusion** (`fusion-addin/dmxON`, installed by `INSTALL.ulp`): a **dmxON** tab in the PCB and schematic editors with FabKit, JLC Rules, Backup, Updates, Settings and Help; it registers the dmxON folders in Fusion's ULP / design rules / CAM lists (the setting Fusion really reads) and repairs them after Fusion updates.
+- **Gerber without the «CAM Export File List» window**: with the add-in running and dmxON JLC Rules installed, Gerber is exported silently through the dmxON JLCPCB CAM job (already in JLCPCB names); otherwise the regular `MANUFACTURING EXPORT` is used.
+- **Backup of the whole design folder**: option «Back up the whole design folder to this computer». After the package is built the add-in saves every file of the cloud folder — schematics, boards and libraries as EAGLE 9 files, 3D designs as Fusion archives (.f3d), drawings as PDF, other files unchanged — plus the FabKit package, into `Documents\dmxON\Backups\<project>\<folder>\<folder>_<date>.zip` with `manifest.json` and restore instructions. Restorable on any account or computer.
+- **Updates from GitHub**: the add-in checks the latest releases once a day and installs new versions on request (Updates button).
+- **PCB part number** field on the Title tab (the fabrication drawing's identification number).
+- `-std iso|gost`, `-nosch`, `-nobackup` for batch mode.
+
+**Changed**
+
+- Parts lists and the specification write designator ranges (`R1–R5` for ISO, `R1…R5` for GOST 2.701); numbers after `$` (Fusion's `LED$5`) count too; very long cells continue on the next row.
+- Non-polar two-pin parts (resistors such as `33R`, ceramic capacitors) get no polarity key.
+- GOST: document codes are separated by a space (`… СБ`, `… Э3`, `… ПЭ3`, GOST 2.102); the date column shows `DD.MM.YY`.
+- `INSTALL.ulp` installs the add-in instead of writing `EAGLE:Directories.*` (Fusion ignores those) and undoes what 2.1.0 wrote there.
+- The board name drops Fusion's «(~recovered)» mark.
+
+---
+
+## 2.1.0 — 2026-10-13 (not released separately; included in 2.2.0)
 
 **New**
 

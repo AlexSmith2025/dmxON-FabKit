@@ -49,6 +49,11 @@
 | 🖨️ | **Tonertransfer 1:1**: ein PDF pro Lage (Kupfer, Bestückungsdruck, Maske, Bohrungen), obere Blätter gespiegelt, 50-mm-Balken zur Maßstabsprüfung |
 | 📥 | **Fertige JLCPCB-BOM importieren** (xlsx, csv oder Text von der Bestellseite) — Ihre geprüften Teilenummern haben Vorrang |
 | 🌐 | **5 Sprachen**: Englisch, Russisch, Spanisch, Deutsch, Polnisch — Dialog, Bericht und alle Dokumente in der gewählten Sprache |
+| 📏 | **Dokumentation nach ISO oder GOST**: Blätter und Schriftfelder nach ISO 5457 / ISO 7200 oder GOST R 2.104-2023; Dokumentenliste, Fertigungs- und Bestückungszeichnung, Stückliste (ISO 7573) oder Spezifikation (GOST R 2.106-2019), Elementeliste; IPC- und IEC-Verweise in den Anmerkungen |
+| 🔌 | **Schaltplan** aus Ihrem Schaltplan im Normrahmen (GOST Э3 / IEC 61082-1) auf A4, A3 oder einem verlängerten A3×n-Blatt, damit der Text lesbar bleibt |
+| 🧩 | **Reiter dmxON in Fusion** (Add-in): FabKit, JLC Rules, Sicherung und Updates mit einem Klick; Gerber ohne CAM-Bestätigungsfenster |
+| 💾 | **Sicherung des gesamten Designordners**: Schaltpläne, Platinen und Bibliotheken als EAGLE-Dateien, 3D-Designs als `.f3d`, Zeichnungen als PDF und das Paket — auf jedem Konto und Rechner wiederherstellbar |
+| 🔄 | **Updates von GitHub**: tägliche Prüfung, Installation auf Wunsch |
 
 ---
 
@@ -56,7 +61,7 @@
 
 | | dmxON FabKit |
 |---|---|
-| **Autodesk Fusion (Electronics), Windows 10/11** | ✅ getestet mit Fusion **2705.1.11** (Oktober 2026) |
+| **Autodesk Fusion (Electronics), Windows 10/11** | ✅ getestet mit Fusion **2705.1.30** (Oktober 2026) |
 | Autodesk Fusion unter macOS | ❌ nutzt Windows-Werkzeuge (`curl.exe`, `tar.exe`, `robocopy`, Windows Script Host, Microsoft Edge) |
 | EAGLE 9.x | ❌ braucht den Fusion-Befehl `MANUFACTURING EXPORT` für Gerber |
 | KiCad, Altium, EasyEDA | ❌ |
@@ -67,21 +72,21 @@ Außerdem nötig: **Microsoft Edge** (in Windows enthalten) für PDFs; Internet 
 
 ## Installation
 
-1. [**`dmxON-FabKit.zip` herunterladen**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) und an beliebiger Stelle entpacken.
+1. [**`dmxON-FabKit.zip` herunterladen**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) und beliebig entpacken.
 2. In Fusion Electronics: **Automation → Run ULP → `INSTALL.ulp`** aus dem entpackten Ordner, Sprache wählen und **Installieren** drücken.
-3. **Fusion neu starten.** `dmxON_FabKit` steht nun in der Liste **Run ULP** neben den integrierten ULPs — sein Ordner `Dokumente\dmxON\dmxON-FabKit` kommt zuerst, die integrierten ULPs von Fusion bleiben erhalten.
+3. **Fusion einmal neu starten.** Platinen- und Schaltplan-Editor erhalten den Reiter **dmxON** — FabKit, JLC Rules, Sicherung, Updates, Einstellungen, Hilfe —, und `dmxON_FabKit` steht auch unter **Run ULP**.
 
-Der Installer kopiert das Projekt nach `Dokumente\dmxON\dmxON-FabKit` und trägt diesen Ordner über die eigenen Einstellungen von Fusion in die ULP-Ordner ein. Ein erneuter Aufruf von `INSTALL.ulp` aktualisiert die Dateien; **Entfernen** stellt die vorherigen Ordner von Fusion wieder her. Manuell: den entpackten Ordner vollständig lassen (`dmxON_FabKit.ulp` lädt `lib\` und `config\` daneben) und mit `RUN 'C:/Pfad/dmxON_FabKit.ulp'` starten.
+Der Installer kopiert das Projekt nach `Dokumente\dmxON\dmxON-FabKit` und installiert das **dmxON-Add-in** (`%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\dmxON`). Das Add-in setzt die dmxON-Ordner an die Spitze der ULP-, Designregel- und CAM-Listen von Fusion (Preferences → General → Electronics → Directory) — die eingebauten ULPs bleiben — und repariert diese Pfade nach Fusion-Updates. Ein erneuter Start von `INSTALL.ulp` aktualisiert die Dateien; **Entfernen** löscht das kopierte Projekt und mit dem letzten dmxON-Werkzeug auch das Add-in. Ohne Neustart lässt sich das Add-in über **Utilities → Add-Ins → Scripts and Add-Ins → dmxON → Run** starten. Manuell ohne Add-in: den entpackten Ordner vollständig lassen und `RUN 'C:/Pfad/dmxON_FabKit.ulp'` ausführen.
 
 ---
 
 ## Schnellstart
 
 1. Die **Platine** in Fusion Electronics öffnen und **speichern** (Strg+S) — Fusion exportiert Gerber aus der zuletzt gespeicherten Version.
-2. **Automation → Run ULP → `dmxON_FabKit`**.
-3. Oben rechts im Dialog die **Sprache** wählen (Standard: Englisch), den Ordner wählen und **Paket erstellen** drücken.
-4. Fusion zeigt eventuell das Fenster **CAM Export File List** — **OK** drücken (das ist der normale Gerber-Export).
-5. Etwa eine Minute später öffnet sich der Paketordner. Mit `index.html` beginnen.
+2. **dmxON → FabKit** drücken (oder **Automation → Run ULP → `dmxON_FabKit`**).
+3. Oben rechts **Norm** (ISO oder GOST) und **Sprache** wählen, den Ordner, und **Paket erstellen** drücken.
+4. Mit dmxON-Add-in und installiertem dmxON JLC Rules wird Gerber ohne Fenster über den CAM-Job dmxON JLCPCB exportiert. Ohne sie kann Fusion das Fenster **CAM Export File List** zeigen — **OK** drücken.
+5. Etwa eine Minute später öffnet sich der Paketordner. Mit `index.html` beginnen. Ist die Sicherung aktiv, speichert das Add-in danach den gesamten Designordner in `Dokumente\dmxON\Backups`.
 
 Tipp: zuerst [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) ausführen — es richtet die JLCPCB-Designregeln und den Lagenaufbau ein und übergibt Platinendicke und Maskenfarbe an FabKit. Beide Werkzeuge teilen sich die Spracheinstellung.
 
@@ -90,7 +95,8 @@ Tipp: zuerst [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Ru
 | Register | Was es einstellt |
 |---|---|
 | **Sprache** (oben rechts) | English, Русский, Español, Deutsch, Polski — der Dialog wechselt sofort; Bericht und Dokumente entstehen in derselben Sprache |
-| **Ausgabe** | Ordner; was erstellen: Gerber, A4-Dokumentation, PDF, Tonerblätter; was in BOM/CPL kommt: THT, Pad-Mitte, ausgelassene Bezeichner |
+| **Norm** (oben rechts) | ISO oder GOST — welche Dokumentation erstellt wird; gemeinsam mit dmxON JLC Rules |
+| **Ausgabe** | Ordner; Sicherung des Designordners; was erstellen: Gerber, Dokumentation, Schaltplan, PDF, Tonerblätter; was in BOM/CPL kommt: THT, Pad-Mitte, ausgelassene Bezeichner |
 | **Teile** | Katalogsuche, Basic/Preferred, Ersatzteile, Footprint-Prüfung, Attribut-Neuprüfung, `LCSC_PART` schreiben, Platinenanzahl, min. Kondensatorspannung, Feeder-Gebühr, BOM-Import |
 | **Platine** | Dicke, Masken- und Druckfarbe, Oberfläche — für Bericht, Bestellformular und Ansicht |
 | **Schriftfeld** | Produkt, Dokument-Nr., Revision, Kunde, Bemerkung (pro Platine); Firma und Unterschriften (gemeinsam) |
@@ -112,7 +118,7 @@ Alle Einstellungen werden gespeichert.
 │   ├── <Platine>_JLCPCB_BOM.csv        ← PCB Assembly: BOM
 │   └── <Platine>_JLCPCB_CPL.csv        ← PCB Assembly: CPL
 ├── 02_REPORT/                          Bericht + Lagenvorschau
-├── 03_ASSEMBLY_DOCS/                   A4-Dokumentation (HTML + PDF)
+├── 03_ASSEMBLY_DOCS/                   Dokumentation nach ISO oder GOST (HTML + PDF)
 └── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 PDF-Blätter
 ```
 
@@ -147,13 +153,16 @@ Die Blätter entstehen aus **denselben Gerber-Dateien** wie für die Fertigung: 
 ## Stapelbetrieb
 
 ```
-RUN dmxON_FabKit.ulp -batch <Ordner> [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import Datei] [-nogerber] [-nodocs] [-notoner] [-nopdf] [-keep]
+RUN dmxON_FabKit.ulp -batch <Ordner> [-std iso|gost] [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import Datei] [-nogerber] [-nodocs] [-nosch] [-notoner] [-nopdf] [-nobackup] [-keep]
 ```
 
 | Schalter | Bedeutung |
 |---|---|
 | `-batch <Ordner>` | ohne Dialog, in diesen Ordner, keine Attribute schreiben |
 | `-lang <Code>` | Sprache von Bericht und Dokumenten (Standard: die zuletzt im Dialog gewählte) |
+| `-std iso\|gost` | Norm der Dokumentation (Standard: die zuletzt im Dialog gewählte) |
+| `-nosch` | ohne Schaltplan |
+| `-nobackup` | ohne Sicherung des Designordners |
 | `-offline` | ohne Katalog und EasyEDA |
 | `-boards N` | Platinen in der Bestellung |
 | `-import <Datei>` | JLCPCB-BOM (xlsx/csv/txt) |
@@ -166,8 +175,9 @@ RUN dmxON_FabKit.ulp -batch <Ordner> [-lang en|ru|es|de|pl] [-offline] [-boards 
 
 | Symptom | Was tun |
 |---|---|
-| `dmxON_FabKit` fehlt nach der Installation in der Liste Run ULP | Fusion neu starten — die Ordnerliste wird beim Start gelesen |
-| Fenster **CAM Export File List** | **OK** drücken: Fusion bittet, den Gerber-Export zu bestätigen |
+| Kein Reiter **dmxON** nach der Installation | Fusion einmal neu starten oder das Add-in starten: **Utilities → Add-Ins → Scripts and Add-Ins → dmxON → Run** |
+| Fenster **CAM Export File List** | **OK** drücken: Fusion bittet, den Gerber-Export zu bestätigen. Mit dmxON-Add-in und dmxON JLC Rules erscheint das Fenster nicht |
+| «Sicherung übersprungen: Das dmxON-Add-in läuft nicht» | mit `INSTALL.ulp` installieren und Fusion neu starten |
 | «Your PCB design has changed. CAM output is generated using the last saved version» | **Cancel** drücken, Platine speichern (Strg+S) und FabKit erneut starten — sonst entsteht Gerber aus der alten gespeicherten Version (z. B. ohne neue Designregeln) |
 | «JLCPCB-Katalog hat nicht geantwortet» | Internet und Proxy prüfen; das Paket wird trotzdem offline erstellt |
 | Kein PDF | Microsoft Edge (oder Chrome) muss im Standardordner installiert sein |
@@ -177,7 +187,7 @@ RUN dmxON_FabKit.ulp -batch <Ordner> [-lang en|ru|es|de|pl] [-offline] [-boards 
 
 ## Wie es funktioniert
 
-Phase 1 (ULP) analysiert die Platine und schreibt BOM/CPL und Entwürfe, Phase 2 (Fusion-Befehle) führt `MANUFACTURING EXPORT` aus, Phase 3 (dasselbe ULP mit `-finish`) erstellt Gerber, Vorschauen, Bericht, Dokumentation und Tonerblätter. Spanische, deutsche und polnische Texte stehen in `lib/fk_lang.ulp`, das aus `lang/strings.tsv` erzeugt wird. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Änderungen: [CHANGELOG.md](CHANGELOG.md).
+Phase 1 (ULP) analysiert die Platine und schreibt BOM/CPL und Entwürfe, Phase 2 (Fusion-Befehle) führt `MANUFACTURING EXPORT` aus, Phase 3 (dasselbe ULP mit `-finish`) erstellt Gerber, Vorschauen, Bericht, Dokumentation und Tonerblätter. Spanische, deutsche und polnische Texte stehen in `lib/fk_lang.ulp`, das aus `lang/strings.tsv` erzeugt wird. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Änderungen: [CHANGELOG.md](CHANGELOG.md). Das **dmxON-Add-in** (`fusion-addin/dmxON`, Python) erledigt, was ein ULP nicht kann: die Ordner-Einstellungen von Fusion, den Reiter dmxON, Gerber ohne Fenster über `Electron.mfgexport`, Sicherungen aus der Cloud und Updates; die ULPs hinterlegen ihm Aufträge in `Dokumente\dmxON\.inbox`.
 
 ---
 

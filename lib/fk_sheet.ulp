@@ -1,0 +1,556 @@
+// fk_sheet.ulp — листы документации: формат, рамка, основная надпись, нумерация листов
+// dmxON FabKit · dmxON by AlexSmith 2026 · см. LICENSE.md
+//
+// ISO  — ISO 5457:1999 (A4 только книжный, A3 только альбомный; рамка 20/10/10/10 мм, линия 0,7 мм;
+//        сетка зон 50 мм от осей симметрии; центровочные метки) и ISO 7200:2004 (основная надпись 180 мм,
+//        обязательные поля: владелец, идентификационный номер, дата выпуска, лист, название,
+//        кто утвердил, автор, вид документа).
+// ГОСТ — ГОСТ Р 2.104-2023 (форма 1 — 185 × 55, первый лист чертежа; форма 2 — 185 × 40, первый лист
+//        текстового документа; форма 2а — 185 × 15, последующие листы; дополнительные графы 19–25 на поле
+//        подшивки; графа 26 — только графические документы), ГОСТ 2.301-68 (форматы), рамка 20/5/5/5 мм.
+//        Геометрия граф сверена с шаблонами KiCad GOST (kicad-gost-committers) и eskd-drafting.
+// Лист — блок .page заданного формата; внутри SVG с линиями (мм) и поля текста (HTML, правятся в браузере).
+// Номер листа и число листов — метки {{S:документ}} / {{N:документ}}, их заполняет третья фаза.
+
+// ---------------------------------------------------------------- текущий документ и лист
+
+string dd_key = "", dd_id = "", dd_name = "", dd_type = "";   // ключ (нумерация), обозначение, наименование, вид документа
+string dc_date = "";                               // дата выпуска
+
+// дата в графе «Дата» ЕСКД: ДД.ММ.ГГ (из ГГГГ-ММ-ДД)
+string gost_date(string d)
+{
+    if (strlen(d) != 10 || d[4] != '-') return d;
+    return strsub(d, 8, 2) + "." + strsub(d, 5, 2) + "." + strsub(d, 2, 2);
+}
+int dd_draw = 1;                                   // 1 — графический документ, 0 — текстовый
+int dd_sheet = 0;                                  // листов этого документа уже начато
+
+real sh_pw, sh_ph;                     // лист, мм
+real sh_fl, sh_ft, sh_fr, sh_fb;       // рамка (координаты листа)
+real sh_tbw, sh_tbh;                   // основная надпись
+real sh_ax, sh_ay, sh_aw, sh_ah;       // поле изображения/таблицы
+int sh_a3 = 0;                         // 1 — A3 альбомный (и удлинённые форматы)
+real sh_cw = 0, sh_ch = 0;             // удлинённый формат листа (A3×n), мм; 0 — A4/A3
+string sh_cname = "";                  // его обозначение («A3×5»)
+string sh_fname = "A4";                // обозначение формата текущего листа
+int sh_first = 1;                      // первый лист документа
+string sh_scale = "";                  // масштаб чертежа ("" — без масштаба)
+string sh_svg = "", sh_txt = "";       // линии и надписи текущего листа
+
+real TH_ISO = 0.5, TF_ISO = 0.7, TN = 0.25;        // ISO: линии основной надписи, рамка, тонкие
+real TH_GOST = 0.6;                                // ГОСТ: основные линии
+
+// десятичный знак в документах: точка для английского ISO, запятая для остальных языков и ГОСТ
+string dnum(real v)
+{
+    string s = num(v);
+    if (doc_std == 1 || ui_lang != 0) s = replace_all(s, ".", ",");
+    return s;
+}
+
+// ---------------------------------------------------------------- примитивы (мм на листе)
+
+void sv_line(real x1, real y1, real x2, real y2, real w)
+{
+    string t;
+    sprintf(t, "<line x1=\"%s\" y1=\"%s\" x2=\"%s\" y2=\"%s\" stroke-width=\"%s\"/>", f3(x1), f3(y1), f3(x2), f3(y2), f3(w));
+    sh_svg += t;
+}
+
+void sv_rect(real x, real y, real w, real hh, real lw)
+{
+    string t;
+    sprintf(t, "<rect x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" fill=\"none\" stroke-width=\"%s\"/>", f3(x), f3(y), f3(w), f3(hh), f3(lw));
+    sh_svg += t;
+}
+
+// размер шрифта под строку: высота прописных cap мм, не шире w мм (примерно 0,6 высоты на знак)
+real fit_cap(string s, real w, real cap)
+{
+    int n = strlen(s);
+    if (n < 1) return cap;
+    real c = w / (n * 0.74);                      // ширина знака ≈ 0,74 высоты прописной (запасной Arial)
+    if (c < cap) cap = c;
+    if (cap < 1.6) cap = 1.6;
+    return cap;
+}
+
+// надпись в прямоугольнике x,y,w,h (мм); al: 'l' / 'c' / 'r'; cap — высота прописных, мм;
+// fld — имя поля штампа (правится в браузере и повторяется на всех листах), "" — без правки
+void sv_text(real x, real y, real w, real hh, char al, real cap, string cls, string val, string fld)
+{
+    string st, ed = "";
+    string ja = "center";
+    if (al == 'l') ja = "flex-start";
+    if (al == 'r') ja = "flex-end";
+    if (fld != "") ed = " contenteditable=\"true\" data-f=\"" + fld + "\"";
+    sprintf(st, "left:%smm;top:%smm;width:%smm;height:%smm;justify-content:%s;font-size:%smm", f3(x), f3(y), f3(w), f3(hh), ja, f3(cap / 0.72));
+    sh_txt += "<div class=\"tx " + cls + "\" style=\"" + st + "\"" + ed + ">" + val + "</div>";
+}
+
+// подпись поля (мелко, в левом верхнем углу ячейки) — ISO 7200
+void sv_label(real x, real y, string s)
+{
+    string st;
+    sprintf(st, "left:%smm;top:%smm", f3(x + 0.8), f3(y + 0.4));
+    sh_txt += "<div class=\"lb\" style=\"" + st + "\">" + h(s) + "</div>";
+}
+
+// повёрнутая надпись (дополнительные графы ГОСТ): центр cx,cy, угол 90 или 180
+void sv_rot(real cx, real cy, real len, real cap, int ang, string val)
+{
+    string st;
+    sprintf(st, "left:%smm;top:%smm;width:%smm;height:%smm;margin-left:%smm;margin-top:%smm;transform:rotate(%ddeg);font-size:%smm",
+            f3(cx), f3(cy), f3(len), f3(cap * 1.6), f3(-len / 2), f3(-cap * 0.8), -ang, f3(cap / 0.72));
+    sh_txt += "<div class=\"tx c\" style=\"" + st + "\">" + val + "</div>";
+}
+
+string sh_snum() { return "{{S:" + dd_key + "}}"; }
+string sh_nnum() { return "{{N:" + dd_key + "}}"; }
+
+// ---------------------------------------------------------------- ISO 5457: сетка зон, центровочные метки, формат
+
+// деление стороны [a,b] на поля по 50 мм от середины c; остатки — к крайним полям. Границы через «|»
+string iso_fields(real a, real b, real c)
+{
+    string s = "";
+    real x = c;
+    while (x - 50 > a + 0.01) x -= 50;
+    // x — первая внутренняя граница слева
+    s = f3(a);
+    for (real y = x; y < b - 0.01; y += 50) if (y > a + 0.01) s += "|" + f3(y);
+    s += "|" + f3(b);
+    return s;
+}
+
+void iso_grid()
+{
+    real g = 5;                                     // ширина полосы сетки (рисунок 4 ISO 5457)
+    string LET = "ABCDEFGHJKLMNPQRSTUVWXYZ";        // без I и O
+    int all = sh_a3;                                // A4 — только сверху и справа
+    // горизонтальные поля (цифры слева направо) по ширине рамки
+    string xs[];
+    int nx = strsplit(xs, iso_fields(sh_fl, sh_fr, sh_pw / 2), '|');
+    string ys[];
+    int ny = strsplit(ys, iso_fields(sh_ft, sh_fb, sh_ph / 2), '|');
+    // внешняя линия полосы сетки
+    sv_line(sh_fl, sh_ft - g, sh_fr + g, sh_ft - g, 0.35);
+    sv_line(sh_fr + g, sh_ft - g, sh_fr + g, sh_fb + (all ? g : 0), 0.35);
+    if (all) {
+        sv_line(sh_fl - g, sh_fb + g, sh_fr + g, sh_fb + g, 0.35);
+        sv_line(sh_fl - g, sh_ft - g, sh_fl - g, sh_fb + g, 0.35);
+        sv_line(sh_fl - g, sh_ft - g, sh_fl, sh_ft - g, 0.35);
+    }
+    int i;
+    for (i = 0; i < nx; i++) {
+        real x = strtod(xs[i]);
+        if (i > 0 && i < nx - 1) {
+            sv_line(x, sh_ft - g, x, sh_ft, 0.35);
+            if (all) sv_line(x, sh_fb, x, sh_fb + g, 0.35);
+        }
+        if (i < nx - 1) {
+            real x2 = strtod(xs[i + 1]);
+            sv_text(x, sh_ft - g, x2 - x, g, 'c', 3.5, "gz", istr(i + 1), "");
+            if (all) sv_text(x, sh_fb, x2 - x, g, 'c', 3.5, "gz", istr(i + 1), "");
+        }
+    }
+    for (i = 0; i < ny; i++) {
+        real y = strtod(ys[i]);
+        if (i > 0 && i < ny - 1) {
+            sv_line(sh_fr, y, sh_fr + g, y, 0.35);
+            if (all) sv_line(sh_fl - g, y, sh_fl, y, 0.35);
+        }
+        if (i < ny - 1) {
+            real y2 = strtod(ys[i + 1]);
+            sv_text(sh_fr, y, g, y2 - y, 'c', 3.5, "gz", strsub(LET, i, 1), "");
+            if (all) sv_text(sh_fl - g, y, g, y2 - y, 'c', 3.5, "gz", strsub(LET, i, 1), "");
+        }
+    }
+    // центровочные метки: 0,7 мм, от полосы сетки на 10 мм внутрь рамки
+    real cx = sh_pw / 2, cy = sh_ph / 2;
+    sv_line(cx, sh_ft - g, cx, sh_ft + 10, 0.7);
+    sv_line(cx, sh_fb + g, cx, sh_fb - 10, 0.7);
+    sv_line(sh_fl - g, cy, sh_fl + 10, cy, 0.7);
+    sv_line(sh_fr + g, cy, sh_fr - 10, cy, 0.7);
+    // обозначение формата — в нижнем поле у правого угла
+    sv_text(sh_fr - 30, sh_fb + (all ? g : 0), 30, 10 - (all ? g : 0), 'r', 2.5, "gz", h(sh_fname), "");
+}
+
+// ---------------------------------------------------------------- ISO 7200: основная надпись 180 мм
+
+void iso_tb()
+{
+    real w = 180, hh = 30;
+    real x0 = sh_fr - w, y0 = sh_fb - hh;
+    sh_tbw = w; sh_tbh = hh;
+    // контур и основные линии
+    sv_rect(x0, y0, w, hh, TH_ISO);
+    sv_line(x0, y0 + 8, x0 + w, y0 + 8, TH_ISO);
+    sv_line(x0 + 50, y0 + 8, x0 + 50, y0 + hh, TH_ISO);
+    sv_line(x0 + 50, y0 + 20, x0 + w, y0 + 20, TN);
+    real ax[] = { 45, 75, 105, 135, 160 };
+    for (int i = 0; i < 5; i++) sv_line(x0 + ax[i], y0, x0 + ax[i], y0 + 8, TN);
+    real cx[] = { 110, 122, 147, 157 };
+    for (int j = 0; j < 4; j++) sv_line(x0 + cx[j], y0 + 20, x0 + cx[j], y0 + hh, TN);
+    // ряд A: вид документа, автор, проверил, утвердил, статус, формат
+    sv_label(x0, y0, L("Вид документа", "Document type"));
+    sv_text(x0 + 1, y0 + 2.6, 43, 5, 'l', fit_cap(dd_type, 43, 2.5), "v", h(dd_type), "");
+    sv_label(x0 + 45, y0, L("Разработал", "Created by"));
+    sv_text(x0 + 46, y0 + 2.6, 28, 5, 'l', fit_cap(tb_designer, 28, 2.5), "v", h(tb_designer), "designer");
+    sv_label(x0 + 75, y0, L("Проверил", "Checked by"));
+    sv_text(x0 + 76, y0 + 2.6, 28, 5, 'l', fit_cap(tb_checker, 28, 2.5), "v", h(tb_checker), "checker");
+    sv_label(x0 + 105, y0, L("Утвердил", "Approved by"));
+    sv_text(x0 + 106, y0 + 2.6, 28, 5, 'l', fit_cap(tb_approver, 28, 2.5), "v", h(tb_approver), "approver");
+    sv_label(x0 + 135, y0, L("Статус документа", "Document status"));
+    sv_text(x0 + 136, y0 + 2.6, 23, 5, 'l', 2.5, "v", "", "status");
+    sv_label(x0 + 160, y0, L("Формат", "Paper size"));
+    sv_text(x0 + 161, y0 + 2.6, 18, 5, 'l', 2.5, "v", h(sh_fname), "");
+    // владелец (организация)
+    sv_label(x0, y0 + 8, L("Правообладатель", "Legal owner"));
+    sv_text(x0 + 1, y0 + 11, 48, 18, 'l', fit_cap(tb_company, 48, 3.5), "v b", h(tb_company), "company");
+    // название и дополнительное название
+    sv_label(x0 + 50, y0 + 8, L("Название, дополнительное название", "Title, supplementary title"));
+    int own = (dd_name == tb_product);
+    string sup = own ? tb_note : tb_product;
+    sv_text(x0 + 51, y0 + 10.6, 128, 5.6, 'l', fit_cap(dd_name, 128, 3.5), "v b", h(dd_name), own ? "product" : "");
+    sv_text(x0 + 51, y0 + 15.6, 128, 4.2, 'l', fit_cap(sup, 128, 2.2), "v", h(sup), own ? "note" : "product");
+    // идентификационный номер, изменение, дата выпуска, язык, лист
+    sv_label(x0 + 50, y0 + 20, L("Идентификационный номер", "Identification number"));
+    sv_text(x0 + 51, y0 + 22.6, 58, 7, 'l', fit_cap(dd_id, 58, 3.5), "v b", h(dd_id), "");
+    sv_label(x0 + 110, y0 + 20, L("Изм.", "Rev."));
+    sv_text(x0 + 110, y0 + 22.6, 12, 7, 'c', 3.5, "v", h(tb_rev), "rev");
+    sv_label(x0 + 122, y0 + 20, L("Дата выпуска", "Date of issue"));
+    sv_text(x0 + 122, y0 + 22.6, 25, 7, 'c', 2.8, "v", h(dc_date), "date");
+    sv_label(x0 + 147, y0 + 20, L("Язык", "Lang."));
+    sv_text(x0 + 147, y0 + 22.6, 10, 7, 'c', 2.8, "v", LANG_CODE[ui_lang], "");
+    sv_label(x0 + 157, y0 + 20, L("Лист", "Sheet"));
+    sv_text(x0 + 157, y0 + 22.6, 23, 7, 'c', 3.5, "v", sh_snum() + "/" + sh_nnum(), "");
+    // масштаб — вне основной надписи, над её правым краем (ISO 7200, раздел 4)
+    if (sh_scale != "") {
+        sv_rect(sh_fr - 40, y0 - 8, 40, 8, TN);
+        sv_text(sh_fr - 40, y0 - 8, 40, 8, 'c', 3.5, "v", h(L("Масштаб", "Scale") + " " + sh_scale), "");
+    }
+}
+
+// ---------------------------------------------------------------- ГОСТ Р 2.104-2023: формы 1, 2, 2а
+
+// левая часть (графы 14–18 и 10–13): x0,y0 — левый верхний угол надписи; rows — строк над шапкой
+void gost_left_head(real x0, real yh)
+{
+    real cx[] = { 0, 7, 17, 40, 55, 65 };
+    string lab[] = { "Изм.", "Лист", "№ докум.", "Подп.", "Дата" };
+    string len[] = { "Rev.", "Sheet", "Doc. No.", "Sign.", "Date" };
+    for (int i = 0; i < 5; i++)
+        sv_text(x0 + cx[i], yh, cx[i + 1] - cx[i], 5, 'c', 2.5, "v", h(L(lab[i], len[i])), "");
+}
+
+void gost_member(real x0, real y, string ru, string en, string fld, string val)
+{
+    sv_text(x0 + 0.8, y, 16, 5, 'l', 2.5, "v", h(L(ru, en)), "");
+    if (fld != "") sv_text(x0 + 17.6, y, 22, 5, 'l', fit_cap(val, 22, 2.5), "v", h(val), fld);
+    sv_text(x0 + 55, y, 10, 5, 'c', fit_cap(gost_date(dc_date), 9.4, 2.0), "v", fld == "designer" ? h(gost_date(dc_date)) : "", fld == "designer" ? "date" : "");
+}
+
+void gost_form1()
+{
+    real w = 185, hh = 55;
+    real x0 = sh_fr - w, y0 = sh_fb - hh;
+    sh_tbw = w; sh_tbh = hh;
+    real T = TH_GOST;
+    sv_rect(x0, y0, w, hh, T);
+    // левая часть: столбцы 7 / 10 / 23 / 15 / 10
+    sv_line(x0 + 7, y0, x0 + 7, y0 + 25, T);
+    sv_line(x0 + 17, y0, x0 + 17, y0 + hh, T);
+    sv_line(x0 + 40, y0, x0 + 40, y0 + hh, T);
+    sv_line(x0 + 55, y0, x0 + 55, y0 + hh, T);
+    sv_line(x0 + 65, y0, x0 + 65, y0 + hh, T);
+    for (int i = 1; i <= 3; i++) sv_line(x0, y0 + i * 5, x0 + 65, y0 + i * 5, TN);
+    sv_line(x0, y0 + 20, x0 + 65, y0 + 20, T);
+    sv_line(x0, y0 + 25, x0 + 65, y0 + 25, T);
+    for (int k = 6; k <= 10; k++) sv_line(x0, y0 + k * 5, x0 + 65, y0 + k * 5, TN);
+    // правая часть
+    sv_line(x0 + 65, y0 + 15, x0 + w, y0 + 15, T);          // под графой 2
+    sv_line(x0 + 65, y0 + 40, x0 + w, y0 + 40, T);          // над графами 3 и 9
+    sv_line(x0 + 135, y0 + 15, x0 + 135, y0 + hh, T);
+    sv_line(x0 + 135, y0 + 20, x0 + w, y0 + 20, T);
+    sv_line(x0 + 135, y0 + 35, x0 + w, y0 + 35, T);
+    sv_line(x0 + 150, y0 + 15, x0 + 150, y0 + 35, T);
+    sv_line(x0 + 167, y0 + 15, x0 + 167, y0 + 35, T);
+    sv_line(x0 + 140, y0 + 20, x0 + 140, y0 + 35, TN);
+    sv_line(x0 + 145, y0 + 20, x0 + 145, y0 + 35, TN);
+    sv_line(x0 + 155, y0 + 35, x0 + 155, y0 + 40, T);
+    // надписи
+    gost_left_head(x0, y0 + 20);
+    gost_member(x0, y0 + 25, "Разраб.", "Developed", "designer", tb_designer);
+    gost_member(x0, y0 + 30, "Пров.", "Checked", "checker", tb_checker);
+    gost_member(x0, y0 + 35, "Т.контр.", "Tech. control", "tcontr", "");
+    gost_member(x0, y0 + 45, "Н.контр.", "Std. control", "ncontr", "");
+    gost_member(x0, y0 + 50, "Утв.", "Approved", "approver", tb_approver);
+    sv_text(x0 + 65, y0, 120, 15, 'c', fit_cap(dd_id, 116, 5), "v b", h(dd_id), "");                     // графа 2
+    sv_text(x0 + 66, y0 + 15, 68, 15, 'c', fit_cap(dd_name, 66, 3.5), "v", h(dd_name), dd_name == tb_product ? "product" : "");   // графа 1
+    sv_text(x0 + 66, y0 + 30, 68, 10, 'c', fit_cap(dd_type, 66, 3.5), "v", h(dd_type), "");
+    sv_text(x0 + 135, y0 + 15, 15, 5, 'c', 2.5, "v", h(L("Лит.", "Stage")), "");
+    sv_text(x0 + 150, y0 + 15, 17, 5, 'c', 2.5, "v", h(L("Масса", "Mass")), "");
+    sv_text(x0 + 167, y0 + 15, 18, 5, 'c', 2.5, "v", h(L("Масштаб", "Scale")), "");
+    sv_text(x0 + 135, y0 + 20, 15, 15, 'c', 3.5, "v", "", "lit");
+    sv_text(x0 + 167, y0 + 20, 18, 15, 'c', 3.5, "v", h(sh_scale), "");
+    sv_text(x0 + 135.8, y0 + 35, 12, 5, 'l', 2.5, "v", h(L("Лист", "Sheet")), "");
+    sv_text(x0 + 147, y0 + 35, 8, 5, 'c', 2.5, "v", sh_snum(), "");
+    sv_text(x0 + 155.8, y0 + 35, 15, 5, 'l', 2.5, "v", h(L("Листов", "Sheets")), "");
+    sv_text(x0 + 171, y0 + 35, 14, 5, 'c', 2.5, "v", sh_nnum(), "");
+    sv_text(x0 + 66, y0 + 40, 68, 15, 'c', 2.5, "v", "", "material");                                      // графа 3
+    sv_text(x0 + 136, y0 + 40, 48, 15, 'c', fit_cap(tb_company, 46, 3.5), "v", h(tb_company), "company"); // графа 9
+}
+
+void gost_form2()
+{
+    real w = 185, hh = 40;
+    real x0 = sh_fr - w, y0 = sh_fb - hh;
+    sh_tbw = w; sh_tbh = hh;
+    real T = TH_GOST;
+    sv_rect(x0, y0, w, hh, T);
+    sv_line(x0 + 7, y0, x0 + 7, y0 + 15, T);
+    sv_line(x0 + 17, y0, x0 + 17, y0 + hh, T);
+    sv_line(x0 + 40, y0, x0 + 40, y0 + hh, T);
+    sv_line(x0 + 55, y0, x0 + 55, y0 + hh, T);
+    sv_line(x0 + 65, y0, x0 + 65, y0 + hh, T);
+    sv_line(x0, y0 + 5, x0 + 65, y0 + 5, TN);
+    sv_line(x0, y0 + 10, x0 + 65, y0 + 10, T);
+    sv_line(x0, y0 + 15, x0 + w, y0 + 15, T);
+    for (int k = 4; k <= 7; k++) sv_line(x0, y0 + k * 5, x0 + 65, y0 + k * 5, TN);
+    sv_line(x0 + 135, y0 + 15, x0 + 135, y0 + hh, T);
+    sv_line(x0 + 135, y0 + 25, x0 + w, y0 + 25, T);
+    sv_line(x0 + 135, y0 + 20, x0 + w, y0 + 20, TN);
+    sv_line(x0 + 150, y0 + 15, x0 + 150, y0 + 25, T);
+    sv_line(x0 + 165, y0 + 15, x0 + 165, y0 + 25, T);
+    sv_line(x0 + 140, y0 + 20, x0 + 140, y0 + 25, TN);
+    sv_line(x0 + 145, y0 + 20, x0 + 145, y0 + 25, TN);
+    gost_left_head(x0, y0 + 10);
+    gost_member(x0, y0 + 15, "Разраб.", "Developed", "designer", tb_designer);
+    gost_member(x0, y0 + 20, "Пров.", "Checked", "checker", tb_checker);
+    gost_member(x0, y0 + 30, "Н.контр.", "Std. control", "ncontr", "");
+    gost_member(x0, y0 + 35, "Утв.", "Approved", "approver", tb_approver);
+    sv_text(x0 + 65, y0, 120, 15, 'c', fit_cap(dd_id, 116, 5), "v b", h(dd_id), "");
+    sv_text(x0 + 66, y0 + 15, 68, 13, 'c', fit_cap(dd_name, 66, 3.5), "v", h(dd_name), dd_name == tb_product ? "product" : "");
+    sv_text(x0 + 66, y0 + 28, 68, 12, 'c', fit_cap(dd_type, 66, 3.5), "v", h(dd_type), "");
+    sv_text(x0 + 135, y0 + 15, 15, 5, 'c', 2.5, "v", h(L("Лит.", "Stage")), "");
+    sv_text(x0 + 150, y0 + 15, 15, 5, 'c', 2.5, "v", h(L("Лист", "Sheet")), "");
+    sv_text(x0 + 165, y0 + 15, 20, 5, 'c', 2.5, "v", h(L("Листов", "Sheets")), "");
+    sv_text(x0 + 150, y0 + 20, 15, 5, 'c', 2.5, "v", sh_snum(), "");
+    sv_text(x0 + 165, y0 + 20, 20, 5, 'c', 2.5, "v", sh_nnum(), "");
+    sv_text(x0 + 136, y0 + 25, 48, 15, 'c', fit_cap(tb_company, 46, 3.5), "v", h(tb_company), "company");
+}
+
+void gost_form2a()
+{
+    real w = 185, hh = 15;
+    real x0 = sh_fr - w, y0 = sh_fb - hh;
+    sh_tbw = w; sh_tbh = hh;
+    real T = TH_GOST;
+    sv_rect(x0, y0, w, hh, T);
+    real cx[] = { 7, 17, 40, 55, 65, 175 };
+    for (int i = 0; i < 6; i++) sv_line(x0 + cx[i], y0, x0 + cx[i], y0 + hh, T);
+    sv_line(x0, y0 + 5, x0 + 65, y0 + 5, TN);
+    sv_line(x0, y0 + 10, x0 + 65, y0 + 10, T);
+    sv_line(x0 + 175, y0 + 7, x0 + w, y0 + 7, T);
+    gost_left_head(x0, y0 + 10);
+    sv_text(x0 + 65, y0, 110, 15, 'c', fit_cap(dd_id, 106, 5), "v b", h(dd_id), "");
+    sv_text(x0 + 175, y0, 10, 7, 'c', 2.5, "v", h(L("Лист", "Sheet")), "");
+    sv_text(x0 + 175, y0 + 7, 10, 8, 'c', 3.5, "v", sh_snum(), "");
+}
+
+// дополнительные графы на поле подшивки (19–23 на всех листах, 24–25 — первый лист чертежа), графа 26
+void gost_extra()
+{
+    real xl = 8, xm = 13, xr = sh_fl;                 // подписи 5 мм, поля 7 мм
+    real yb = sh_fb;
+    real seg[] = { 0, 25, 60, 85, 110, 145 };
+    string lab[] = { "Инв. № подл.", "Подп. и дата", "Взам. инв. №", "Инв. № дубл.", "Подп. и дата" };
+    string len[] = { "Orig. inv. No.", "Sign. & date", "Repl. inv. No.", "Dupl. inv. No.", "Sign. & date" };
+    int i;
+    for (i = 0; i < 5; i++) {
+        real ya = yb - seg[i + 1], yz = yb - seg[i];
+        sv_rect(xl, ya, xr - xl, yz - ya, TH_GOST);
+        sv_line(xm, ya, xm, yz, TH_GOST);
+        sv_rot((xl + xm) / 2, (ya + yz) / 2, yz - ya - 1, 2.5, 90, h(L(lab[i], len[i])));
+    }
+    if (dd_draw && sh_first) {
+        real top = sh_ft;
+        sv_rect(xl, top, xr - xl, 120, TH_GOST);
+        sv_line(xm, top, xm, top + 120, TH_GOST);
+        sv_line(xl, top + 60, xr, top + 60, TH_GOST);
+        sv_rot((xl + xm) / 2, top + 30, 58, 2.5, 90, h(L("Перв. примен.", "First used")));
+        sv_rot((xl + xm) / 2, top + 90, 58, 2.5, 90, h(L("Справ. №", "Ref. No.")));
+    }
+    if (dd_draw) {
+        // графа 26: обозначение документа, повёрнутое на 180°, в верхнем левом углу рамки
+        sv_rect(sh_fl, sh_ft, 70, 14, TH_GOST);
+        sv_rot(sh_fl + 35, sh_ft + 7, 68, fit_cap(dd_id, 66, 5), 180, h(dd_id));
+    }
+    // под рамкой: «Копировал» и формат
+    sv_text(sh_fr - 115, sh_fb + 0.2, 40, 4.6, 'l', 2.5, "v", h(L("Копировал", "Copied")), "");
+    sv_text(sh_fr - 45, sh_fb + 0.2, 45, 4.6, 'l', 2.5, "v", h(L("Формат", "Format")) + " " + h(sh_fname), "");
+}
+
+// ---------------------------------------------------------------- лист: начало и конец
+
+// начать документ: ключ для нумерации, обозначение (идентификационный номер), наименование, вид документа, графический ли
+void doc_begin(string key, string id, string name, string type, int draw)
+{
+    dd_key = key; dd_id = id; dd_name = name; dd_type = type; dd_draw = draw;
+    dd_sheet = 0;
+}
+
+// ширина и высота поля чертежа будущего листа (для раскладки вида по листам)
+real area_wp(real pw)
+{
+    return (doc_std == 1 ? pw - 5 : pw - 10) - 20 - 6;
+}
+
+real area_w(int a3)
+{
+    return area_wp(a3 ? 420 : 210);
+}
+
+real area_hp(real ph, int first, int has_scale)
+{
+    real ft = doc_std == 1 ? 5 : 10, fb = doc_std == 1 ? ph - 5 : ph - 10;
+    real tbh = doc_std == 1 ? (!first ? 15 : (dd_draw ? 55 : 40)) : 30;
+    real top = ft + 2;
+    if (doc_std == 1 && dd_draw) top = ft + 16;
+    real bot = fb - tbh - 2;
+    if (doc_std == 0 && has_scale) bot -= 9;
+    return bot - top;
+}
+
+real area_h(int first, int has_scale)
+{
+    return area_hp(297, first, has_scale);
+}
+
+// начать лист документа: a3 — A3 альбомный (иначе A4 книжный); title — строка содержания; scale — масштаб чертежа
+string sh_open(int a3, string title, string scale)
+{
+    dd_sheet++;
+    sh_first = (dd_sheet == 1);
+    sh_a3 = a3;
+    sh_scale = scale;
+    sh_svg = ""; sh_txt = "";
+    sh_pw = a3 ? 420 : 210;
+    sh_ph = 297;
+    sh_fname = a3 ? "A3" : "A4";
+    string pcls = a3 ? "a3l" : "a4p", pst = "";
+    if (sh_cw > 0) {
+        sh_pw = sh_cw; sh_ph = sh_ch; sh_fname = sh_cname; sh_a3 = 1;
+        pcls = "p" + istr(int(sh_cw)) + "x" + istr(int(sh_ch));
+        pst = "<style>@page " + pcls + "{size:" + f3(sh_cw) + "mm " + f3(sh_ch) + "mm;margin:0}.page." + pcls + "{page:" + pcls + "}</style>";
+    }
+    if (doc_std == 1) { sh_fl = 20; sh_ft = 5; sh_fr = sh_pw - 5; sh_fb = sh_ph - 5; }
+    else { sh_fl = 20; sh_ft = 10; sh_fr = sh_pw - 10; sh_fb = sh_ph - 10; }
+    // высота основной надписи (нужна до разметки поля)
+    if (doc_std == 1) sh_tbh = !sh_first ? 15 : (dd_draw ? 55 : 40);
+    else sh_tbh = 30;
+    real top = sh_ft + 2;
+    if (doc_std == 1 && dd_draw) top = sh_ft + 16;           // графа 26
+    real bot = sh_fb - sh_tbh - 2;
+    if (doc_std == 0 && scale != "") bot -= 9;               // поле масштаба над надписью
+    sh_ax = sh_fl + 3; sh_aw = sh_fr - sh_fl - 6;
+    sh_ay = top; sh_ah = bot - top;
+    if (!dd_draw) {
+        // текстовый документ: таблица прилегает к рамке
+        sh_ax = sh_fl; sh_aw = sh_fr - sh_fl; sh_ay = sh_ft; sh_ah = sh_fb - sh_tbh - sh_ft;
+    }
+    string s, st;
+    sprintf(st, "width:%smm;height:%smm", f3(sh_pw), f3(sh_ph));
+    s = "<!--FK:PAGE " + dd_key + "|" + h(dd_id) + "|" + h(dd_type) + "|" + h(title) + "-->\n";
+    s += pst + "<div class=\"page " + pcls + (doc_std == 1 ? " gost" : " iso") + "\" style=\"" + st + "\">";
+    sprintf(st, "left:%smm;top:%smm;width:%smm;height:%smm", f3(sh_ax), f3(sh_ay), f3(sh_aw), f3(sh_ah));
+    s += "<div class=\"area\" style=\"" + st + "\">";
+    return s;
+}
+
+string sh_close()
+{
+    // рамка
+    if (doc_std == 1) {
+        sv_rect(sh_fl, sh_ft, sh_fr - sh_fl, sh_fb - sh_ft, TH_GOST);
+        if (sh_first) { if (dd_draw) gost_form1(); else gost_form2(); }
+        else gost_form2a();
+        gost_extra();
+    } else {
+        sv_rect(sh_fl, sh_ft, sh_fr - sh_fl, sh_fb - sh_ft, TF_ISO);
+        iso_grid();
+        iso_tb();
+    }
+    string s, st;
+    sprintf(st, "viewBox=\"0 0 %s %s\" style=\"width:%smm;height:%smm\"", f3(sh_pw), f3(sh_ph), f3(sh_pw), f3(sh_ph));
+    s = "</div><svg class=\"fr\" " + st + " xmlns=\"http://www.w3.org/2000/svg\">" + sh_svg + "</svg>" + sh_txt + "</div>\n";
+    return s;
+}
+
+// ---------------------------------------------------------------- документы комплекта (общие для fk_sch и fk_docs)
+
+int dc_a3 = 0;                  // чертежи на A3 (плата не помещается на A4 в крупном масштабе)
+int dc_class = 2;               // класс по IPC-6012F / J-STD-001J / IPC-A-610J
+int dc_sch = 1;                 // листы схемы (Э3 / circuit diagram)
+
+// ---------------------------------------------------------------- документы комплекта
+
+string doc_id(string kind)
+{
+    if (kind == "FAB") return tb_pcbno;
+    if (doc_std == 1) {
+        if (kind == "SPEC") return tb_docno;
+        if (kind == "ASM") return tb_docno + " СБ";
+        if (kind == "PE") return tb_docno + " ПЭ3";
+        if (kind == "SCH") return tb_docno + " Э3";
+        if (kind == "AI") return tb_docno + " ТИ";
+    }
+    return tb_docno + "-" + kind;
+}
+
+string doc_name(string kind)
+{
+    if (kind == "FAB") return L("Плата печатная", "Printed circuit board");
+    return tb_product;
+}
+
+string doc_type(string kind)
+{
+    if (kind == "ASM") return L("Сборочный чертёж", "Assembly drawing");
+    if (kind == "AI") return L("Инструкция по монтажу", "Assembly instruction");
+    if (kind == "SCH") return doc_std == 1 ? L("Схема электрическая принципиальная", "Circuit diagram") : L("Схема электрическая", "Circuit diagram");
+    if (doc_std == 1) {
+        if (kind == "PE") return L("Перечень элементов", "List of elements");
+        return "";                                   // спецификация, чертёж детали — без названия документа
+    }
+    if (kind == "DL") return L("Перечень документов", "Document list");
+    if (kind == "FAB") return L("Чертёж печатной платы", "Fabrication drawing");
+    if (kind == "PL") return L("Перечень деталей", "Parts list");
+    return "";
+}
+
+void doc_open(string kind, int draw)
+{
+    doc_begin(kind, doc_id(kind), doc_name(kind), doc_type(kind), draw);
+}
+
+// ---------------------------------------------------------------- оформление листов (CSS)
+
+string SH_CSS =
+    "@page a4p{size:210mm 297mm;margin:0}@page a3l{size:420mm 297mm;margin:0}" +
+    "*{box-sizing:border-box}html,body{margin:0}body{background:#7d848c;color:#000}" +
+    ".page{position:relative;margin:8mm auto;background:#fff;overflow:hidden;box-shadow:0 3px 18px rgba(0,0,0,.35);break-after:page;page-break-after:always}" +
+    ".page:last-of-type{break-after:auto;page-break-after:auto}" +
+    ".page.a4p{page:a4p}.page.a3l{page:a3l}" +
+    ".iso{font-family:'ISOCPEUR','Osifont','Arial Narrow',Arial,sans-serif}" +
+    ".gost{font-family:'GOST type B','GOST Common','ISOCPEUR','Osifont','Arial Narrow',Arial,sans-serif;font-style:italic}" +
+    "svg.fr{position:absolute;left:0;top:0;pointer-events:none}svg.fr line,svg.fr rect{stroke:#000;fill:none}" +
+    ".tx{position:absolute;display:flex;align-items:center;white-space:nowrap;overflow:hidden;line-height:1;padding:0 .6mm}" +
+    ".tx.b{font-weight:700}.tx.gz{font-style:normal}" +
+    ".lb{position:absolute;font-size:2.2mm;line-height:1;color:#333;white-space:nowrap}" +
+    ".area{position:absolute;overflow:hidden;font-size:3.4mm;line-height:1.25}" +
+    "[contenteditable]{outline:none}[contenteditable]:hover,[contenteditable]:focus{background:#fff7d6}" +
+    ".bar{position:sticky;top:0;z-index:9;background:#14181d;color:#dfe5ea;font:12px 'Segoe UI',Arial,sans-serif;padding:8px 16px}" +
+    "@media print{body{background:#fff}.page{margin:0;box-shadow:none}.bar{display:none}[contenteditable]:hover{background:none}}";

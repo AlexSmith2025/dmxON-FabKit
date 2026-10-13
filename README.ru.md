@@ -49,6 +49,11 @@
 | 🖨️ | **ЛУТ 1:1**: PDF на каждый слой (медь, шелкография, маска, сверловка), верхние листы зеркальные, шкала 50 мм для проверки масштаба |
 | 📥 | **Импорт готовой BOM JLCPCB** (xlsx, csv или текст со страницы заказа) — проверенные вами номера главнее |
 | 🌐 | **5 языков**: английский, русский, испанский, немецкий, польский — диалог, отчёт и вся документация на выбранном языке |
+| 📏 | **Документация по ISO или ГОСТ**: листы и основные надписи по ISO 5457 / ISO 7200 или ГОСТ Р 2.104-2023; перечень документов, чертежи платы и сборочный, перечень деталей (ISO 7573) или спецификация (ГОСТ Р 2.106-2019), перечень элементов; в примечаниях — ссылки на IPC и IEC |
+| 🔌 | **Схема электрическая** из вашей схемы в рамке стандарта (Э3 по ГОСТ / IEC 61082-1) на A4, A3 или удлинённом A3×n — так, чтобы текст читался |
+| 🧩 | **Вкладка dmxON во Fusion** (надстройка): FabKit, JLC Rules, бэкап и обновления в один клик; Gerber без окна подтверждения CAM |
+| 💾 | **Бэкап всей папки проекта**: схемы, платы и библиотеки — файлами EAGLE, 3D-модели — `.f3d`, чертежи — PDF, плюс пакет; восстанавливается на любом аккаунте и компьютере |
+| 🔄 | **Обновления с GitHub**: проверка раз в день, установка по нажатию |
 
 ---
 
@@ -56,7 +61,7 @@
 
 | | dmxON FabKit |
 |---|---|
-| **Autodesk Fusion (Electronics), Windows 10/11** | ✅ проверено на Fusion **2705.1.11** (октябрь 2026) |
+| **Autodesk Fusion (Electronics), Windows 10/11** | ✅ проверено на Fusion **2705.1.30** (октябрь 2026) |
 | Autodesk Fusion на macOS | ❌ нужны инструменты Windows (`curl.exe`, `tar.exe`, `robocopy`, Windows Script Host, Microsoft Edge) |
 | EAGLE 9.x | ❌ для Gerber нужна команда Fusion `MANUFACTURING EXPORT` |
 | KiCad, Altium, EasyEDA | ❌ |
@@ -67,21 +72,21 @@
 
 ## Установка
 
-1. [**Скачайте `dmxON-FabKit.zip`**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) и распакуйте куда угодно.
-2. В Fusion Electronics: **Automation → Run ULP → `INSTALL.ulp`** из распакованной папки, выберите язык и нажмите **Установить**.
-3. **Перезапустите Fusion.** `dmxON_FabKit` появится в списке **Run ULP** рядом со встроенными — его папка `Документы\dmxON\dmxON-FabKit` идёт первой, встроенные ULP Fusion остаются на месте.
+1. [**Скачайте `dmxON-FabKit.zip`**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) и распакуйте в любую папку.
+2. Во Fusion Electronics: **Automation → Run ULP → `INSTALL.ulp`** из распакованной папки, выберите язык и нажмите **Установить**.
+3. **Один раз перезапустите Fusion.** В редакторах платы и схемы появится вкладка **dmxON** — FabKit, JLC Rules, Бэкап, Обновления, Настройки, Справка, — а `dmxON_FabKit` будет и в **Run ULP**.
 
-Установщик копирует проект в `Документы\dmxON\dmxON-FabKit` и добавляет эту папку в папки ULP через собственные настройки Fusion. Повторный запуск `INSTALL.ulp` обновляет файлы; **Удалить** возвращает Fusion прежние папки. Вручную: держите распакованную папку целиком (`dmxON_FabKit.ulp` берёт рядом `lib\` и `config\`) и запускайте `RUN 'C:/путь/dmxON_FabKit.ulp'`.
+Установщик копирует проект в `Документы\dmxON\dmxON-FabKit` и ставит **надстройку dmxON** (`%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\dmxON`). Надстройка ставит папки dmxON первыми в списки ULP, правил и CAM Fusion (Preferences → General → Electronics → Directory) — встроенные ULP остаются — и чинит эти пути после обновлений Fusion. Повторный запуск `INSTALL.ulp` обновляет файлы; **Удалить** убирает скопированный проект, а вместе с последним инструментом dmxON — и надстройку. Без перезапуска надстройку можно запустить: **Utilities → Add-Ins → Scripts and Add-Ins → dmxON → Run**. Вручную, без надстройки: держите распакованную папку целиком и запускайте `RUN 'C:/путь/dmxON_FabKit.ulp'`.
 
 ---
 
 ## Быстрый старт
 
-1. Откройте **плату** в Fusion Electronics и **сохраните** её (Ctrl+S) — Gerber Fusion выгружает из последней сохранённой версии.
-2. **Automation → Run ULP → `dmxON_FabKit`**.
-3. В правом верхнем углу диалога выберите **язык** (по умолчанию английский), папку — и **Создать пакет**.
-4. Fusion может показать окно **CAM Export File List** — нажмите **OK** (это обычная выгрузка Gerber).
-5. Примерно через минуту откроется папка пакета. Начните с `index.html`.
+1. Откройте **плату** во Fusion Electronics и **сохраните** её (Ctrl+S) — Gerber Fusion выгружает из последней сохранённой версии.
+2. Нажмите **dmxON → FabKit** (или **Automation → Run ULP → `dmxON_FabKit`**).
+3. Справа сверху выберите **стандарт** (ISO или ГОСТ) и **язык**, папку — и нажмите **Создать пакет**.
+4. С надстройкой dmxON и установленным dmxON JLC Rules Gerber выгружается без окон, по заданию CAM dmxON JLCPCB. Без них Fusion может показать окно **CAM Export File List** — нажмите **OK**.
+5. Примерно через минуту откроется папка пакета. Начните с `index.html`. Если включён бэкап, затем надстройка сохранит всю папку проекта в `Документы\dmxON\Backups`.
 
 Совет: сначала запустите [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) — он настроит правила JLCPCB и стек слоёв, а толщину платы и цвет маски передаст в FabKit. Язык у обоих инструментов общий.
 
@@ -90,7 +95,8 @@
 | Вкладка | Что задаёт |
 |---|---|
 | **Язык** (справа сверху) | English, Русский, Español, Deutsch, Polski — диалог переключается сразу; отчёт и документация пишутся на том же языке |
-| **Выгрузка** | папка; что создать: Gerber, документацию A4, PDF, листы ЛУТ; что идёт в BOM/CPL: THT, центр площадок, пропускаемые обозначения |
+| **Стандарт** (справа сверху) | ISO или ГОСТ — какой комплект документации выпускать; общий с dmxON JLC Rules |
+| **Выгрузка** | папка; бэкап папки проекта; что создать: Gerber, документацию, схему электрическую, PDF, листы ЛУТ; что идёт в BOM/CPL: THT, центр площадок, пропускаемые обозначения |
 | **Детали** | поиск в каталоге, Basic/Preferred, замены, сверка посадочных мест, перепроверка атрибутов, запись `LCSC_PART`, число плат, мин. напряжение конденсаторов, плата за катушку, импорт BOM |
 | **Плата** | толщина, цвет маски и шелкографии, покрытие — для отчёта, формы заказа и вида платы |
 | **Штамп** | изделие, обозначение, редакция, заказчик, примечание (для платы); организация и подписи (общие) |
@@ -112,7 +118,7 @@
 │   ├── <плата>_JLCPCB_BOM.csv          ← PCB Assembly: BOM
 │   └── <плата>_JLCPCB_CPL.csv          ← PCB Assembly: CPL
 ├── 02_REPORT/                          отчёт + превью слоёв
-├── 03_ASSEMBLY_DOCS/                   документация A4 (HTML + PDF)
+├── 03_ASSEMBLY_DOCS/                   документация по ISO или ГОСТ (HTML + PDF)
 └── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 листов PDF
 ```
 
@@ -147,13 +153,16 @@
 ## Пакетный режим
 
 ```
-RUN dmxON_FabKit.ulp -batch <папка> [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import файл] [-nogerber] [-nodocs] [-notoner] [-nopdf] [-keep]
+RUN dmxON_FabKit.ulp -batch <папка> [-std iso|gost] [-lang en|ru|es|de|pl] [-offline] [-boards N] [-import файл] [-nogerber] [-nodocs] [-nosch] [-notoner] [-nopdf] [-nobackup] [-keep]
 ```
 
 | Ключ | Что значит |
 |---|---|
 | `-batch <папка>` | без диалога, в эту папку, атрибуты не пишутся |
 | `-lang <код>` | язык отчёта и документации (по умолчанию — последний выбранный в диалоге) |
+| `-std iso\|gost` | стандарт документации (по умолчанию — последний выбранный в диалоге) |
+| `-nosch` | без схемы электрической |
+| `-nobackup` | без бэкапа папки проекта |
 | `-offline` | без каталога и EasyEDA |
 | `-boards N` | плат в заказе |
 | `-import <файл>` | BOM JLCPCB (xlsx/csv/txt) |
@@ -166,8 +175,9 @@ RUN dmxON_FabKit.ulp -batch <папка> [-lang en|ru|es|de|pl] [-offline] [-boa
 
 | Что видно | Что делать |
 |---|---|
-| После установки `dmxON_FabKit` нет в списке Run ULP | перезапустите Fusion — список папок он читает при старте |
-| Окно **CAM Export File List** | нажмите **OK**: Fusion просит подтвердить выгрузку Gerber |
+| После установки нет вкладки **dmxON** | один раз перезапустите Fusion или запустите надстройку: **Utilities → Add-Ins → Scripts and Add-Ins → dmxON → Run** |
+| Окно **CAM Export File List** | нажмите **OK**: Fusion просит подтвердить выгрузку Gerber. С надстройкой dmxON и dmxON JLC Rules окна нет |
+| «Бэкап пропущен: надстройка dmxON не запущена» | установите через `INSTALL.ulp` и перезапустите Fusion |
 | «Your PCB design has changed. CAM output is generated using the last saved version» | нажмите **Cancel**, сохраните плату (Ctrl+S) и запустите FabKit заново — иначе Gerber будет из старой сохранённой версии (например, без новых правил) |
 | «каталог не ответил» | проверьте интернет и прокси; пакет всё равно соберётся без сети |
 | Нет PDF | нужен Microsoft Edge (или Chrome) в стандартной папке |
@@ -177,7 +187,7 @@ RUN dmxON_FabKit.ulp -batch <папка> [-lang en|ru|es|de|pl] [-offline] [-boa
 
 ## Как устроено
 
-Фаза 1 (ULP) разбирает плату и пишет BOM/CPL и заготовки, фаза 2 (команды Fusion) запускает `MANUFACTURING EXPORT`, фаза 3 (тот же ULP с `-finish`) собирает Gerber, превью, отчёт, документацию и листы ЛУТ. Испанские, немецкие и польские тексты — в `lib/fk_lang.ulp`, он создаётся из `lang/strings.tsv`. Подробно: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · история версий: [CHANGELOG.md](CHANGELOG.md).
+Фаза 1 (ULP) разбирает плату и пишет BOM/CPL и заготовки, фаза 2 (команды Fusion) запускает `MANUFACTURING EXPORT`, фаза 3 (тот же ULP с `-finish`) собирает Gerber, превью, отчёт, документацию и листы ЛУТ. Испанские, немецкие и польские тексты — в `lib/fk_lang.ulp`, он создаётся из `lang/strings.tsv`. Подробно: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · история версий: [CHANGELOG.md](CHANGELOG.md). **Надстройка dmxON** (`fusion-addin/dmxON`, Python) делает то, чего не может ULP: настройки папок Fusion, вкладку dmxON, Gerber без окон через `Electron.mfgexport`, бэкапы из облака и обновления; ULP оставляют ей запросы в `Документы\dmxON\.inbox`.
 
 ---
 
