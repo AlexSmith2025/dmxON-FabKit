@@ -4,12 +4,14 @@
 // ---------------------------------------------------------------- продукт
 
 string FK_NAME    = "dmxON FabKit";
-string FK_VERSION = "2.0.3";              // при каждой переделке поднимать (см. CHANGELOG.md)
-string FK_DATE    = "2026-10-12";
+string FK_VERSION = "2.0.4";              // при каждой переделке поднимать (см. CHANGELOG.md)
+string FK_DATE    = "2026-10-13";
 string FK_AUTHOR  = "dmxON by AlexSmith";
 string FK_YEAR    = "2026";
 string FK_ID      = "dmxon_fabkit";       // префикс настроек в eaglerc
 string FK_MARKER  = ".dmxon-fabkit";      // метка «эта папка создана FabKit» — только такую можно очищать
+string FK_REPO    = "https://github.com/AlexSmith2025/dmxON-FabKit";
+string FK_DONATE  = "https://www.paypal.com/donate/?business=smith.show2025%40gmail.com&no_recurring=0&item_name=dmxON+FabKit&currency_code=EUR";
 
 string fk_title()
 {

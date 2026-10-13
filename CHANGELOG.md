@@ -8,6 +8,21 @@ New feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.0.4 — 2026-10-13
+
+**Изменено / Changed**
+
+- Вкладка «Инфо»: ссылки на GitHub и на поддержку проекта (PayPal); ссылки открываются в браузере.
+  About tab: links to GitHub and to supporting the project (PayPal); links open in the browser.
+- README на английском (главная страница) и на русском (`README.ru.md`): баннер, значки версии и скачиваний, кнопка «Скачать», таблица совместимости. Исправлено: FabKit работает только во Fusion — в EAGLE 9 нет команды `MANUFACTURING EXPORT`.
+  README in English (main page) and Russian (`README.ru.md`): banner, version and download badges, a Download button, a compatibility table. Fixed: FabKit runs in Fusion only — EAGLE 9 has no `MANUFACTURING EXPORT` command.
+- README: перед запуском сохраните плату — Gerber Fusion делает из последней сохранённой версии; что ответить на вопрос Fusion «Your PCB design has changed…».
+  README: save the board before running — Fusion exports Gerber from the last saved version; what to answer to Fusion's «Your PCB design has changed…».
+- В релизе — готовый архив `dmxON-FabKit.zip` (постоянная ссылка на последнюю версию).
+  Releases carry a ready `dmxON-FabKit.zip` (a permanent link to the latest version).
+
+---
+
 ## 2.0.3 — 2026-10-12
 
 **Документация / Documentation**

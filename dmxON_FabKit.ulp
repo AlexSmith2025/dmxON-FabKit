@@ -337,12 +337,16 @@ board(B) {
                     dlgStretch(1);
                 }
                 dlgTabPage(L("Инфо", "About")) {
-                    dlgLabel("<h2>" + FK_NAME + "</h2><p>" + L("Версия", "Version") + " " + FK_VERSION + " · " + FK_DATE + "</p>" +
-                             "<p><b>" + FK_AUTHOR + " " + FK_YEAR + "</b></p>" +
-                             "<p>" + h("Использование бесплатно с указанием автора.") + "<br>Free to use with attribution.<br><br>" +
-                             h("Копирование кода, изменение и коммерческое использование запрещены.") +
-                             "<br>Copying the code, modification and commercial use are not permitted.<br><br>LICENSE.md" + "</p>");
-                    dlgStretch(1);
+                    // в текстовом поле ссылки открываются в браузере (в dlgLabel — нет)
+                    dlgTextView("<h2>" + FK_NAME + "</h2><p>" + L("Версия", "Version") + " " + FK_VERSION + " · " + FK_DATE + "</p>" +
+                                "<p><b>" + FK_AUTHOR + " " + FK_YEAR + "</b> · <a href=\"" + FK_REPO + "\">GitHub</a></p>" +
+                                "<p>" + h("Использование бесплатно с указанием автора.") + "<br>Free to use with attribution.<br><br>" +
+                                h("Копирование кода, изменение и коммерческое использование запрещены.") +
+                                "<br>Copying the code, modification and commercial use are not permitted.<br><br>LICENSE.md</p>" +
+                                "<hr><p><b>&#10084; " + h("Поддержите проект") + " / Support the project</b><br>" +
+                                h("FabKit бесплатный. Если он сэкономил вам время или деньги — поддержите новые версии.") +
+                                "<br>FabKit is free. If it saved you time or money, please support new versions.<br><br>" +
+                                "<a href=\"" + FK_DONATE + "\">PayPal · smith.show2025@gmail.com</a></p>");
                 }
             }
             dlgHBoxLayout {
