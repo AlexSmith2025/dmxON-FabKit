@@ -3,15 +3,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AlexSmith2025/dmxON-FabKit/releases/latest"><img src="https://img.shields.io/github/v/release/AlexSmith2025/dmxON-FabKit?style=for-the-badge&color=b4744a&label=release" alt="Latest release"></a>
-  <a href="https://github.com/AlexSmith2025/dmxON-FabKit/releases"><img src="https://img.shields.io/github/downloads/AlexSmith2025/dmxON-FabKit/total?style=for-the-badge&color=24574a&label=downloads" alt="Downloads"></a>
+  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest"><img src="https://img.shields.io/github/v/release/AlexSmith2025/dmxON-FabKit-Fusion-Electronics?style=for-the-badge&color=b4744a&label=release" alt="Latest release"></a>
+  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases"><img src="https://img.shields.io/github/downloads/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/total?style=for-the-badge&color=24574a&label=downloads" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Autodesk%20Fusion-Electronics-e2ab7f?style=for-the-badge&logo=autodesk&logoColor=white" alt="Autodesk Fusion Electronics">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3b4a5a?style=for-the-badge" alt="Windows 10 | 11">
   <a href="https://www.paypal.com/donate/?business=smith.show2025%40gmail.com&no_recurring=0&item_name=dmxON+FabKit&currency_code=EUR"><img src="https://img.shields.io/badge/PayPal-Donate-003087?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate with PayPal"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/AlexSmith2025/dmxON-FabKit/releases/latest/download/dmxON-FabKit.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Download-dmxON--FabKit.zip-b4744a?style=for-the-badge" alt="Download the latest version"></a>
+  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Download-dmxON--FabKit.zip-b4744a?style=for-the-badge" alt="Download the latest version"></a>
 </p>
 
 <p align="center">
@@ -57,13 +57,13 @@
 | EAGLE 9.x | ❌ needs Fusion's `MANUFACTURING EXPORT` command for Gerber |
 | KiCad, Altium, EasyEDA | ❌ |
 
-Also needed: **Microsoft Edge** (built into Windows) for PDFs; internet for the JLCPCB catalogue and EasyEDA footprints (everything else works offline). If a new Fusion build breaks something, please [open an issue](https://github.com/AlexSmith2025/dmxON-FabKit/issues).
+Also needed: **Microsoft Edge** (built into Windows) for PDFs; internet for the JLCPCB catalogue and EasyEDA footprints (everything else works offline). If a new Fusion build breaks something, please [open an issue](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/issues).
 
 ---
 
 ## Installation
 
-1. [**Download `dmxON-FabKit.zip`**](https://github.com/AlexSmith2025/dmxON-FabKit/releases/latest/download/dmxON-FabKit.zip) and unpack it anywhere, e.g. `Documents\dmxON-FabKit`.
+1. [**Download `dmxON-FabKit.zip`**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) and unpack it anywhere, e.g. `Documents\dmxON-FabKit`.
 2. Keep the layout: `dmxON_FabKit.ulp` loads its modules from `lib\` and settings from `config\` next to it.
 3. Optional: add the folder to **Electronics → Preferences → Directories → ULPs**.
 
@@ -77,7 +77,7 @@ Also needed: **Microsoft Edge** (built into Windows) for PDFs; internet for the 
 4. Fusion may show a **CAM Export File List** window — press **OK** (that is the regular Gerber export).
 5. About a minute later the package folder opens. Start with `index.html`.
 
-Tip: run [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules) first — it sets up JLCPCB design rules and the layer stack-up, and passes the board thickness and mask colour to FabKit.
+Tip: run [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) first — it sets up JLCPCB design rules and the layer stack-up, and passes the board thickness and mask colour to FabKit.
 
 ### The dialog
 
@@ -190,4 +190,4 @@ dmxON FabKit is **free**. Behind it are weeks of work: a Gerber and Excellon par
 
 Free to use with attribution; copying the code, modification and commercial use are not permitted — see [LICENSE.md](LICENSE.md). JLCPCB and LCSC are trademarks of their owners; this project is not affiliated with them.
 
-**dmxON by AlexSmith 2026** · [dmxon512.com](https://dmxon512.com) · companion project: [dmxON JLC Rules](https://github.com/AlexSmith2025/dmxON-JLC-Rules)
+**dmxON by AlexSmith 2026** · [dmxon512.com](https://dmxon512.com) · companion project: [dmxON JLC Rules](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics)

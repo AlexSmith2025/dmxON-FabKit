@@ -8,6 +8,15 @@ New feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.0.5 — 2026-10-13
+
+**Изменено / Changed**
+
+- Репозиторий переименован в **dmxON-FabKit-Fusion-Electronics** — так его проще найти по запросу «Fusion Electronics». Ссылки в программе и документации обновлены; старые адреса GitHub перенаправляет сам.
+  The repository is renamed to **dmxON-FabKit-Fusion-Electronics** so it is easier to find when searching for «Fusion Electronics». Links in the program and docs are updated; GitHub redirects the old addresses.
+
+---
+
 ## 2.0.4 — 2026-10-13
 
 **Изменено / Changed**
@@ -27,7 +36,7 @@ New feature → MINOR, fix → PATCH.
 
 **Документация / Documentation**
 
-- README: ссылка на сопутствующий проект [dmxON JLC Rules](https://github.com/AlexSmith2025/dmxON-JLC-Rules) — правила JLCPCB для 2, 4, 6 и 8 слоёв и настройщик платы.
+- README: ссылка на сопутствующий проект [dmxON JLC Rules](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) — правила JLCPCB для 2, 4, 6 и 8 слоёв и настройщик платы.
   README: a link to the companion project dmxON JLC Rules — JLCPCB rules for 2, 4, 6 and 8 layers and a board setup.
 
 ---
