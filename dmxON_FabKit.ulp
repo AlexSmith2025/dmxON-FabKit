@@ -192,12 +192,14 @@ board(B) {
     string date = t2string(time(), "yyyy-MM-dd");
 
     // ---- настройки
-    string home = home_from(argv[0]);
-    if (home == "") home = home_from(B.name);
+    string home = local_home();
     string def_root = replace_all(filedir(B.name), "\\", "/");
     if (home != "") def_root = home + "/Desktop/FabKit";
     opt_root = cfgget(cfg_key("root"), def_root);
     if (strstr(strupr(replace_all(opt_root, "\\", "/")), "/APPDATA/LOCAL/TEMP") >= 0) opt_root = def_root;
+    // папка из настроек другого компьютера (они общие для аккаунта): её пользователя или диска здесь нет
+    if (home_from(opt_root) != "" && home_here(opt_root) == "") opt_root = def_root;
+    else if (!file_exists(opt_root) && !file_exists(strsub(opt_root, 0, strrstr(replace_all(opt_root, "\\", "/"), "/")))) opt_root = def_root;
     opt_open     = strtol(cfgget(cfg_key("open"), "1"));
     opt_backup   = strtol(cfgget("dmxon.backup", "1"));
     opt_online   = strtol(cfgget(cfg_key("online"), "1"));

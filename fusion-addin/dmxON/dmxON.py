@@ -34,12 +34,26 @@ try:
 except ImportError:
     pass
 
-ADDIN_VERSION = '1.0.0'
+ADDIN_VERSION = '1.1.0'
 APP = adsk.core.Application.get()
 UI = APP.userInterface
 HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(HERE, 'resources')
-BASE = os.path.join(os.path.expanduser('~'), 'Documents', 'dmxON')
+
+
+def documents_dir():
+    """The Documents folder as Fusion's $HOME sees it (it may be moved, e.g. to OneDrive)."""
+    try:
+        import ctypes
+        buf = ctypes.create_unicode_buffer(1024)
+        if ctypes.windll.shell32.SHGetFolderPathW(None, 5, None, 0, buf) == 0 and buf.value:   # CSIDL_PERSONAL
+            return buf.value
+    except Exception:
+        pass
+    return os.path.join(os.path.expanduser('~'), 'Documents')
+
+
+BASE = os.path.join(documents_dir(), 'dmxON')
 INBOX = os.path.join(BASE, '.inbox')          # requests from the dmxON ULPs (register, backup)
 ALIVE = os.path.join(BASE, '.dmxon-addin')    # heartbeat: the ULPs see that the add-in is running
 SETTINGS_FILE = os.path.join(BASE, 'dmxON-addin.json')
@@ -388,47 +402,50 @@ def norm(p):
     return os.path.normcase(os.path.normpath(p.strip().replace('/', os.sep)))
 
 
-def under_base(p):
-    n, b = norm(p), norm(BASE)
-    return n == b or n.startswith(b + os.sep)
+# Fusion's preferences are shared by every computer of the Autodesk account, so absolute paths of
+# one machine (C:\\Users\\name\\…, webdeploy\\production\\<build>) are wrong on the others. The lists keep
+# only variables Fusion expands on each machine: $HOME = this user's Documents, $EAGLEDIR = LibEagle of
+# the running build. Both dmxON tools are always listed, installed here or not, so that computers do
+# not rewrite the shared value back and forth.
+DMX_ENTRIES = {
+    'ulp': ['$HOME\\dmxON\\dmxON-FabKit', '$HOME\\dmxON\\dmxON-JLC-Rules'],
+    'dru': ['$HOME\\dmxON\\dmxON-JLC-Rules\\rules'],
+    'cam': ['$HOME\\dmxON\\dmxON-JLC-Rules\\rules'],
+}
 
 
-def heal(entry):
-    """Built-in folders point into webdeploy\\production\\<build hash>: after a Fusion update the hash changes."""
-    pat = r'(?i)([\\/]webdeploy[\\/]production[\\/])([0-9a-f]{40})([\\/])'
-    m = re.search(pat, entry)
-    cur = re.search(pat, os.path.dirname(sys.executable) + os.sep)
-    if m and cur and m.group(2).lower() != cur.group(2).lower() and not os.path.isdir(entry):
-        entry = entry.replace(m.group(2), cur.group(2))
+def is_dmxon(entry):
+    u = entry.replace('/', '\\').lower()
+    return '\\dmxon\\dmxon-fabkit' in u or '\\dmxon\\dmxon-jlc-rules' in u
+
+
+def portable(entry):
+    """A built-in folder of some Fusion build → $EAGLEDIR\\…; anything else unchanged."""
+    e = entry.replace('/', '\\')
+    i = e.lower().find('\\applications\\electron\\libeagle\\')
+    if i >= 0:
+        return '$EAGLEDIR\\' + e[i + len('\\applications\\electron\\libeagle\\'):]
     return entry
 
 
 def register():
-    """dmxON folders first in Fusion's ULP / design rules / CAM lists; the built-in folders stay."""
-    want = {'ulp': [], 'dru': [], 'cam': []}
-    for t in TOOLS:
-        if not is_installed(t):
-            continue
-        want['ulp'].append(tool_dir(t))
-        if t['rules']:
-            want['dru'].append(os.path.join(tool_dir(t), t['rules']))
-            want['cam'].append(os.path.join(tool_dir(t), t['rules']))
+    """dmxON folders first in Fusion's ULP / design rules / CAM lists, as variables; the built-in folders stay."""
     changed = False
     for kind, key in OPTS.items():
         try:
             cur = [e.strip() for e in opt_get(key).split(';') if e.strip()]
         except RuntimeError:
             continue
-        rest, seen = [], set()
+        rest, seen = [], set(x.lower() for x in DMX_ENTRIES[kind])
         for e in cur:
-            if under_base(e):
+            if is_dmxon(e):
                 continue
-            e = heal(e)
-            if norm(e) not in seen:
-                seen.add(norm(e))
+            e = portable(e)
+            if e.lower() not in seen:
+                seen.add(e.lower())
                 rest.append(e)
-        new = want[kind] + rest
-        if [norm(x) for x in new] != [norm(x) for x in cur]:
+        new = DMX_ENTRIES[kind] + rest
+        if new != cur:
             APP.executeTextCommand('Options.Set %s "%s"' % (key, ';'.join(new)))
             changed = True
     if changed:
@@ -884,6 +901,42 @@ def fabkit_cam(req):
         end_command()
 
 
+# ---------------------------------------------------------------- JLC Rules: grid of the board's schematic
+def schematic_of(board_doc):
+    """The schematic document of the board's Electronics design (opened)."""
+    try:
+        for p in board_doc.dataFile.parentReferences:
+            if (p.fileExtension or '').lower() != 'fprj':
+                continue
+            for c in p.childReferences:
+                if (c.fileExtension or '').lower() == 'fsch':
+                    d = find_open(c)
+                    if d:
+                        return d
+    except Exception:
+        pass
+    for d in APP.documents:
+        if d.objectType == 'adsk::electron::SchematicDocument' and d.name == board_doc.name:
+            return d
+    return None
+
+
+def schematic_grid(cmd):
+    """Run a GRID command in the schematic that belongs to the active board, then return to the board."""
+    board_doc = APP.activeDocument
+    if not board_doc or not cmd.upper().startswith('GRID '):
+        return
+    sch = schematic_of(board_doc)
+    if sch is None:
+        return
+    sch.activate()
+    adsk.doEvents()
+    APP.executeTextCommand('Electron.run "%s"' % cmd.replace('"', "'"))
+    end_command()
+    board_doc.activate()
+    adsk.doEvents()
+
+
 # ---------------------------------------------------------------- requests from the ULPs
 def read_json(path):
     raw = open(path, 'rb').read()
@@ -915,6 +968,8 @@ def do_inbox():
             backup(req.get('tool', 'ulp'), req.get('out'), quiet=True)
         elif what == 'fabkit_cam':
             fabkit_cam(req)
+        elif what == 'grid':
+            schematic_grid(req.get('cmd', ''))
 
 
 # ---------------------------------------------------------------- UI

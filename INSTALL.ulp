@@ -82,8 +82,7 @@ void legacy_cleanup()
 
 lang_load();
 string src = in_dir(filedir(argv[0]));
-string home = home_from(argv[0]);
-if (home == "") home = home_from(path_ulp[0]);
+string home = local_home();
 if (home == "") {
     dlgMessageBox(L("Не удалось определить папку пользователя.", "Cannot find the user folder."), "OK");
     exit(EXIT_FAILURE);

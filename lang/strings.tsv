@@ -81,6 +81,8 @@ Check the scale with a ruler: the bar at the bottom of each sheet is 50 mm, the 
 check: {0}, but the value is {1}	проверить: {0}, а номинал {1}	comprobar: {0}, pero el valor es {1}	prüfen: {0}, aber der Wert ist {1}	sprawdź: {0}, a wartość to {1}
 Checked by	Проверил	Revisado por	Geprüft von	Sprawdził
 checking	проверка	comprobando	Prüfung	sprawdzanie
+Circuit diagram	Схема электрическая принципиальная	Esquema eléctrico	Stromlaufplan	Schemat ideowy
+Circuit diagram in the documentation	Схема электрическая в документации (Э3 / circuit diagram)	Esquema eléctrico en la documentación	Stromlaufplan in der Dokumentation	Schemat ideowy w dokumentacji
 Clear it? «No» — create a new dated folder.	Очистить её? «Нет» — создать новую папку с датой.	¿Vaciarla? «No» — crear una carpeta nueva con fecha.	Leeren? «Nein» — einen neuen Ordner mit Datum anlegen.	Wyczyścić go? «Nie» — utwórz nowy folder z datą.
 Company	Организация	Empresa	Firma	Firma
 Compatibility	Совместимость	Compatibilidad	Kompatibilität	Zgodność
@@ -309,6 +311,7 @@ PDF of the documentation (via Microsoft Edge)	PDF документации (че
 per board	на 1 плату	por placa	pro Platine	na płytkę
 Per board	На одну плату	Por placa	Pro Platine	Na płytkę
 phase 2: Fusion export	фаза 2: выгрузка Fusion	fase 2: exportación de Fusion	Phase 2: Fusion-Export	faza 2: eksport Fusion
+phase 2: the dmxON add-in exports Gerber	фаза 2: Gerber выгружает надстройка dmxON	fase 2: el complemento dmxON exporta los Gerber	Phase 2: Das dmxON-Add-in exportiert die Gerber-Dateien	faza 2: dodatek dmxON eksportuje pliki Gerber
 pin 1	вывод 1	pin 1	Pin 1	pin 1
 Pin 1 and polarity keys	Ключи и полярность	Marcas de pin 1 y polaridad	Pin-1- und Polaritätsmarkierungen	Klucze pinu 1 i polaryzacji
 pin numbers	по номерам выводов	números de pin	Pinnummern	numery pinów
@@ -359,6 +362,7 @@ shape	по форме	forma	Form	kształt
 shape matches but pin numbers do not — check the pinout	по форме посадочное место совпадает, а номера выводов нет — проверить цоколёвку	la forma coincide pero los números de pin no — comprobar el pinout	Form passt, Pinnummern nicht — Pinbelegung prüfen	kształt się zgadza, a numery pinów nie — sprawdź wyprowadzenia
 Share	Доля	Proporción	Anteil	Udział
 Shared by all boards	Общие для всех плат	Comunes a todas las placas	Für alle Platinen	Wspólne dla wszystkich płytek
+sheet	лист	hoja	Blatt	arkusz
 Sheet	Лист	Hoja	Blatt	Arkusz
 Sheets	Листов	Hojas	Blätter	Arkuszy
 Sheets are built from the same Gerber files the factory gets: copper pours, clearances and cut-outs are exact. White dots mark drill centres.	Листы построены из тех же Gerber, что уходят на завод: заливки, зазоры и вырезы — точные. Белые точки — центры отверстий для сверла.	Las hojas se generan a partir de los mismos Gerber que van a la fábrica: rellenos de cobre, separaciones y recortes son exactos. Los puntos blancos marcan los centros de los taladros.	Die Blätter entstehen aus denselben Gerber-Dateien wie für die Fertigung: Kupferflächen, Abstände und Aussparungen sind exakt. Weiße Punkte markieren die Bohrmitten.	Arkusze powstają z tych samych plików Gerber, które trafiają do fabryki: wylewki, odstępy i wycięcia są dokładne. Białe kropki to środki otworów do wiercenia.

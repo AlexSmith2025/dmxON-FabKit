@@ -5,15 +5,47 @@
 // ULP оставляет ей запрос — JSON-файл в Документы/dmxON/.inbox; надстройка забирает его, когда Fusion свободен.
 // Надстройка раз в 30 с обновляет метку Документы/dmxON/.dmxon-addin — по ней видно, что она запущена.
 
-string dmx_base_dir = "";
+// ---------------------------------------------------------------- папки этой машины
+// Настройки Fusion и значения cfgset общие для всего аккаунта Autodesk: они приходят и с других
+// компьютеров, где имя пользователя другое («C:/Users/другое_имя/…»). Берётся только то, что есть здесь.
+string dmx_home_dir = "", dmx_base_dir = "";
 
-// Документы/dmxON
+// папка пользователя «C:/Users/имя» для пути p, если она есть на этой машине, иначе ""
+string home_here(string p)
+{
+    string h = home_from(p);
+    if (h != "" && file_exists(h)) return h;                 // AppData скрыта — fileglob её не видит
+    return "";
+}
+
+// папка пользователя этой машины: путь самого ULP, временная копия документа (Fusion держит её
+// в %TEMP%), папки Fusion (в них $HOME раскрыт уже на этой машине)
+string local_home()
+{
+    if (dmx_home_dir != "") return dmx_home_dir;
+    string h = home_here(argv[0]);
+    if (h == "" && board) board(B) h = home_here(B.name);
+    if (h == "" && schematic) schematic(S) h = home_here(S.name);
+    if (h == "" && library) library(LB) h = home_here(LB.name);
+    for (int i = 0; h == "" && path_ulp[i] != ""; i++) h = home_here(path_ulp[i]);
+    dmx_home_dir = h;
+    return h;
+}
+
+// Документы/dmxON: как Fusion раскрыл $HOME\dmxON на этой машине («Документы» могут быть перенесены),
+// иначе папка пользователя + /Documents/dmxON
 string dmx_base()
 {
     if (dmx_base_dir == "") {
-        string h = home_from(argv[0]);
-        if (h == "") h = home_from(path_ulp[0]);
-        dmx_base_dir = h + "/Documents/dmxON";
+        for (int i = 0; path_ulp[i] != ""; i++) {
+            string p = replace_all(path_ulp[i], "\\", "/");
+            while (ends_with(p, "/")) p = strsub(p, 0, strlen(p) - 1);
+            string u = strlwr(p);
+            if (!ends_with(u, "/dmxon/dmxon-fabkit") && !ends_with(u, "/dmxon/dmxon-jlc-rules")) continue;
+            string b = strsub(p, 0, strrstr(p, "/"));
+            if (file_exists(b) || home_here(b) != "") { dmx_base_dir = b; break; }
+        }
+        if (dmx_base_dir == "") dmx_base_dir = local_home() + "/Documents/dmxON";
     }
     return dmx_base_dir;
 }
@@ -21,9 +53,7 @@ string dmx_base()
 // папка надстроек Fusion
 string addin_dir()
 {
-    string h = home_from(argv[0]);
-    if (h == "") h = home_from(path_ulp[0]);
-    return h + "/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/AddIns/dmxON";
+    return local_home() + "/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/AddIns/dmxON";
 }
 
 // надстройка запущена в этом Fusion

@@ -5,6 +5,19 @@ Numbering: `MAJOR.MINOR.PATCH` — new feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.2.1 — 2026-10-14
+
+**Fixed**
+
+- **Works on every computer of the account.** Fusion shares its preferences and the ULP settings across all computers of an Autodesk account, so paths saved on one computer (`C:\Users\<name>\…`, `webdeploy\production\<build>`) reached the others, and the ULPs and rules were not found there. The dmxON add-in 1.1.0 writes the folders as `$HOME\dmxON\…` and `$EAGLEDIR\…`, which Fusion expands on each computer to its own Documents and program folder, and converts the paths of other computers it finds; the ULPs take the user folder only from paths that exist on this computer. An output folder saved on another computer is replaced with `Desktop\FabKit`. Run `INSTALL.ulp` (or **dmxON → Updates**) once on each computer.
+- Four texts of 2.2.0 — the circuit diagram title, «sheet», the circuit diagram option and the add-in's Gerber phase — are now translated into Spanish, German and Polish.
+
+**Changed**
+
+- dmxON add-in 1.1.0: also sets the schematic grid for dmxON JLC Rules 1.3.0.
+
+---
+
 ## 2.2.0 — 2026-10-13
 
 **New**

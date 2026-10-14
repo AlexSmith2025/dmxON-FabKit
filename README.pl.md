@@ -78,6 +78,8 @@ Potrzebne są też: **Microsoft Edge** (wbudowany w Windows) do PDF; internet do
 
 Instalator kopiuje projekt do `Dokumenty\dmxON\dmxON-FabKit` i instaluje **dodatek dmxON** (`%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\dmxON`). Dodatek stawia foldery dmxON na początku list ULP, reguł projektowych i CAM w Fusion (Preferences → General → Electronics → Directory) — wbudowane ULP pozostają — i naprawia te ścieżki po aktualizacjach Fusion. Ponowne uruchomienie `INSTALL.ulp` aktualizuje pliki; **Usuń** kasuje skopiowany projekt, a z ostatnim narzędziem dmxON także dodatek. Bez ponownego uruchomienia dodatek można włączyć: **Utilities → Add-Ins → Scripts and Add-Ins → dmxON → Run**. Ręcznie, bez dodatku: zachowaj cały rozpakowany folder i uruchamiaj `RUN 'C:/ścieżka/dmxON_FabKit.ulp'`.
 
+**Kilka komputerów.** Fusion współdzieli ustawienia — także ustawienia FabKit — między wszystkimi komputerami konta Autodesk. Dlatego dodatek zapisuje foldery jako `$HOME\dmxON\…` i `$EAGLEDIR\…`, które Fusion rozwija na każdym komputerze do jego własnych Dokumentów i folderu programu, a FabKit pomija folder wyjściowy należący do innego komputera (używa `Pulpit\FabKit`). Uruchom `INSTALL.ulp` raz na każdym komputerze (albo **dmxON → Aktualizacje** tam, gdzie karta już jest), aby pliki tam były.
+
 ---
 
 ## Szybki start
@@ -176,6 +178,7 @@ RUN dmxON_FabKit.ulp -batch <folder> [-std iso|gost] [-lang en|ru|es|de|pl] [-of
 | Objaw | Co zrobić |
 |---|---|
 | Po instalacji brak karty **dmxON** | uruchom ponownie Fusion jeden raz albo włącz dodatek: **Utilities → Add-Ins → Scripts and Add-Ins → dmxON → Run** |
+| Na innym komputerze nie ma ULP ani reguł, ścieżki prowadzą do pierwszego komputera | Fusion współdzieli ustawienia w całym koncie Autodesk. Zaktualizuj do FabKit 2.2.1 / JLC Rules 1.3.0 (dodatek 1.1.0) i raz uruchom `INSTALL.ulp` na tym komputerze: foldery są wtedy zapisane jako `$HOME\dmxON\…` i działają na każdym komputerze |
 | Okno **CAM Export File List** | naciśnij **OK**: Fusion prosi o potwierdzenie eksportu Gerber. Z dodatkiem dmxON i dmxON JLC Rules okno się nie pojawia |
 | «Kopię pominięto: dodatek dmxON nie działa» | zainstaluj przez `INSTALL.ulp` i uruchom ponownie Fusion |
 | «Your PCB design has changed. CAM output is generated using the last saved version» | naciśnij **Cancel**, zapisz płytkę (Ctrl+S) i uruchom FabKit ponownie — inaczej Gerber powstanie ze starej zapisanej wersji (np. bez nowych reguł) |
