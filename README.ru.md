@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-dmxON--FabKit.zip-b4744a?style=for-the-badge" alt="Скачать последнюю версию"></a>
+  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-dmxON--FabKit.zip-b4744a?style=for-the-badge" alt="Скачать последнюю версию"></a> <a href="https://github.com/AlexSmith2025/dmxON-Setup-Fusion-Electronics/releases/latest/download/dmxON-Setup.exe"><img src="https://img.shields.io/badge/%E2%AC%87%20Installer-dmxON--Setup.exe-24574a?style=for-the-badge" alt="Download the installer dmxON-Setup.exe"></a>
 </p>
 
 <p align="center">
@@ -71,6 +71,8 @@
 ---
 
 ## Установка
+
+**Проще всего:** [**скачайте `dmxON-Setup.exe`**](https://github.com/AlexSmith2025/dmxON-Setup-Fusion-Electronics/releases/latest/download/dmxON-Setup.exe) и запустите — он поставит dmxON FabKit, dmxON JLC Rules и надстройку dmxON разом (последние версии с GitHub, проверка SHA-256, без прав администратора; [dmxON Setup](https://github.com/AlexSmith2025/dmxON-Setup-Fusion-Electronics)). Или вручную:
 
 1. [**Скачайте `dmxON-FabKit.zip`**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) и распакуйте в любую папку.
 2. Во Fusion Electronics: **Automation → Run ULP → `INSTALL.ulp`** из распакованной папки, выберите язык и нажмите **Установить**.

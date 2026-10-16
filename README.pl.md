@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Pobierz-dmxON--FabKit.zip-b4744a?style=for-the-badge" alt="Pobierz najnowszą wersję"></a>
+  <a href="https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Pobierz-dmxON--FabKit.zip-b4744a?style=for-the-badge" alt="Pobierz najnowszą wersję"></a> <a href="https://github.com/AlexSmith2025/dmxON-Setup-Fusion-Electronics/releases/latest/download/dmxON-Setup.exe"><img src="https://img.shields.io/badge/%E2%AC%87%20Installer-dmxON--Setup.exe-24574a?style=for-the-badge" alt="Download the installer dmxON-Setup.exe"></a>
 </p>
 
 <p align="center">
@@ -71,6 +71,8 @@ Potrzebne są też: **Microsoft Edge** (wbudowany w Windows) do PDF; internet do
 ---
 
 ## Instalacja
+
+**Najprościej:** [**pobierz `dmxON-Setup.exe`**](https://github.com/AlexSmith2025/dmxON-Setup-Fusion-Electronics/releases/latest/download/dmxON-Setup.exe) i uruchom — zainstaluje dmxON FabKit, dmxON JLC Rules i dodatek dmxON za jednym razem (najnowsze wersje z GitHuba, sprawdzanie SHA-256, bez uprawnień administratora; [dmxON Setup](https://github.com/AlexSmith2025/dmxON-Setup-Fusion-Electronics)). Albo ręcznie:
 
 1. [**Pobierz `dmxON-FabKit.zip`**](https://github.com/AlexSmith2025/dmxON-FabKit-Fusion-Electronics/releases/latest/download/dmxON-FabKit.zip) i rozpakuj w dowolnym miejscu.
 2. W Fusion Electronics: **Automation → Run ULP → `INSTALL.ulp`** z rozpakowanego folderu, wybierz język i naciśnij **Zainstaluj**.
