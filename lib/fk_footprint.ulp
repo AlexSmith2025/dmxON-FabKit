@@ -40,6 +40,7 @@ int find_ef(string lib, string name, string urn)
 // посадочные места JLC
 int n_jf = 0;
 string jf_code[], jf_pkg[], jf_why[];
+string jf_kpin[], jf_apin[];                     // номер вывода катода и анода в символе JLC (двухвыводные) или ""
 int jf_ok[], jf_first[], jf_n[];
 int n_jp = 0;
 string jp_name[];
@@ -65,17 +66,78 @@ string eattr(string tag, string name)
     return strsub(tag, p, e - p);
 }
 
+// 1 = катод, 2 = анод, 0 = не полярный вывод (по имени вывода символа)
+int pol_kind(string n)
+{
+    n = strupr(trim(n));
+    if (n == "K" || n == "C" || n == "KA" || n == "CATHODE" || n == "KATHODE" || n == "-") return 1;
+    if (n == "A" || n == "AN" || n == "ANODE" || n == "+") return 2;
+    return 0;
+}
+
+// содержимое n-го (с 0) элемента <text> в куске SVG или "" (в JSON закрывающий тег — <\/text>)
+string svg_text(string s, int n)
+{
+    int p = 0;
+    for (int i = 0; i <= n; i++) {
+        int e = strstr(s, "/text>", p);
+        if (e < 1) return "";
+        if (i == n) {
+            int lt = e - 1;
+            if (s[lt] == '\\' && lt > 0) lt--;
+            int b = strrstr(strsub(s, 0, lt), ">");
+            if (b < 0) return "";
+            return trim(strsub(s, b + 1, lt - b - 1));
+        }
+        p = e + 6;
+    }
+    return "";
+}
+
+// символ EasyEDA: у двухвыводной полярной детали — номера выводов катода и анода
+void parse_eda_pins(int k, string sym)
+{
+    string pin_tag = "<g c_partid=\\\"part_pin\\\"";
+    string pn_num[], pn_nam[];
+    int n = 0;
+    int p = strstr(sym, pin_tag);
+    while (p >= 0 && n < 8) {
+        int te = strstr(sym, ">", p);
+        if (te < 0) break;
+        int ge = strstr(sym, "/g>", te);
+        if (ge < 0) ge = strlen(sym);
+        string body = strsub(sym, te, ge - te);
+        string t1 = svg_text(body, 0), t2 = svg_text(body, 1);
+        string nb = eattr(strsub(sym, p, te - p), "c_spicepin");
+        if (t2 != "" && isdigit(t2[0])) { pn_num[n] = t2; pn_nam[n] = t1; }
+        else if (t1 != "" && isdigit(t1[0])) { pn_num[n] = t1; pn_nam[n] = t2; }
+        else { pn_num[n] = nb; pn_nam[n] = t1; }
+        n++;
+        p = strstr(sym, pin_tag, te);
+    }
+    if (n != 2) return;
+    for (int i = 0; i < 2; i++) {
+        if (pol_kind(pn_nam[i]) == 1) jf_kpin[k] = strupr(pn_num[i]);
+        if (pol_kind(pn_nam[i]) == 2) jf_apin[k] = strupr(pn_num[i]);
+    }
+    if (jf_kpin[k] == "" || jf_apin[k] == "" || jf_kpin[k] == jf_apin[k]) { jf_kpin[k] = ""; jf_apin[k] = ""; }
+}
+
 void parse_eda(string code, string r)
 {
     int i, p, te, j;
     string xy[];
     int k = n_jf++;
     jf_code[k] = code; jf_pkg[k] = ""; jf_why[k] = ""; jf_ok[k] = 0;
+    jf_kpin[k] = ""; jf_apin[k] = "";
     jf_first[k] = n_jp; jf_n[k] = 0;
     if (strstr(r, "{") < 0) { jf_why[k] = "нет ответа от EasyEDA"; return; }
     if (strstr(r, "\"success\":true") < 0) { jf_why[k] = "у JLC нет модели посадочного места"; return; }
 
     split_items(r, "{\"component_uuid\"");
+    for (i = 0; i < n_it; i++) {
+        if (strstr(it[i], "\"docType\":2") >= 0) { parse_eda_pins(k, it[i]); break; }
+    }
     string fp = "";
     for (i = 0; i < n_it; i++) {
         if (strstr(it[i], "\"docType\":4") >= 0) {
@@ -162,6 +224,10 @@ int n_eg, n_jg;
 int pr_e[], pr_j[];
 int n_pr;
 
+// площадки катода и анода детали на плате (по символу схемы); задаются перед get_mp
+string pol_bk = "", pol_ba = "";
+int mt_pol = 0;
+
 void make_groups(int ef, int jf)
 {
     int i, k, e, cnt;
@@ -208,6 +274,23 @@ void make_groups(int ef, int jf)
         if (e >= 0) {
             pr_e[n_pr] = e; pr_j[n_pr] = k;
             n_pr++;
+        }
+    }
+
+    // полярная двухвыводная деталь: катод к катоду, анод к аноду — нумерация 1/2 в библиотеках разная
+    mt_pol = 0;
+    if (pol_bk != "" && jf_kpin[jf] != "" && n_eg == 2 && n_jg == 2) {
+        int ek = -1, ea = -1, jk = -1, ja = -1;
+        for (i = 0; i < 2; i++) {
+            if (eg_name[i] == strupr(pol_bk)) ek = i;
+            if (eg_name[i] == strupr(pol_ba)) ea = i;
+            if (jg_name[i] == jf_kpin[jf]) jk = i;
+            if (jg_name[i] == jf_apin[jf]) ja = i;
+        }
+        if (ek >= 0 && ea >= 0 && jk >= 0 && ja >= 0 && ek != ea && jk != ja) {
+            pr_e[0] = ek; pr_j[0] = jk; pr_e[1] = ea; pr_j[1] = ja;
+            n_pr = 2;
+            mt_pol = 1;
         }
     }
 }
@@ -364,15 +447,18 @@ void match_core(int ef, int jf, int polar, int force_form)
 int n_mp = 0;
 int mp_ef[], mp_jf[], mp_stat[], mp_rot[], mp_mir[], mp_amb[], mp_byname[], mp_in[], mp_n[], mp_miss[], mp_cnt[];
 int mp_polar2[];       // полярная деталь с двумя выводами: нумерация 1/2 в библиотеках бывает разной
+int mp_pol[];          // совмещена по аноду/катоду символов
+string mp_pk[];        // площадка катода на плате, для которой посчитана пара
 real mp_tx[], mp_ty[], mp_mx[];
 string mp_missing[], mp_des[];
 
 int get_mp(int ef, int jf, int polar)
 {
     for (int i = 0; i < n_mp; i++)
-        if (mp_ef[i] == ef && mp_jf[i] == jf) return i;
+        if (mp_ef[i] == ef && mp_jf[i] == jf && mp_pk[i] == pol_bk) return i;
 
     match_core(ef, jf, polar, 0);
+    int pol_used = mt_pol;
     // по номерам не сошлось — пробуем по форме: совпадение формы при разных номерах = другая цоколёвка
     if (mt_byname && mt_stat != 1) {
         int s_stat = mt_stat, s_rot = mt_rot, s_mir = mt_mir, s_amb = mt_amb, s_in = mt_in, s_n = mt_n, s_miss = mt_miss;
@@ -392,6 +478,8 @@ int get_mp(int ef, int jf, int polar)
     mp_tx[k] = mt_tx; mp_ty[k] = mt_ty; mp_mx[k] = mt_mx;
     mp_des[k] = ""; mp_cnt[k] = 0;
     mp_polar2[k] = (polar && n_jg == 2);
+    mp_pol[k] = pol_used && mt_byname;
+    mp_pk[k] = pol_bk;
     return k;
 }
 
@@ -425,7 +513,7 @@ int mp_usable(int k)
 int mp_clean(int k)
 {
     if (mp_stat[k] != 1 || mp_mir[k] || mp_amb[k] || mp_miss[k]) return 0;
-    if (mp_polar2[k] && mp_byname[k] && mp_rot[k] != 0) return 0;
+    if (mp_polar2[k] && mp_byname[k] && mp_rot[k] != 0 && !mp_pol[k]) return 0;
     return 1;
 }
 
@@ -454,7 +542,7 @@ string mp_notes(int k)
         if (s != "") s += "; ";
         s += L("полярность по форме не определить — проверить в предпросмотре", "polarity cannot be derived from the shape — check in the JLCPCB preview");
     }
-    if (mp_polar2[k] && mp_byname[k] && mp_rot[k] != 0 && mp_usable(k)) {
+    if (mp_polar2[k] && mp_byname[k] && mp_rot[k] != 0 && mp_usable(k) && !mp_pol[k]) {
         if (s != "") s += "; ";
         s += Lf("полярная деталь развёрнута на {0}° по номерам площадок 1/2 — у двухвыводных деталей нумерация в библиотеках бывает разной, проверить метку полярности в предпросмотре",
                 "polar part rotated by {0}° from pad numbers 1/2 — two-pin libraries number pads differently, check the polarity mark in the preview",
@@ -483,6 +571,44 @@ string el_cn1[], el_cn2[], el_flib[], el_furn[];
 real el_cx1[], el_cy1[], el_cx2[], el_cy2[];
 int el_ef[], el_mp[], el_geo[];
 real el_cpl_x[], el_cpl_y[], el_cpl_rot[];
+string el_kpad[], el_apad[];         // площадки катода и анода (двухвыводные полярные детали) или ""
+
+// какая площадка катод, какая анод — по именам выводов символа в схеме (контекст платы)
+void read_polarity()
+{
+    int e;
+    for (e = 0; e < n_el; e++) { el_kpad[e] = ""; el_apad[e] = ""; }
+    project.schematic(S) {
+        S.parts(P) {
+            int pe = -1;
+            for (e = 0; e < n_el; e++) {
+                if (el_name[e] == P.name) { pe = e; break; }
+            }
+            if (pe >= 0 && P.device.package) {
+                int np = 0;
+                string kp = "", ap = "";
+                P.device.gates(PG) {
+                    PG.symbol.pins(PPN) {
+                        np++;
+                        int pk = pol_kind(PPN.name);
+                        PPN.contacts(PC) {
+                            if (pk == 1 && kp == "") kp = PC.name;
+                            if (pk == 2 && ap == "") ap = PC.name;
+                        }
+                    }
+                }
+                if (np == 2 && kp != "" && ap != "" && kp != ap) { el_kpad[pe] = kp; el_apad[pe] = ap; }
+            }
+        }
+    }
+}
+
+// перед сверкой посадочного места элемента
+void pol_for(int e)
+{
+    pol_bk = el_kpad[e];
+    pol_ba = el_apad[e];
+}
 
 int board_point(int e, int ef, real tx, real ty)
 {

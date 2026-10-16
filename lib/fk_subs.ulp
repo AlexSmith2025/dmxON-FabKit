@@ -199,6 +199,7 @@ void sub_choose(int g, string why)
         if (sc_g[i] != g) continue;
         int jf = find_jf(sc_code[i]);
         if (jf < 0 || !jf_ok[jf]) continue;
+        pol_for(e);
         int m = get_mp(ef, jf, polar);
         int ok = 0;
         if (!mp_mir[m] && !mp_miss[m]) {

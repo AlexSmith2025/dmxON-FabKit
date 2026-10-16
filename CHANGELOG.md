@@ -5,6 +5,15 @@ Numbering: `MAJOR.MINOR.PATCH` — new feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.2.2 — 2026-10-16
+
+**Fixed**
+
+- **LEDs and diodes are no longer placed backwards.** Polarized two-pin parts are matched to the JLC footprint by anode and cathode — the pin names of the board's schematic symbol (A, C/K, +/−) against the pin names of the JLC (EasyEDA) symbol — instead of by pad numbers 1/2. Libraries number these pads differently (a Würth LED: 1 = cathode; LCSC LEDs: 1 = anode), so the CPL could turn an LED by 180°; before, this was only flagged as «check the polarity mark in the preview». The footprint table shows «anode and cathode» for such parts.
+- The `LCSC_PART` attributes FabKit writes into the design are hidden; they used to appear as visible text on tValues.
+
+---
+
 ## 2.2.1 — 2026-10-14
 
 **Fixed**

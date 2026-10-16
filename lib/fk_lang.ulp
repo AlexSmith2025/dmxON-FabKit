@@ -12,6 +12,7 @@ string TR_EN[] = {
     "Already installed — «Install» updates the files.",
     "Alternatives are searched for parts that are missing, out of stock or have a non-fitting package. An alternative is accepted only if its JLC library footprint matches the board pads. The cheapest one for the whole batch wins.",
     "and CPL (pick & place)",
+    "anode and cathode",
     "applied",
     "Apply cheaper compatible substitutes for missing parts",
     "Approved by",
@@ -481,6 +482,7 @@ string TR_ES[] = {
     "Ya instalado — «Instalar» actualiza los archivos.",
     "Se buscan alternativas para las piezas que faltan, sin stock o con un encapsulado que no encaja. Una alternativa solo se acepta si su huella de la biblioteca JLC coincide con los pads de la placa. Gana la más barata para todo el lote.",
     "y CPL (pick & place)",
+    "ánodo y cátodo",
     "aplicado",
     "Aplicar sustitutos compatibles más baratos para piezas faltantes",
     "Aprobado por",
@@ -950,6 +952,7 @@ string TR_DE[] = {
     "Bereits installiert — «Installieren» aktualisiert die Dateien.",
     "Für fehlende, nicht vorrätige oder nicht passende Bauteile werden Alternativen gesucht. Eine Alternative wird nur übernommen, wenn ihr Footprint aus der JLC-Bibliothek zu den Pads der Platine passt. Die günstigste für die gesamte Charge gewinnt.",
     "und CPL (Bestückungsdaten)",
+    "Anode und Kathode",
     "übernommen",
     "Günstigere kompatible Ersatzteile für fehlende Teile einsetzen",
     "Freigegeben von",
@@ -1419,6 +1422,7 @@ string TR_PL[] = {
     "Już zainstalowano — «Zainstaluj» zaktualizuje pliki.",
     "Dla części brakujących, niedostępnych w magazynie lub z niepasującą obudową szukane są zamienniki. Zamiennik jest przyjmowany tylko wtedy, gdy jego footprint z biblioteki JLC pasuje do padów płytki. Wygrywa najtańszy dla całej partii.",
     "i CPL (pick & place)",
+    "anoda i katoda",
     "zastosowany",
     "Stosuj tańsze zgodne zamienniki brakujących części",
     "Zatwierdził",
@@ -1878,4 +1882,4 @@ string TR_PL[] = {
     "{0}; brak zamiennika wg wartości, pozostawiono {1}"
 };
 
-int TR_N = 466;
+int TR_N = 467;

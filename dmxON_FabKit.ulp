@@ -149,6 +149,7 @@ void geo_one(int e)
     string pre = des_prefix(el_name[e]);
     int polar = 1;
     if (pre == "R" || pre == "RN" || pre == "RA" || pre == "L" || pre == "FB" || pre == "F") polar = 0;
+    pol_for(e);
     int mpi = get_mp(el_ef[e], jfi, polar);
     el_mp[e] = mpi;
     if (strstr(g_geo[g], "|" + istr(mpi) + "|") < 0) {
@@ -661,6 +662,7 @@ board(B) {
         }
     }
     for (e = 0; e < n_el; e++) el_ef[e] = find_ef(el_flib[e], el_pkg[e], el_furn[e]);
+    read_polarity();
 
     // ---- строки BOM
     sort(n_el, gidx, gkey, gname);
@@ -856,6 +858,8 @@ board(B) {
             attr_cmd += "ATTRIBUTE " + el_name[e] + " LCSC_PART '" + g_lcsc[g] + "';\n";
             n_scr++;
         }
+        // новый атрибут иначе появляется видимым (номер на tValues поверх детали)
+        if (attr_cmd != "") attr_cmd = "CHANGE DISPLAY OFF;\n" + attr_cmd;
     }
 
     // ---- заготовки отчёта и документации

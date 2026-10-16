@@ -449,6 +449,7 @@ void report_phase1(string path, string base, string stamp)
                     if ((pass == 0 && okp) || (pass == 1 && !okp)) continue;
                     string how = hs("по номерам выводов", "pin numbers");
                     if (!mp_byname[q]) how = hs("по форме", "shape");
+                    else if (mp_pol[q]) how = hs("по аноду и катоду", "anode and cathode");
                     string st2 = h(mp_status(q));
                     string nt = mp_notes(q);
                     if (nt != "") st2 += "<br><span class=\"note\">" + h(nt) + "</span>";
