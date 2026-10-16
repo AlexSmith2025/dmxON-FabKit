@@ -6,7 +6,7 @@
     "description": {
         "": "dmxON for Fusion Electronics: dmxON toolbar tab (FabKit, JLC Rules), folder registration, updates from GitHub and full local backups of the design folder."
     },
-    "version": "1.1.0",
+    "version": "1.2.0",
     "runOnStartup": true,
     "supportedOS": "windows",
     "editEnabled": true

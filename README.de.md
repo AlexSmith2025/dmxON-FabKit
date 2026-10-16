@@ -88,7 +88,7 @@ Der Installer kopiert das Projekt nach `Dokumente\dmxON\dmxON-FabKit` und instal
 2. **dmxON → FabKit** drücken (oder **Automation → Run ULP → `dmxON_FabKit`**).
 3. Oben rechts **Norm** (ISO oder GOST) und **Sprache** wählen, den Ordner, und **Paket erstellen** drücken.
 4. Mit dmxON-Add-in und installiertem dmxON JLC Rules wird Gerber ohne Fenster über den CAM-Job dmxON JLCPCB exportiert. Ohne sie kann Fusion das Fenster **CAM Export File List** zeigen — **OK** drücken.
-5. Etwa eine Minute später öffnet sich der Paketordner. Mit `index.html` beginnen. Ist die Sicherung aktiv, speichert das Add-in danach den gesamten Designordner in `Dokumente\dmxON\Backups`.
+5. Etwa eine Minute später öffnet sich der Paketordner. Mit `index.html` beginnen. Ist die Sicherung aktiv, speichert das Add-in danach den gesamten Designordner ins Paket, nach `05_BACKUP`.
 
 Tipp: zuerst [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) ausführen — es richtet die JLCPCB-Designregeln und den Lagenaufbau ein und übergibt Platinendicke und Maskenfarbe an FabKit. Beide Werkzeuge teilen sich die Spracheinstellung.
 
@@ -121,7 +121,8 @@ Alle Einstellungen werden gespeichert.
 │   └── <Platine>_v<Version>_JLCPCB_CPL.csv ← PCB Assembly: CPL
 ├── 02_REPORT/                          Bericht + Lagenvorschau
 ├── 03_ASSEMBLY_DOCS/                   Dokumentation nach ISO oder GOST (HTML + PDF)
-└── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 PDF-Blätter
+├── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 PDF-Blätter
+└── 05_BACKUP/                          Sicherung des gesamten Designordners (dmxON-Add-in)
 ```
 
 Jeder Lauf **löscht das Paket der Platine und erstellt es neu** — aber nur, wenn FabKit den Ordner angelegt hat (er enthält die Markierung `.dmxon-fabkit`). Ein fremder Ordner mit gleichem Namen wird nie angefasst.

@@ -34,7 +34,7 @@ try:
 except ImportError:
     pass
 
-ADDIN_VERSION = '1.1.0'
+ADDIN_VERSION = '1.2.0'
 APP = adsk.core.Application.get()
 UI = APP.userInterface
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -795,6 +795,10 @@ def backup(reason='manual', extra=None, quiet=False, target=None):
     stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
     root = STATE['settings'].get('backup_root') or os.path.join(BASE, 'Backups')
     dest = os.path.join(root, safe(project.name), *[safe(c) for c in chain])
+    # из FabKit: архив — в производственную папку пакета, рядом с Gerber и документацией
+    in_pkg = bool(extra and os.path.isdir(extra))
+    if in_pkg:
+        dest = os.path.join(extra, '05_BACKUP')
     top = safe(folder.name if chain else project.name)
     work = tempfile.mkdtemp(prefix='dmxon_bk_')
     pd = UI.createProgressDialog()
@@ -836,7 +840,7 @@ def backup(reason='manual', extra=None, quiet=False, target=None):
                 rec['status'] = 'error: %s' % e
                 errors.append(f.name + '.' + ext)
             files.append(rec)
-        if extra and os.path.isdir(extra):
+        if extra and os.path.isdir(extra) and not in_pkg:
             shutil.copytree(extra, os.path.join(work, top, '_dmxON_' + safe(reason), os.path.basename(extra.rstrip('\\/'))),
                             dirs_exist_ok=True)
         meta = {'dmxON': ADDIN_VERSION, 'created': datetime.datetime.now().isoformat(timespec='seconds'),

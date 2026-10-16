@@ -5,6 +5,14 @@ Numbering: `MAJOR.MINOR.PATCH` — new feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.4.0 — 2026-10-16
+
+**Changed**
+
+- **The design-folder backup goes into the production package.** With «Back up the whole design folder» on, the dmxON add-in (1.2.0) writes `<folder>_<date>.zip` into `<board>_v<version>_FabKit\05_BACKUP` — next to Gerber, BOM/CPL and the documentation — instead of `Documents\dmxON\Backups`; the start page links it. The package is not copied into that archive any more (it is right beside it). The Backup button on the dmxON tab still saves to `Documents\dmxON\Backups` (or the folder set in the add-in settings).
+
+---
+
 ## 2.3.0 — 2026-10-16
 
 **New**

@@ -88,7 +88,7 @@ Instalator kopiuje projekt do `Dokumenty\dmxON\dmxON-FabKit` i instaluje **dodat
 2. Naciśnij **dmxON → FabKit** (albo **Automation → Run ULP → `dmxON_FabKit`**).
 3. W prawym górnym rogu wybierz **normę** (ISO lub GOST) i **język**, folder, i naciśnij **Utwórz pakiet**.
 4. Z dodatkiem dmxON i zainstalowanym dmxON JLC Rules Gerber eksportuje się bez okien przez zadanie CAM dmxON JLCPCB. Bez nich Fusion może pokazać okno **CAM Export File List** — naciśnij **OK**.
-5. Po około minucie otworzy się folder pakietu. Zacznij od `index.html`. Przy włączonej kopii dodatek zapisze potem cały folder projektu w `Dokumenty\dmxON\Backups`.
+5. Po około minucie otworzy się folder pakietu. Zacznij od `index.html`. Przy włączonej kopii dodatek zapisze potem cały folder projektu w pakiecie, w `05_BACKUP`.
 
 Wskazówka: najpierw uruchom [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) — ustawia reguły projektowe JLCPCB i stos warstw oraz przekazuje do FabKit grubość płytki i kolor maski. Oba narzędzia mają wspólne ustawienie języka.
 
@@ -121,7 +121,8 @@ Wszystkie ustawienia są zapamiętywane.
 │   └── <płytka>_v<wersja>_JLCPCB_CPL.csv ← PCB Assembly: CPL
 ├── 02_REPORT/                          raport + podglądy warstw
 ├── 03_ASSEMBLY_DOCS/                   dokumentacja wg ISO lub GOST (HTML + PDF)
-└── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 arkuszy PDF
+├── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 arkuszy PDF
+└── 05_BACKUP/                          kopia całego folderu projektu (dodatek dmxON)
 ```
 
 Każde uruchomienie **usuwa i tworzy od nowa** pakiet płytki — ale tylko wtedy, gdy folder utworzył FabKit (zawiera znacznik `.dmxon-fabkit`). Obcy folder o tej samej nazwie nigdy nie jest ruszany.

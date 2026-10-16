@@ -949,6 +949,8 @@ void index_page(string dst)
             printf("%s", idx_card(d, "03", L("Документация A4", "A4 documentation"), L("чертежи, порядок пайки, ключи", "drawings, soldering order, keys")));
         }
         if (opt_toner) printf("%s", idx_card("04_TONER_TRANSFER_1to1/HOW_TO_PRINT.html", "04", L("ЛУТ 1:1", "Toner transfer 1:1"), L("PDF слоёв", "layer PDFs")));
+        if (st_geti("backup") && addin_alive())
+            printf("%s", idx_card("05_BACKUP/", "05", L("Бэкап проекта", "Design backup"), L("вся облачная папка проекта, zip", "the whole cloud design folder, zip")));
         printf("</div><footer>%s</footer></div></body></html>\n", h(fk_sign()));
     }
 }
@@ -1020,8 +1022,8 @@ void finish_main(string stfile)
     if (st_geti("backup")) {
         if (addin_alive()) {
             addin_request("backup", ",\"tool\":\"fabkit\",\"out\":" + json_s(fn_out));
-            bk = L("Бэкап папки проекта сохранит надстройка dmxON: Документы\\dmxON\\Backups.",
-                   "The dmxON add-in backs up the design folder to Documents\\dmxON\\Backups.");
+            bk = L("Бэкап папки проекта надстройка dmxON положит в пакет: 05_BACKUP.",
+                   "The dmxON add-in saves the design folder backup into the package: 05_BACKUP.");
         }
         else bk = L("Бэкап пропущен: надстройка dmxON не запущена (её ставит INSTALL.ulp).",
                     "Backup skipped: the dmxON add-in is not running (INSTALL.ulp installs it).");
