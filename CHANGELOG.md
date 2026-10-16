@@ -5,6 +5,15 @@ Numbering: `MAJOR.MINOR.PATCH` — new feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.5.1 — 2026-10-16
+
+**Fixed**
+
+- **Document tables fit their columns.** The ISO parts list sizes its columns from the content (the longest part number, manufacturer or title decides the minimum, the rest is shared by the amount of text) and picks the largest text height that fits — 3.5, 3.0, 2.5 or 2.2 mm; part numbers and order codes are no longer cut off. Long words wrap instead of being clipped in every table, and row heights follow the real word wrapping, so pages break correctly. The standard GOST column widths stay; a header word wider than its GOST column («Поз. обозначение») is set smaller instead of breaking.
+- The parts list title no longer repeats the part number that has its own column («red, 0603» instead of «NCD0603R3 red NCD0603R3»); the GOST specification and list of elements drop the duplicate too. Manufacturer names lose the bracketed note («UNI-ROYAL» instead of «UNI-ROYAL(Uniroyal Elec)»).
+
+---
+
 ## 2.5.0 — 2026-10-16
 
 **Changed**

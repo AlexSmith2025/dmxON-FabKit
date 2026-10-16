@@ -213,6 +213,46 @@ void docs_asm()
 string tc_w = "", tc_h = "", tc_al = "";
 int tc_n = 0;
 real tc_rowmin = 8, tc_head = 15;
+real tc_font = 3.47;            // высота шрифта таблицы, мм (перечень ISO подбирает её сам)
+
+// ширина знака для оценки: заглавные и цифры номеров деталей шире среднего
+real tc_cw()
+{
+    return tc_font * 0.62;
+}
+
+// самое длинное слово (номер детали, имя) — его нельзя разорвать без потери читаемости
+int longest_word(string s)
+{
+    string w[];
+    int n = strsplit(w, s, ' '), m = 0;
+    for (int i = 0; i < n; i++) if (strlen(w[i]) > m) m = strlen(w[i]);
+    return m;
+}
+
+// число строк текста в графе шириной cpl знаков: перенос по словам, длинное слово рвётся (overflow-wrap:anywhere)
+int wrap_lines(string s, real cpl)
+{
+    if (cpl < 1) cpl = 1;
+    string w[];
+    int n = strsplit(w, s, ' ');
+    int lines = 1;
+    real cur = 0;
+    for (int i = 0; i < n; i++) {
+        int L = strlen(w[i]);
+        if (L == 0) continue;
+        if (L > cpl) {
+            if (cur > 0) lines++;
+            int extra = int((L - 1) / cpl);
+            lines += extra;
+            cur = L - extra * cpl;
+        }
+        else if (cur == 0) cur = L;
+        else if (cur + 1 + L <= cpl) cur += 1 + L;
+        else { lines++; cur = L; }
+    }
+    return lines;
+}
 string tr_cell[];               // строки таблицы: ячейки через табуляцию
 int tr_kind[];                  // 0 — строка, 1 — заголовок группы, 2 — пустая
 int n_tr = 0;
@@ -225,6 +265,73 @@ void tbl_cols(string w, string hdr, string al)
     n_tr = 0;
     tc_rowmin = doc_std == 1 ? 8 : 6;
     tc_head = doc_std == 1 ? 15 : 10;
+    tc_font = 3.47;
+}
+
+// ширины граф по содержимому (графы с заданной шириной > 0 не меняются) и самый крупный шрифт,
+// при котором самые длинные слова умещаются с запасом; сумма ширин — прежняя (поле рамки)
+void tbl_autofit(string fixed)
+{
+    string ws[], fx[], hs[];
+    int n = strsplit(ws, tc_w, '|');
+    strsplit(fx, fixed, '|');
+    strsplit(hs, tc_h, '|');
+    real total = 0, tfix = 0;
+    int i, r;
+    for (i = 0; i < n; i++) {
+        total += strtod(ws[i]);
+        if (strtod(fx[i]) > 0) tfix += strtod(fx[i]);
+    }
+    real fonts[] = { 3.5, 3.0, 2.5, 2.2 };
+    real mn[], pf[];
+    for (int fi = 0; fi < 4; fi++) {
+        tc_font = fonts[fi];
+        real cw = tc_cw(), pad = 2.4, smin = 0, gap = 0, spf = 0;
+        for (i = 0; i < n; i++) {
+            real fw = strtod(fx[i]);
+            if (fw > 0) { mn[i] = fw; pf[i] = fw; smin += fw; continue; }
+            int tok = longest_word(hs[i]), full = 0;
+            for (r = 0; r < n_tr; r++) {
+                if (tr_kind[r] == 2) continue;
+                string cs[];
+                int nc = strsplit(cs, tr_cell[r], '\t');
+                if (i >= nc) continue;
+                int t = longest_word(cs[i]);
+                if (t > tok) tok = t;
+                if (tr_kind[r] == 0 && strlen(cs[i]) > full) full = strlen(cs[i]);
+            }
+            mn[i] = tok * cw + pad;
+            if (mn[i] < 8) mn[i] = 8;
+            pf[i] = full * cw + pad;
+            if (pf[i] < mn[i]) pf[i] = mn[i];
+            smin += mn[i]; gap += pf[i] - mn[i]; spf += pf[i];
+        }
+        // запас 20 % под переносы; самый мелкий шрифт — как получится (длинные слова тогда переносятся)
+        if (smin > total * 0.8 && fi < 3) continue;
+        real extra = total - smin;
+        real take = extra < gap ? extra : gap;
+        real left = extra - take;
+        string out = "";
+        real used = 0;
+        int last = -1;
+        for (i = 0; i < n; i++) if (strtod(fx[i]) <= 0) last = i;
+        for (i = 0; i < n; i++) {
+            real w;
+            if (strtod(fx[i]) > 0) w = strtod(fx[i]);
+            else if (smin > total) w = mn[i] * (total - tfix) / (smin - tfix);
+            else w = mn[i] + (gap > 0 ? (pf[i] - mn[i]) * take / gap : 0) + (spf > 0 ? left * pf[i] / spf : 0);
+            w = round(w * 10) / 10.0;
+            if (i == last) {
+                real rest = 0;
+                for (int k = i + 1; k < n; k++) rest += strtod(fx[k]) > 0 ? strtod(fx[k]) : 0;
+                w = total - used - rest;
+            }
+            used += w;
+            out += (i ? "|" : "") + f3(w);
+        }
+        tc_w = out;
+        return;
+    }
 }
 
 // строка таблицы; ячейка длиннее 40 строк продолжается в следующих строках (лист её вмещает)
@@ -236,7 +343,7 @@ void tbl_row(int kind, string cells)
         string cs[];
         int nc = strsplit(cs, cells, '\t'), split = -1;
         for (int i = 0; i < nc && i < tc_n && split < 0; i++) {
-            int maxc = int((strtod(ws[i]) - 1.6) / (2.5 * 0.6) * 40);
+            int maxc = int((strtod(ws[i]) - 2.2) / tc_cw() * 40);
             string ci = cs[i];
             if (strlen(ci) <= maxc) continue;
             int cut = maxc;
@@ -267,11 +374,11 @@ real tbl_rowh(int r)
     int nc = strsplit(cs, tr_cell[r], '\t');
     int lines = 1;
     for (int i = 0; i < nc && i < tc_n; i++) {
-        real cpl = (strtod(ws[i]) - 1.6) / (2.5 * 0.6);
-        int ln = int((strlen(cs[i]) - 1) / cpl) + 1;
+        real cpl = (strtod(ws[i]) - 2.2) / tc_cw();
+        int ln = wrap_lines(cs[i], cpl);
         if (ln > lines) lines = ln;
     }
-    real hh = lines * 4.4 + 2.2;
+    real hh = lines * tc_font * 1.27 + 1.8;
     if (hh < tc_rowmin) hh = tc_rowmin;
     return hh;
 }
@@ -287,7 +394,17 @@ string tbl_head_html()
     for (int i = 0; i < tc_n; i++) {
         real w = strtod(ws[i]);
         string cls = (w < 9) ? " class=\"vt\"" : "";
-        s += "<th" + cls + "><span>" + h(hs[i]) + "</span></th>";
+        // слово заголовка шире графы (штатные графы ГОСТ узкие) — мельче шрифт, а не разрыв слова
+        string fs = "";
+        if (w >= 9) {
+            real need = longest_word(hs[i]) * tc_cw() + 2.2;
+            if (need > w) {
+                real k = w / need;
+                if (k < 0.65) k = 0.65;
+                sprintf(fs, " style=\"font-size:%s%%\"", f3(k * 100));
+            }
+        }
+        s += "<th" + cls + fs + "><span>" + h(hs[i]) + "</span></th>";
     }
     return s + "</tr>";
 }
@@ -345,7 +462,9 @@ void tbl_print(string title)
             body += "</tr>";
             used += tc_rowmin;
         }
-        s += "<table class=\"tl\">" + tbl_colgroup() + tbl_head_html() + body + "</table>";
+        string fs;
+        sprintf(fs, "font-size:%smm", f3(tc_font));
+        s += "<table class=\"tl\" style=\"" + fs + "\">" + tbl_colgroup() + tbl_head_html() + body + "</table>";
         s += sh_close();
         printf("%s", s);
         if (n_tr == 0) break;
@@ -400,7 +519,9 @@ string GRP_ORDER = "DD|VT|VD|HL|R|C|L|ZQ|F|SA|K|T|GB|X|Z";
 string part_title(int g)
 {
     string s = g_model[g] != "" ? g_model[g] : g_comment[g];
-    if (g_model[g] != "" && g_comment[g] != "" && strupr(squeeze(g_comment[g])) != strupr(squeeze(g_model[g]))) s += " " + g_comment[g];
+    // номинал уже содержит номер детали («red NCD0603R3») — без повтора
+    if (g_model[g] != "" && g_comment[g] != "" && strstr(strupr(g_comment[g]), strupr(g_model[g])) >= 0) s = g_comment[g];
+    else if (g_model[g] != "" && g_comment[g] != "" && strupr(squeeze(g_comment[g])) != strupr(squeeze(g_model[g]))) s += " " + g_comment[g];
     string pk = g_jpkg[g];
     if (g_cpkg[g] != "" && g_cpkg[g] != "-") pk = g_cpkg[g];
     if (pk != "" && strstr(strupr(s), strupr(pk)) < 0) s += (s == "" ? "" : ", ") + pk;
@@ -467,6 +588,35 @@ string des_key(string d)
 
 // ---------------------------------------------------------------- перечень деталей (ISO 7573:2008)
 
+// наименование для перечня: номер детали стоит в своей графе — здесь номинал/описание и корпус
+string pl_title(int g)
+{
+    string m = g_model[g], c = g_comment[g], s = "";
+    if (c != "" && strupr(squeeze(c)) != strupr(squeeze(m))) {
+        s = c;
+        if (m != "") {
+            int p = strstr(strupr(s), strupr(m));
+            if (p >= 0) s = trim(strsub(s, 0, p) + " " + strsub(s, p + strlen(m)));
+        }
+    }
+    if (s == "") s = m != "" ? m : c;
+    string pk = g_jpkg[g];
+    if (g_cpkg[g] != "" && g_cpkg[g] != "-") pk = g_cpkg[g];
+    if (pk != "" && strstr(strupr(s), strupr(pk)) < 0) s += ", " + pk;
+    return s;
+}
+
+// изготовитель без приписки в скобках: «UNI-ROYAL(Uniroyal Elec)» -> «UNI-ROYAL»
+string brand_short(string b)
+{
+    int p = strstr(b, "(");
+    if (p > 0) {
+        int e = strstr(b, ")", p);
+        b = trim(strsub(b, 0, p) + (e > p ? " " + strsub(b, e + 1) : ""));
+    }
+    return b;
+}
+
 void docs_pl()
 {
     doc_open("PL", 0);
@@ -486,10 +636,11 @@ void docs_pl()
             if (grp_of(d1[0]) != go[k]) continue;
             if (!any) { tbl_row(1, "\t\t" + grp_name(go[k]) + "\t\t\t\t"); any = 1; }
             item++;
-            tbl_row(0, istr(item) + "\t" + istr(g_qty[g]) + "\t" + part_title(g) + "\t" + des_ranges(g_desig[g]) + "\t" +
-                       g_model[g] + "\t" + g_brand[g] + "\t" + g_lcsc[g]);
+            tbl_row(0, istr(item) + "\t" + istr(g_qty[g]) + "\t" + pl_title(g) + "\t" + des_ranges(g_desig[g]) + "\t" +
+                       g_model[g] + "\t" + brand_short(g_brand[g]) + "\t" + g_lcsc[g]);
         }
     }
+    tbl_autofit("10|10|0|0|0|0|0");
     tbl_print(doc_type("PL"));
 }
 
@@ -529,7 +680,7 @@ void docs_spec()
             if (!any) { tbl_row(2, ""); tbl_row(1, "\t\t\t\t" + grp_name(go[k]) + "\t\t"); any = 1; }
             pos++;
             string nm = part_title(g);
-            if (g_brand[g] != "") nm += " " + g_brand[g];
+            if (g_brand[g] != "") nm += " " + brand_short(g_brand[g]);
             tbl_row(0, "\t\t" + istr(pos) + "\t\t" + nm + "\t" + istr(g_qty[g]) + "\t" + des_ranges(g_desig[g]));
         }
     }
@@ -576,7 +727,7 @@ void docs_pe()
             if (cnt == 2) ref += ", " + last;
             if (cnt > 2) ref += "…" + last;
             string note = "";
-            if (g >= 0 && g_brand[g] != "") note = g_brand[g];
+            if (g >= 0 && g_brand[g] != "") note = brand_short(g_brand[g]);
             tbl_row(0, ref + "\t" + nm + "\t" + istr(cnt) + "\t" + note);
             i = j;
         }
@@ -804,7 +955,7 @@ string DC_CSS =
     ".nt ol{margin:0;padding-left:5mm}.nt li{margin:0 0 .6mm}" +
     // таблицы текстовых документов
     "table.tl{border-collapse:collapse;table-layout:fixed;width:100%;font-size:3.47mm}" +
-    "table.tl th,table.tl td{border:.25mm solid #000;padding:0 1mm;vertical-align:middle;overflow:hidden;line-height:1.25}" +
+    "table.tl th,table.tl td{border:.25mm solid #000;padding:0 1mm;vertical-align:middle;overflow:hidden;line-height:1.25;overflow-wrap:anywhere;word-break:break-word}" +
     ".gost table.tl th,.gost table.tl td{border-left-width:.6mm;border-right-width:.6mm}.gost table.tl tr.th th{border-width:.6mm}" +
     "table.tl th{font-weight:400;text-align:center}table.tl th.vt span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap}" +
     "table.tl td.c{text-align:center}table.tl td.r{text-align:right}table.tl tr.gr td{text-align:center;text-decoration:underline}" +
