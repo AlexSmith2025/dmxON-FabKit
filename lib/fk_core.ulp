@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------- продукт
 
 string FK_NAME    = "dmxON FabKit";
-string FK_VERSION = "2.2.2";              // при каждой переделке поднимать (см. CHANGELOG.md)
+string FK_VERSION = "2.3.0";              // при каждой переделке поднимать (см. CHANGELOG.md)
 string FK_DATE    = "2026-10-16";
 string FK_AUTHOR  = "dmxON by AlexSmith";
 string FK_YEAR    = "2026";
@@ -60,6 +60,63 @@ int    batch_mode    = 0;
 // штамп (заполняется в диалоге, хранится отдельно для каждой платы)
 string tb_product = "", tb_docno = "", tb_company = "", tb_designer = "", tb_checker = "";
 string tb_approver = "", tb_customer = "", tb_rev = "1.0", tb_note = "";
+
+// ---------------------------------------------------------------- версия платы (одна на всё)
+// Источник — глобальный атрибут проекта REV (общий для схемы и платы, переезжает вместе с проектом);
+// поле «Версия» на вкладке штампа его меняет. Версия входит в имя папки пакета и всех файлов
+// (<плата>_v<версия>_…), в имена Gerber, штампы листов и заголовки отчёта.
+
+// «Rev 1.4», «Ver. 1.4», «v1.4», «1.4» -> «1.4»; только буквы, цифры, «.», «-», «_»
+string rev_norm(string r)
+{
+    r = trim(r);
+    string u = strupr(r);
+    if (starts_with(u, "REVISION")) r = strsub(r, 8);
+    else if (starts_with(u, "VERSION")) r = strsub(r, 7);
+    else if (starts_with(u, "REV") || starts_with(u, "VER")) r = strsub(r, 3);
+    else if (starts_with(u, "V") && strlen(r) > 1 && isdigit(r[1])) r = strsub(r, 1);
+    while (r != "" && (r[0] == '.' || r[0] == ' ' || r[0] == ':' || r[0] == '_')) r = strsub(r, 1);
+    string t = "";
+    for (int i = 0; r[i]; i++) {
+        int c = r[i];
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_') t += r[i];
+        else if (c == ' ') t += "-";
+    }
+    return t;
+}
+
+// суффикс имени файла: «_v1.4» или ""
+string ver_tag(string r)
+{
+    string n = rev_norm(r);
+    if (n == "") return "";
+    return "_v" + n;
+}
+
+// подпись для заголовков: «EncBoard v1.4»
+string ver_disp(string base, string r)
+{
+    string n = rev_norm(r);
+    if (n == "") return base;
+    return base + " v" + n;
+}
+
+// версия в тексте платы: «Encoder Ver. 1.4» -> «1.4», иначе ""
+string text_version(string s)
+{
+    string u = strupr(s);
+    int p = strstr(u, "VER");
+    if (p < 0) p = strstr(u, "REV");
+    if (p < 0) return "";
+    int i = p + 3;
+    while (u[i] && isalpha(u[i])) i++;
+    while (u[i] && (u[i] == '.' || u[i] == ' ' || u[i] == ':')) i++;
+    string v = "";
+    while (u[i] && (isdigit(u[i]) || u[i] == '.')) { v += s[i]; i++; }
+    while (v != "" && v[strlen(v) - 1] == '.') v = strsub(v, 0, strlen(v) - 1);
+    if (v == "" || !isdigit(v[0])) return "";
+    return v;
+}
 string tb_pcbno = "";            // обозначение печатной платы (детали)
 
 real fee_usd()

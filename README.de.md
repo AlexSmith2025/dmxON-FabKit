@@ -101,7 +101,7 @@ Tipp: zuerst [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Ru
 | **Ausgabe** | Ordner; Sicherung des Designordners; was erstellen: Gerber, Dokumentation, Schaltplan, PDF, Tonerblätter; was in BOM/CPL kommt: THT, Pad-Mitte, ausgelassene Bezeichner |
 | **Teile** | Katalogsuche, Basic/Preferred, Ersatzteile, Footprint-Prüfung, Attribut-Neuprüfung, `LCSC_PART` schreiben, Platinenanzahl, min. Kondensatorspannung, Feeder-Gebühr, BOM-Import |
 | **Platine** | Dicke, Masken- und Druckfarbe, Oberfläche — für Bericht, Bestellformular und Ansicht |
-| **Schriftfeld** | Produkt, Dokument-Nr., Revision, Kunde, Bemerkung (pro Platine); Firma und Unterschriften (gemeinsam) |
+| **Schriftfeld** | Produkt, Dokument-Nr., Version (Rev.), Kunde, Bemerkung (pro Platine); Firma und Unterschriften (gemeinsam) |
 | **Info** | Version, Autor, Lizenz, Links |
 
 Alle Einstellungen werden gespeichert.
@@ -111,20 +111,22 @@ Alle Einstellungen werden gespeichert.
 ## Ergebnis
 
 ```
-<Platine>_FabKit/
+<Platine>_v<Version>_FabKit/
 ├── index.html                          Startseite
 ├── 01_JLCPCB_ORDER/
 │   ├── JLCPCB_GERBER/
-│   │   ├── <Platine>_Gerber_JLCPCB.zip ← auf jlcpcb.com hochladen
+│   │   ├── <Platine>_v<Version>_Gerber_JLCPCB.zip ← auf jlcpcb.com hochladen
 │   │   └── unpacked/                   dieselben Dateien zur Ansicht
-│   ├── <Platine>_JLCPCB_BOM.csv        ← PCB Assembly: BOM
-│   └── <Platine>_JLCPCB_CPL.csv        ← PCB Assembly: CPL
+│   ├── <Platine>_v<Version>_JLCPCB_BOM.csv ← PCB Assembly: BOM
+│   └── <Platine>_v<Version>_JLCPCB_CPL.csv ← PCB Assembly: CPL
 ├── 02_REPORT/                          Bericht + Lagenvorschau
 ├── 03_ASSEMBLY_DOCS/                   Dokumentation nach ISO oder GOST (HTML + PDF)
 └── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 PDF-Blätter
 ```
 
 Jeder Lauf **löscht das Paket der Platine und erstellt es neu** — aber nur, wenn FabKit den Ordner angelegt hat (er enthält die Markierung `.dmxon-fabkit`). Ein fremder Ordner mit gleichem Namen wird nie angefasst.
+
+**Eine Version überall.** Die Platinenversion steht im Design als globales Attribut `REV` und wird im Feld **Version (Rev.)** auf dem Reiter **Schriftfeld** gesetzt. Sie ist Teil des Paketordners und aller Dateinamen (`<Platine>_v<Version>_…`, auch der Gerber-Dateien im Zip), der ISO-Schriftfelder und des Berichts. Beim ersten Mal übernimmt FabKit die auf der Platine gedruckte Version (ein Text wie «Ver. 1.4») oder ein früher von FabKit geschriebenes `REV` — ein `REV` aus einer Rahmenvorlage (oft «A») schlägt den Platinentext nicht — und schreibt sie mit OK ins Design. Der Bericht warnt, wenn Platinentext, `REV` und Paket nicht übereinstimmen. Pakete verschiedener Versionen liegen nebeneinander; ein neuer Lauf ersetzt nur das Paket derselben Version.
 
 ---
 

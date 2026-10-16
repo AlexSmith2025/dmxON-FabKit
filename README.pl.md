@@ -101,7 +101,7 @@ Wskazówka: najpierw uruchom [**dmxON JLC Rules**](https://github.com/AlexSmith2
 | **Wyjście** | folder; kopia folderu projektu; co utworzyć: Gerber, dokumentację, schemat elektryczny, PDF, arkusze do termotransferu; co trafia do BOM/CPL: THT, środek padów, pomijane oznaczenia |
 | **Części** | wyszukiwanie w katalogu, Basic/Preferred, zamienniki, sprawdzanie footprintów, ponowna kontrola atrybutów, zapis `LCSC_PART`, liczba płytek, min. napięcie kondensatorów, opłata za podajnik, import BOM |
 | **Płytka** | grubość, kolor maski i opisów, wykończenie — do raportu, formularza zamówienia i widoku |
-| **Tabliczka** | wyrób, nr dokumentu, wydanie, klient, uwagi (dla płytki); firma i podpisy (wspólne) |
+| **Tabliczka** | wyrób, nr dokumentu, wersja (Rev.), klient, uwagi (dla płytki); firma i podpisy (wspólne) |
 | **O programie** | wersja, autor, licencja, linki |
 
 Wszystkie ustawienia są zapamiętywane.
@@ -111,20 +111,22 @@ Wszystkie ustawienia są zapamiętywane.
 ## Wynik
 
 ```
-<płytka>_FabKit/
+<płytka>_v<wersja>_FabKit/
 ├── index.html                          strona startowa
 ├── 01_JLCPCB_ORDER/
 │   ├── JLCPCB_GERBER/
-│   │   ├── <płytka>_Gerber_JLCPCB.zip  ← wgraj na jlcpcb.com
+│   │   ├── <płytka>_v<wersja>_Gerber_JLCPCB.zip ← wgraj na jlcpcb.com
 │   │   └── unpacked/                   te same pliki do podglądu
-│   ├── <płytka>_JLCPCB_BOM.csv         ← PCB Assembly: BOM
-│   └── <płytka>_JLCPCB_CPL.csv         ← PCB Assembly: CPL
+│   ├── <płytka>_v<wersja>_JLCPCB_BOM.csv ← PCB Assembly: BOM
+│   └── <płytka>_v<wersja>_JLCPCB_CPL.csv ← PCB Assembly: CPL
 ├── 02_REPORT/                          raport + podglądy warstw
 ├── 03_ASSEMBLY_DOCS/                   dokumentacja wg ISO lub GOST (HTML + PDF)
 └── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 arkuszy PDF
 ```
 
 Każde uruchomienie **usuwa i tworzy od nowa** pakiet płytki — ale tylko wtedy, gdy folder utworzył FabKit (zawiera znacznik `.dmxon-fabkit`). Obcy folder o tej samej nazwie nigdy nie jest ruszany.
+
+**Jedna wersja wszędzie.** Wersja płytki jest zapisana w projekcie jako atrybut globalny `REV` i ustawiana w polu **Wersja (Rev.)** na karcie **Tabliczka**. Wchodzi do nazwy folderu pakietu i wszystkich plików (`<płytka>_v<wersja>_…`, także plików Gerber w archiwum), do tabliczek ISO i do raportu. Za pierwszym razem FabKit bierze wersję wydrukowaną na płytce (tekst w rodzaju «Ver. 1.4») albo `REV` zapisany wcześniej przez FabKit — `REV` z szablonu ramki (często «A») nie wygrywa z napisem na płytce — i po OK zapisuje ją w projekcie. Raport ostrzega, gdy napis na płytce, `REV` i pakiet się różnią. Pakiety różnych wersji leżą obok siebie; nowe uruchomienie zastępuje tylko pakiet tej samej wersji.
 
 ---
 

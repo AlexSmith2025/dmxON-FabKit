@@ -101,7 +101,7 @@ Tip: run [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-
 | **Output** | folder; backup of the design folder; what to build: Gerber, documentation, circuit diagram, PDF, toner sheets; what goes into BOM/CPL: THT, pad centre, skipped designators |
 | **Parts** | catalogue search, Basic/Preferred, substitutes, footprint check, attribute re-check, writing `LCSC_PART`, board quantity, minimum capacitor voltage, feeder fee, BOM import |
 | **PCB** | thickness, mask and silkscreen colour, finish — for the report, the order form and the render |
-| **Title** | product, document number, revision, customer, note (per board); company and signatures (shared) |
+| **Title** | product, document number, version (Rev.), customer, note (per board); company and signatures (shared) |
 | **About** | version, author, license, links |
 
 All settings are remembered.
@@ -111,20 +111,22 @@ All settings are remembered.
 ## Output
 
 ```
-<board>_FabKit/
+<board>_v<version>_FabKit/
 ├── index.html                          start page
 ├── 01_JLCPCB_ORDER/
 │   ├── JLCPCB_GERBER/
-│   │   ├── <board>_Gerber_JLCPCB.zip   ← upload to jlcpcb.com
+│   │   ├── <board>_v<version>_Gerber_JLCPCB.zip ← upload to jlcpcb.com
 │   │   └── unpacked/                   the same files for review
-│   ├── <board>_JLCPCB_BOM.csv          ← PCB Assembly: BOM
-│   └── <board>_JLCPCB_CPL.csv          ← PCB Assembly: CPL
+│   ├── <board>_v<version>_JLCPCB_BOM.csv ← PCB Assembly: BOM
+│   └── <board>_v<version>_JLCPCB_CPL.csv ← PCB Assembly: CPL
 ├── 02_REPORT/                          report + layer previews
 ├── 03_ASSEMBLY_DOCS/                   documentation to ISO or GOST (HTML + PDF)
 └── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 PDF sheets
 ```
 
 Every run **deletes and rebuilds** the board's package — but only if FabKit created that folder (it holds a `.dmxon-fabkit` marker). A foreign folder with the same name is never touched.
+
+**One version everywhere.** The board version is stored in the design as the global attribute `REV` and set in the **Version (Rev.)** field of the **Title** tab. It is part of the package folder and every file name (`<board>_v<version>_…`, the Gerber files inside the zip too), the ISO title blocks and the report. The first time, FabKit takes the version printed on the board (a text such as «Ver. 1.4») or a `REV` it wrote earlier — a `REV` left by a frame template (often «A») does not override the board text — and writes it into the design when you press OK. The report warns when the board text, `REV` and the package disagree. Packages of different versions are kept side by side; a new run replaces only the package of the same version.
 
 ---
 

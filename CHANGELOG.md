@@ -5,6 +5,18 @@ Numbering: `MAJOR.MINOR.PATCH` — new feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.3.0 — 2026-10-16
+
+**New**
+
+- **One version everywhere.** The board version is kept in the design as the global attribute `REV` and edited in the **Version (Rev.)** field of the Title tab. It is part of the package folder and every file name — `<board>_v<version>_FabKit/`, `…_JLCPCB_BOM.csv`, `…_JLCPCB_CPL.csv`, `…_Gerber_JLCPCB.zip` and the Gerber files inside it, the report, the assembly documentation, the toner-transfer sheets — and of the ISO title blocks, the report and the start page. FabKit takes the version from a `REV` it wrote earlier, otherwise from the text on the board («Ver. 1.4»; a frame template's `REV`, often «A», does not override it), otherwise from the last entry, and writes it into the design on OK. The manufacturability check warns when the board text, `REV` and the package disagree. Packages of different versions are kept side by side.
+
+**Changed**
+
+- ISO 5457 centring marks run from the trimmed edge to the frame only; they no longer cross the title block or the drawing area.
+
+---
+
 ## 2.2.2 — 2026-10-16
 
 **Fixed**

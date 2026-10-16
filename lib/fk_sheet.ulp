@@ -167,12 +167,13 @@ void iso_grid()
             if (all) sv_text(sh_fl - g, y, g, y2 - y, 'c', 3.5, "gz", strsub(LET, i, 1), "");
         }
     }
-    // центровочные метки: 0,7 мм, от полосы сетки на 10 мм внутрь рамки
+    // центровочные метки: 0,7 мм, от обреза листа до линии рамки — внутрь рамки не заходят
+    // (иначе пересекают основную надпись и поле чертежа)
     real cx = sh_pw / 2, cy = sh_ph / 2;
-    sv_line(cx, sh_ft - g, cx, sh_ft + 10, 0.7);
-    sv_line(cx, sh_fb + g, cx, sh_fb - 10, 0.7);
-    sv_line(sh_fl - g, cy, sh_fl + 10, cy, 0.7);
-    sv_line(sh_fr + g, cy, sh_fr - 10, cy, 0.7);
+    sv_line(cx, 0, cx, sh_ft, 0.7);
+    sv_line(cx, sh_ph, cx, sh_fb, 0.7);
+    sv_line(0, cy, sh_fl, cy, 0.7);
+    sv_line(sh_pw, cy, sh_fr, cy, 0.7);
     // обозначение формата — в нижнем поле у правого угла
     sv_text(sh_fr - 30, sh_fb + (all ? g : 0), 30, 10 - (all ? g : 0), 'r', 2.5, "gz", h(sh_fname), "");
 }

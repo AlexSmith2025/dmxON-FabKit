@@ -231,7 +231,22 @@ board(B) {
     string tk = "tb." + cfg_part(base) + ".";
     tb_product  = cfgget(cfg_key(tk + "product"), base);
     tb_docno    = cfgget(cfg_key(tk + "docno"), base + ".FK");
-    tb_rev      = cfgget(cfg_key(tk + "rev"), "1.0");
+    // версия: атрибут проекта REV, если его поставил FabKit (совпадает с последней введённой версией);
+    // иначе надпись на плате («Ver. 1.4») — REV мог прийти из шаблона рамки («A»); иначе REV, иначе введённая, иначе 1.0
+    string design_rev = "", silk_ver = "";
+    B.attributes(GA) {
+        string gan = strupr(GA.name);
+        if (design_rev == "" && (gan == "REV" || gan == "REVISION" || gan == "VERSION" || gan == "VER")) design_rev = rev_norm(GA.value);
+    }
+    B.texts(BT) {
+        if (silk_ver == "" && (BT.layer == 21 || BT.layer == 22 || BT.layer == 25 || BT.layer == 26)) silk_ver = text_version(BT.value);
+    }
+    string cfg_rev = rev_norm(cfgget(cfg_key(tk + "rev"), ""));
+    if (design_rev != "" && (silk_ver == "" || silk_ver == design_rev || cfg_rev == design_rev)) tb_rev = design_rev;
+    else if (silk_ver != "") tb_rev = silk_ver;
+    else if (design_rev != "") tb_rev = design_rev;
+    else tb_rev = cfg_rev;
+    if (tb_rev == "") tb_rev = "1.0";
     tb_customer = cfgget(cfg_key(tk + "customer"), "");
     tb_note     = cfgget(cfg_key(tk + "note"), "");
     tb_pcbno    = cfgget(cfg_key(tk + "pcbno"), base + "-PCB");
@@ -286,8 +301,9 @@ board(B) {
                                 if (d != "") opt_root = d;
                             }
                         }
-                        dlgLabel(Lf("Пакет создаётся в подпапке «{0}». Прежний пакет этой платы удаляется целиком.",
-                                    "The package goes to «{0}». A previous package of this board is replaced completely.", base + "_FabKit", "", ""));
+                        dlgLabel(Lf("Пакет создаётся в подпапке «{0}»: версия — на вкладке штампа, она же в именах всех файлов и в штампах; прежний пакет этой версии удаляется целиком.",
+                                    "The package goes to «{0}»: the version is set on the title block tab and appears in every file name and title block; a previous package of this version is replaced completely.",
+                                    base + ver_tag(tb_rev) + "_FabKit", "", ""));
                         dlgCheckBox(L("Открыть папку после выгрузки", "Open the folder when done"), opt_open);
                         dlgCheckBox(L("Бэкап всей папки проекта на этот компьютер (надстройка dmxON)",
                                       "Back up the whole design folder to this computer (dmxON add-in)"), opt_backup);
@@ -363,7 +379,7 @@ board(B) {
                             dlgCell(1, 1) dlgStringEdit(tb_docno);
                             dlgCell(5, 0) dlgLabel(L("Обозначение платы", "PCB part number"));
                             dlgCell(5, 1) dlgStringEdit(tb_pcbno);
-                            dlgCell(2, 0) dlgLabel(L("Редакция", "Revision"));
+                            dlgCell(2, 0) dlgLabel(L("Версия (Rev.)", "Version (Rev.)"));
                             dlgCell(2, 1) dlgStringEdit(tb_rev);
                             dlgCell(3, 0) dlgLabel(L("Заказчик", "Customer"));
                             dlgCell(3, 1) dlgStringEdit(tb_customer);
@@ -462,7 +478,10 @@ board(B) {
     if (home != "") runner_init(home + "/AppData/Local/Temp");
 
     // ---- папка пакета: прежний пакет FabKit удаляется, чужая папка не трогается
-    string outdir = opt_root + "/" + base + "_FabKit";
+    tb_rev = rev_norm(tb_rev);
+    if (tb_rev == "") tb_rev = "1.0";
+    string fbase = base + ver_tag(tb_rev);           // имя файлов и папки: <плата>_v<версия>
+    string outdir = opt_root + "/" + fbase + "_FabKit";
     string fx[];
     if (fileglob(fx, outdir) > 0) {
         if (file_exists(outdir + "/" + FK_MARKER)) {
@@ -474,7 +493,7 @@ board(B) {
                                      L("Очистить её? «Нет» — создать новую папку с датой.", "Clear it? «No» — create a new dated folder."),
                                      "+" + L("Да", "Yes"), "-" + L("Нет", "No")) == 0);
             if (clr) shell("rmdir /s /q " + qp(outdir));
-            else outdir = opt_root + "/" + base + "_FabKit_" + t2string(time(), "yyyy-MM-dd_hh-mm");
+            else outdir = opt_root + "/" + fbase + "_FabKit_" + t2string(time(), "yyyy-MM-dd_hh-mm");
         }
     }
     string d1 = outdir + "/01_JLCPCB_ORDER";
@@ -819,8 +838,8 @@ board(B) {
     }
 
     // ---- BOM и CPL
-    string bom_file = d1 + "/" + base + "_JLCPCB_BOM.csv";
-    string cpl_file = d1 + "/" + base + "_JLCPCB_CPL.csv";
+    string bom_file = d1 + "/" + fbase + "_JLCPCB_BOM.csv";
+    string cpl_file = d1 + "/" + fbase + "_JLCPCB_CPL.csv";
     output(bom_file, "wt") {
         printf("Comment,Designator,Footprint,%s\n", LCSC_HEADER);
         for (g = 0; g < n_g; g++) {
@@ -861,19 +880,26 @@ board(B) {
         // новый атрибут иначе появляется видимым (номер на tValues поверх детали)
         if (attr_cmd != "") attr_cmd = "CHANGE DISPLAY OFF;\n" + attr_cmd;
     }
+    // версия — в проект (глобальный атрибут REV), чтобы схема, плата и другие компьютеры знали одну и ту же
+    int rev_written = 0;
+    if (!batch_mode && tb_rev != design_rev) {
+        attr_cmd = "ATTRIBUTE * REV '" + tb_rev + "';\n" + attr_cmd;
+        rev_written = 1;
+    }
 
     // ---- заготовки отчёта и документации
     report_totals();
     fk_log(L("отчёт", "report"));
-    report_phase1(tmp + "/report_p1.html", base, stamp);
+    report_phase1(tmp + "/report_p1.html", ver_disp(base, tb_rev), stamp);
     if (opt_docs) {
         dc_date = date;
-        docs_phase1(tmp + "/docs_p1.html", base, n_layers, stamp);
+        docs_phase1(tmp + "/docs_p1.html", ver_disp(base, tb_rev), n_layers, stamp);
     }
     output(tmp + "/outline.txt", "wt") printf("%s\n", outline_closed());
 
     // ---- состояние для третьей фазы
     st_set("outdir", outdir); st_set("tmp", tmp); st_set("runner", fk_runner); st_set("base", base); st_set("date", date);
+    st_set("fbase", fbase); st_set("silk_ver", silk_ver); st_set("design_rev", design_rev); st_seti("rev_written", rev_written);
     st_seti("gerber", opt_gerber); st_seti("docs", opt_docs); st_seti("toner", opt_toner); st_seti("pdf", opt_pdf);
     st_seti("open", opt_open); st_seti("backup", opt_backup); st_seti("batch", batch_mode); st_seti("boards", opt_boards); st_seti("keep_tmp", keep_tmp);
     st_set("mask", opt_mask); st_set("silk", opt_silk); st_set("finish", opt_finish); st_set("thick", opt_thick);
@@ -895,6 +921,10 @@ board(B) {
     if (opt_online && n_req > 0 && net_empty == n_req)
         summary += "\n\n" + L("Каталог JLCPCB не ответил", "JLCPCB catalogue did not answer") + " (" + net_method + "). " + net_diag;
     if (n_scr > 0) summary += "\n\n" + L("Атрибутов LCSC_PART записано", "LCSC_PART attributes written") + ": " + istr(n_scr);
+    if (rev_written) summary += "\n\n" + Lf("Версия {0} записана в проект (атрибут REV).", "Version {0} saved in the design (attribute REV).", tb_rev, "", "");
+    if (silk_ver != "" && silk_ver != tb_rev)
+        summary += "\n\n" + attn() + Lf("на плате написана версия {0}, а пакет — версии {1}: исправьте надпись или версию на вкладке штампа.",
+                                          "the board text says version {0}, the package is version {1}: fix the text or the version on the title block tab.", silk_ver, tb_rev, "");
     st_set("summary", summary);
     string stfile = tmp + "/state.txt";
     st_save(stfile);

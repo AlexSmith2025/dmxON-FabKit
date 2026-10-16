@@ -5,7 +5,7 @@
 //   RUN dmxON_FabKit.ulp -finish <файл состояния>
 // Всё, что знала первая фаза, приходит через файл состояния и заготовки HTML во временной папке.
 
-string fn_out, fn_tmp, fn_base, fn_d1, fn_d2, fn_d3, fn_d4, fn_img, fn_gdir, fn_zip, fn_outline;
+string fn_fbase, fn_disp, fn_out, fn_tmp, fn_base, fn_d1, fn_d2, fn_d3, fn_d4, fn_img, fn_gdir, fn_zip, fn_outline;
 int fn_layers = 0;              // слоёв меди по файлам
 real fn_minw = 0;               // самая узкая дорожка, мм
 int fn_thin = 0;                // штрихов меди тоньше 0.05 мм
@@ -52,8 +52,8 @@ string zip_base(string b)
 
 string gf_jlc_name(int i)
 {
-    if (gf_code[i] != "XLN" && starts_with(gf_code[i], "XLN")) return fn_base + "_" + gf_code[i] + ".XLN";
-    return fn_base + "." + gf_code[i];
+    if (gf_code[i] != "XLN" && starts_with(gf_code[i], "XLN")) return fn_fbase + "_" + gf_code[i] + ".XLN";
+    return fn_fbase + "." + gf_code[i];
 }
 
 int gf_ord[];
@@ -87,20 +87,20 @@ void finish_gerber()
     shell("mkdir " + qp(ud) + " 2>nul");
     // архив собирается во временной папке из копий с латинскими именами (tar и кириллица несовместимы),
     // затем копируется на место; JLCPCB узнаёт слой по расширению
-    string zb = zip_base(fn_base);
+    string zb = zip_base(fn_fbase);
     string zt = fn_tmp + "/jlc";
     shell("mkdir " + qp(zt) + " 2>nul");
     string cmd = "", names = "";
     for (i = 0; i < n_gf; i++) {
         gf_dst[i] = gf_jlc_name(i);
-        string zn = zb + strsub(gf_dst[i], strlen(fn_base));
+        string zn = zb + strsub(gf_dst[i], strlen(fn_fbase));
         if (cmd != "") cmd += " & ";
         cmd += "copy /y " + qp(gf_src[i]) + " " + qp(ud + "/" + gf_dst[i]) + " >nul & copy /y " + qp(gf_src[i]) + " " + qp(zt + "/" + zn) + " >nul";
         if (strlen(cmd) > 5000) { shell(cmd); cmd = ""; }
         names += " \"" + zn + "\"";
     }
     if (cmd != "") shell(cmd);
-    fn_zip = fn_gdir + "/" + fn_base + "_Gerber_JLCPCB.zip";
+    fn_zip = fn_gdir + "/" + fn_fbase + "_Gerber_JLCPCB.zip";
     shell("cd /d " + qp(zt) + " && tar -a -cf ..\\gerber.zip" + names + " && copy /y ..\\gerber.zip " + qp(fn_zip) + " >nul");
     for (i = 0; i < n_gf; i++) gf_size[i] = filesize(ud + "/" + gf_dst[i]);
     if (!file_exists(fn_zip)) fn_err += "Gerber: zip not created. ";
@@ -228,6 +228,16 @@ void dfm_add(string cls, string txt)
 void dfm_check()
 {
     n_dfm = 0;
+    // одна версия на всё: имена файлов, штампы и надпись на плате
+    string sv = st_get("silk_ver"), dr = st_get("design_rev");
+    if (dr != "" && dr != rev_norm(tb_rev) && !st_geti("rev_written"))
+        dfm_add("warn", Lf("в проекте атрибут REV = {0}, а пакет — версии {1}: запустите FabKit из окна, он запишет версию в проект",
+                           "the design attribute REV is {0}, the package is version {1}: run FabKit from its dialog to save the version in the design", dr, rev_norm(tb_rev), ""));
+    if (sv != "" && sv != rev_norm(tb_rev))
+        dfm_add("warn", Lf("на плате написана версия {0}, а пакет — версии {1}", "the board text says version {0}, the package is version {1}", sv, rev_norm(tb_rev), ""));
+    else
+        dfm_add("ok", Lf("версия {0} — в именах файлов, штампах{1}", "version {0} — in file names and title blocks{1}", rev_norm(tb_rev),
+                         sv != "" ? L(" и на плате", " and on the board") : "", ""));
     real tmin = 0.10;                       // 1–2 слоя: 0.10 мм (4 mil), многослойные: 0.09 мм
     if (fn_layers >= 4) tmin = 0.09;
     if (fn_minw > 0) {
@@ -316,12 +326,12 @@ string file_link(string rel, string name, string label)
 
 string sec_order()
 {
-    string bom = fn_base + "_JLCPCB_BOM.csv", cpl = fn_base + "_JLCPCB_CPL.csv";
+    string bom = fn_fbase + "_JLCPCB_BOM.csv", cpl = fn_fbase + "_JLCPCB_CPL.csv";
     string s = h2s("order", "Заказ на JLCPCB", "Ordering at JLCPCB");
     s += "<div class=\"grid2\"><div class=\"box\">";
     s += "<h3 style=\"margin-top:0\">" + hl("Что загрузить", "What to upload") + "</h3><ol style=\"margin:0;padding-left:20px\">";
     if (n_gf > 0)
-        s += "<li>" + hs("Плата: архив", "PCB: archive") + " " + file_link(rel1 + "JLCPCB_GERBER/", fn_base + "_Gerber_JLCPCB.zip", fn_base + "_Gerber_JLCPCB.zip") +
+        s += "<li>" + hs("Плата: архив", "PCB: archive") + " " + file_link(rel1 + "JLCPCB_GERBER/", fn_fbase + "_Gerber_JLCPCB.zip", fn_fbase + "_Gerber_JLCPCB.zip") +
              " → jlcpcb.com/quote → Add gerber file</li>";
     s += "<li>" + hs("Сборка (PCB Assembly): BOM", "Assembly: BOM") + " " + file_link(rel1, bom, bom) + "</li>";
     s += "<li>" + hs("и CPL (координаты)", "and CPL (pick & place)") + " " + file_link(rel1, cpl, cpl) + "</li>";
@@ -476,7 +486,7 @@ string fab_notes()
         s += Lf("Наименьшая ширина проводника {0} мм; наименьший диаметр отверстия {1} мм.",
                 "Minimum conductor width {0} mm; minimum finished hole {1} mm.", dnum(round(fn_minw * 1000) / 1000.0), dnum(drill_min()), "") + "\n";
     s += Lf("Рисунок проводников — по файлам Gerber {0} (RS-274X), координаты отверстий — по файлу Excellon.",
-            "Conductive pattern per Gerber data {0} (RS-274X); hole positions per the Excellon file.", fn_base + "_Gerber_JLCPCB.zip", "", "") + "\n";
+            "Conductive pattern per Gerber data {0} (RS-274X); hole positions per the Excellon file.", fn_fbase + "_Gerber_JLCPCB.zip", "", "") + "\n";
     s += Lf("Предельные отклонения размеров контура ±{0} мм; размеры — в миллиметрах.",
             "Outline tolerance ±{0} mm; dimensions in millimetres.", dnum(0.2), "", "") + "\n";
     s += Lf("Коробление и скручивание — не более {0} % (плата с поверхностным монтажом).",
@@ -661,7 +671,7 @@ string doclist_doc()
         sprintf(st, "width:%smm", f3(iw));
         s += "<div class=\"rnd\" style=\"" + st + "\"><img src=\"../02_REPORT/img/top_flat.svg\" alt=\"\"></div>";
     }
-    s += "<table><tr><th>" + h(L("Плата", "Board")) + "</th><td>" + h(fn_base) + " · " + h(board_size_txt()) + " " + h(L("мм", "mm")) + "</td></tr>";
+    s += "<table><tr><th>" + h(L("Плата", "Board")) + "</th><td>" + h(fn_disp) + " · " + h(board_size_txt()) + " " + h(L("мм", "mm")) + "</td></tr>";
     s += "<tr><th>" + h(L("Слоёв меди", "Copper layers")) + "</th><td>" + istr(fn_layers) + "</td></tr>";
     s += "<tr><th>" + h(L("Компонентов", "Components")) + "</th><td>" + istr(st_geti("n_top") + st_geti("n_bot")) + "</td></tr>";
     s += "<tr><th>" + h(L("Плат в партии", "Batch")) + "</th><td>" + istr(opt_boards) + "</td></tr>";
@@ -805,7 +815,7 @@ void toner_sheet(string html, string pdf, int gi, string title, int mirror, int 
         printf(".sc i{position:absolute;left:52mm;top:-1mm;font-style:normal;white-space:nowrap}");
         printf("</style></head><body><div class=\"pg\">");
         printf("<div class=\"hd\"><b>%s</b> &middot; %s &middot; %s<br><span>%s</span></div>",
-               h(title), h(mir), h(fn_base), h("1:1 · " + board_size_txt() + " mm · " + tn_paper + " · " + fk_title()));
+               h(title), h(mir), h(fn_disp), h("1:1 · " + board_size_txt() + " mm · " + tn_paper + " · " + fk_title()));
         string tr = "";
         if (mirror) tr = " style=\"transform:scaleX(-1)\"";
         printf("<svg class=\"bd\"%s xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"%s %s %s %s\">", tr, f4(vb_x), f4(vb_y), f4(vb_w), f4(vb_h));
@@ -845,7 +855,7 @@ void toner_all()
     int dx = gf_find("XLN");
     if (dx >= 0) excellon_parse(gf_src[dx]);
     else n_hole = 0;
-    string pre = fn_d4 + "/" + fn_base + "_";
+    string pre = fn_d4 + "/" + fn_fbase + "_";
     string th = fn_tmp + "/toner_";
     n_toner = 0;
     int i;
@@ -872,7 +882,7 @@ void toner_page(string dst)
     int n = fileglob(files, fn_d4 + "/*.pdf");
     output(dst, "wt") {
         printf("<!DOCTYPE html><html lang=\"%s\"><head><meta charset=\"utf-8\"><title>%s</title><style>%s</style></head><body><div class=\"w\">",
-               LANG_CODE[ui_lang], h(fn_base + " · " + L("ЛУТ 1:1", "Toner transfer 1:1")), TONER_CSS);
+               LANG_CODE[ui_lang], h(fn_disp + " · " + L("ЛУТ 1:1", "Toner transfer 1:1")), TONER_CSS);
         printf("<h1>%s</h1>", h(L("Листы для ЛУТ, масштаб 1:1", "Toner transfer prints, scale 1:1")));
         printf("<div class=\"box\"><ol>");
         printf("<li>%s</li>", h(L("Печатать на лазерном принтере в масштабе 100% («Фактический размер»). «Вписать в страницу» не включать.",
@@ -923,19 +933,19 @@ void index_page(string dst)
 {
     output(dst, "wt") {
         printf("<!DOCTYPE html><html lang=\"%s\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">", LANG_CODE[ui_lang]);
-        printf("<title>%s</title><style>%s</style></head><body><div class=\"w\">", h(fn_base + " · FabKit"), IDX_CSS);
+        printf("<title>%s</title><style>%s</style></head><body><div class=\"w\">", h(fn_disp + " · FabKit"), IDX_CSS);
         printf("<div class=\"brand\"><i></i>%s</div>", h(fk_sign()));
-        printf("<h1>%s<span class=\"en\">%s</span></h1>", h(fn_base), h(L("Производственный пакет", "Production package") + " · " + st_get("date")));
+        printf("<h1>%s<span class=\"en\">%s</span></h1>", h(fn_disp), h(L("Производственный пакет", "Production package") + " · " + st_get("date")));
         if (n_gf > 0) printf("<div class=\"rnd\"><img src=\"02_REPORT/img/top_flat.svg\" alt=\"\"></div>");
         printf("<div class=\"g\">");
-        if (n_gf > 0) printf("%s", idx_card("01_JLCPCB_ORDER/JLCPCB_GERBER/" + fn_base + "_Gerber_JLCPCB.zip", "01", L("Gerber для JLCPCB", "Gerber for JLCPCB"),
-                                            fn_base + "_Gerber_JLCPCB.zip"));
-        printf("%s", idx_card("01_JLCPCB_ORDER/" + fn_base + "_JLCPCB_BOM.csv", "01", L("BOM для сборки", "Assembly BOM"), fn_base + "_JLCPCB_BOM.csv"));
-        printf("%s", idx_card("01_JLCPCB_ORDER/" + fn_base + "_JLCPCB_CPL.csv", "01", L("CPL (координаты)", "CPL (pick & place)"), fn_base + "_JLCPCB_CPL.csv"));
-        printf("%s", idx_card("02_REPORT/" + fn_base + "_Report.html", "02", L("Отчёт", "Report"), L("BOM, цены, замены, слои", "BOM, prices, substitutes, layers")));
+        if (n_gf > 0) printf("%s", idx_card("01_JLCPCB_ORDER/JLCPCB_GERBER/" + fn_fbase + "_Gerber_JLCPCB.zip", "01", L("Gerber для JLCPCB", "Gerber for JLCPCB"),
+                                            fn_fbase + "_Gerber_JLCPCB.zip"));
+        printf("%s", idx_card("01_JLCPCB_ORDER/" + fn_fbase + "_JLCPCB_BOM.csv", "01", L("BOM для сборки", "Assembly BOM"), fn_fbase + "_JLCPCB_BOM.csv"));
+        printf("%s", idx_card("01_JLCPCB_ORDER/" + fn_fbase + "_JLCPCB_CPL.csv", "01", L("CPL (координаты)", "CPL (pick & place)"), fn_fbase + "_JLCPCB_CPL.csv"));
+        printf("%s", idx_card("02_REPORT/" + fn_fbase + "_Report.html", "02", L("Отчёт", "Report"), L("BOM, цены, замены, слои", "BOM, prices, substitutes, layers")));
         if (opt_docs) {
-            string d = "03_ASSEMBLY_DOCS/" + fn_base + "_Assembly_A4.pdf";
-            if (!file_exists(fn_out + "/" + d)) d = "03_ASSEMBLY_DOCS/" + fn_base + "_Assembly_A4.html";
+            string d = "03_ASSEMBLY_DOCS/" + fn_fbase + "_Assembly_A4.pdf";
+            if (!file_exists(fn_out + "/" + d)) d = "03_ASSEMBLY_DOCS/" + fn_fbase + "_Assembly_A4.html";
             printf("%s", idx_card(d, "03", L("Документация A4", "A4 documentation"), L("чертежи, порядок пайки, ключи", "drawings, soldering order, keys")));
         }
         if (opt_toner) printf("%s", idx_card("04_TONER_TRANSFER_1to1/HOW_TO_PRINT.html", "04", L("ЛУТ 1:1", "Toner transfer 1:1"), L("PDF слоёв", "layer PDFs")));
@@ -951,6 +961,8 @@ void finish_main(string stfile)
     ui_lang = st_geti("lang");                 // язык первой фазы (в т. ч. из -lang)
     if (ui_lang < 0 || ui_lang >= N_LANG) ui_lang = 0;
     fn_out = st_get("outdir"); fn_tmp = st_get("tmp"); fn_base = st_get("base");
+    fn_fbase = st_get("fbase");
+    if (fn_fbase == "") fn_fbase = fn_base;
     fn_d1 = fn_out + "/01_JLCPCB_ORDER"; fn_d2 = fn_out + "/02_REPORT"; fn_d3 = fn_out + "/03_ASSEMBLY_DOCS"; fn_d4 = fn_out + "/04_TONER_TRANSFER_1to1";
     fn_outline = fn_tmp + "/outline.txt";
     if (file_exists(st_get("runner"))) fk_runner = st_get("runner");
@@ -963,6 +975,7 @@ void finish_main(string stfile)
     opt_mask = st_get("mask"); opt_silk = st_get("silk"); opt_finish = st_get("finish"); opt_thick = st_get("thick");
     tb_product = st_get("tb_product"); tb_docno = st_get("tb_docno"); tb_company = st_get("tb_company"); tb_designer = st_get("tb_designer");
     tb_checker = st_get("tb_checker"); tb_approver = st_get("tb_approver"); tb_customer = st_get("tb_customer"); tb_rev = st_get("tb_rev"); tb_note = st_get("tb_note");
+    fn_disp = ver_disp(fn_base, tb_rev);
     tb_pcbno = st_get("tb_pcbno");
     doc_std = st_geti("std");
     if (doc_std < 0 || doc_std >= N_STD) doc_std = 0;
@@ -985,16 +998,16 @@ void finish_main(string stfile)
 
     fk_log("report");
     shell("mkdir " + qp(fn_d2) + " 2>nul");
-    assemble_report(fn_tmp + "/report_p1.html", fn_d2 + "/" + fn_base + "_Report.html");
+    assemble_report(fn_tmp + "/report_p1.html", fn_d2 + "/" + fn_fbase + "_Report.html");
 
     if (opt_docs) {
         fk_log("A4 docs");
         shell("mkdir " + qp(fn_d3) + " 2>nul");
-        string dh = fn_d3 + "/" + fn_base + "_Assembly_A4.html";
+        string dh = fn_d3 + "/" + fn_fbase + "_Assembly_A4.html";
         assemble_docs(fn_tmp + "/docs_p1.html", dh);
         if (opt_pdf) {
             fk_log("PDF");
-            html_to_pdf(dh, fn_d3 + "/" + fn_base + "_Assembly_A4.pdf");
+            html_to_pdf(dh, fn_d3 + "/" + fn_fbase + "_Assembly_A4.pdf");
         }
     }
 

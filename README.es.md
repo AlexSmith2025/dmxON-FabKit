@@ -101,7 +101,7 @@ Consejo: ejecute antes [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dm
 | **Salida** | carpeta; copia de seguridad de la carpeta del diseño; qué crear: Gerber, documentación, esquema eléctrico, PDF, hojas de tóner; qué va al BOM/CPL: THT, centro de pads, designadores omitidos |
 | **Piezas** | búsqueda en el catálogo, Basic/Preferred, sustitutos, verificación de huellas, revisión de atributos, escritura de `LCSC_PART`, número de placas, tensión mínima de condensadores, tarifa de alimentador, importación de BOM |
 | **Placa** | grosor, color de máscara y serigrafía, acabado — para el informe, el formulario de pedido y la vista |
-| **Cajetín** | producto, n.º de documento, revisión, cliente, nota (por placa); empresa y firmas (comunes) |
+| **Cajetín** | producto, n.º de documento, versión (Rev.), cliente, nota (por placa); empresa y firmas (comunes) |
 | **Acerca de** | versión, autor, licencia, enlaces |
 
 Todos los ajustes se recuerdan.
@@ -111,20 +111,22 @@ Todos los ajustes se recuerdan.
 ## Resultado
 
 ```
-<placa>_FabKit/
+<placa>_v<versión>_FabKit/
 ├── index.html                          página de inicio
 ├── 01_JLCPCB_ORDER/
 │   ├── JLCPCB_GERBER/
-│   │   ├── <placa>_Gerber_JLCPCB.zip   ← subir a jlcpcb.com
+│   │   ├── <placa>_v<versión>_Gerber_JLCPCB.zip ← subir a jlcpcb.com
 │   │   └── unpacked/                   los mismos archivos para revisar
-│   ├── <placa>_JLCPCB_BOM.csv          ← PCB Assembly: BOM
-│   └── <placa>_JLCPCB_CPL.csv          ← PCB Assembly: CPL
+│   ├── <placa>_v<versión>_JLCPCB_BOM.csv ← PCB Assembly: BOM
+│   └── <placa>_v<versión>_JLCPCB_CPL.csv ← PCB Assembly: CPL
 ├── 02_REPORT/                          informe + vistas previas de capas
 ├── 03_ASSEMBLY_DOCS/                   documentación ISO o GOST (HTML + PDF)
 └── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 hojas PDF
 ```
 
 Cada ejecución **borra y vuelve a crear** el paquete de la placa — pero solo si la carpeta la creó FabKit (contiene la marca `.dmxon-fabkit`). Una carpeta ajena con el mismo nombre nunca se toca.
+
+**Una versión en todas partes.** La versión de la placa se guarda en el diseño como atributo global `REV` y se fija en el campo **Versión (Rev.)** de la pestaña **Cajetín**. Forma parte del nombre de la carpeta del paquete y de todos los archivos (`<placa>_v<versión>_…`, también los Gerber del zip), de los cajetines ISO y del informe. La primera vez, FabKit toma la versión impresa en la placa (un texto como «Ver. 1.4») o un `REV` que escribió antes —un `REV` de una plantilla de marco (a menudo «A») no se impone al texto de la placa— y la guarda en el diseño al pulsar OK. El informe avisa si el texto de la placa, `REV` y el paquete no coinciden. Los paquetes de distintas versiones conviven; una nueva ejecución solo reemplaza el paquete de la misma versión.
 
 ---
 
