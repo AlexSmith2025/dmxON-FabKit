@@ -88,7 +88,7 @@ The installer copies the project to `Documents\dmxON\dmxON-FabKit` and installs 
 2. Press **dmxON → FabKit** (or **Automation → Run ULP → `dmxON_FabKit`**).
 3. Pick the **standard** (ISO or GOST) and the **language** in the top-right corner, choose the folder and press **Build package**.
 4. With the dmxON add-in and dmxON JLC Rules installed, Gerber is exported silently through the dmxON JLCPCB CAM job. Without them Fusion may show a **CAM Export File List** window — press **OK**.
-5. About a minute later the package folder opens. Start with `index.html`. With the backup option on, the add-in then saves the whole design folder into the package, `05_BACKUP`.
+5. About a minute later the package folder opens. Start with `index.html`. The backup option (on by default) puts the design into the package as well: FabKit itself writes the schematic and board (EAGLE 9, including unsaved changes) to `05_BACKUP`, and the dmxON add-in adds the whole cloud design folder there.
 
 Tip: run [**dmxON JLC Rules**](https://github.com/AlexSmith2025/dmxON-JLC-Rules-Fusion-Electronics) first — it sets up JLCPCB design rules and the layer stack-up, and passes the board thickness and mask colour to FabKit. Both tools share the language setting.
 
@@ -122,7 +122,7 @@ All settings are remembered.
 ├── 02_REPORT/                          report + layer previews
 ├── 03_ASSEMBLY_DOCS/                   documentation to ISO or GOST (HTML + PDF)
 ├── 04_TONER_TRANSFER_1to1/             HOW_TO_PRINT + 7 PDF sheets
-└── 05_BACKUP/                          backup of the whole design folder (dmxON add-in)
+└── 05_BACKUP/                          design backup: EAGLE schematic + board; whole cloud folder (add-in)
 ```
 
 Every run **deletes and rebuilds** the board's package — but only if FabKit created that folder (it holds a `.dmxon-fabkit` marker). A foreign folder with the same name is never touched.

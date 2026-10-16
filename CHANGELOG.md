@@ -5,6 +5,14 @@ Numbering: `MAJOR.MINOR.PATCH` — new feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.5.0 — 2026-10-16
+
+**Changed**
+
+- **FabKit writes the design backup itself.** The backup option (on by default, shared key `dmxon.backup`) saves the schematic and board — the EAGLE 9 files Fusion hands to ULPs, with unsaved changes and embedded libraries — as `<board>_v<version>_backup_<date>.zip` in `05_BACKUP` of the package, with no add-in needed. With the dmxON add-in (1.3.0) running, the whole cloud design folder (3D, drawings, other files) is added there as `<board>_v<version>_cloud_<date>.zip`. The start page links the backup.
+
+---
+
 ## 2.4.0 — 2026-10-16
 
 **Changed**

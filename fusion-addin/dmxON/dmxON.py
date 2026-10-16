@@ -34,7 +34,7 @@ try:
 except ImportError:
     pass
 
-ADDIN_VERSION = '1.2.0'
+ADDIN_VERSION = '1.3.0'
 APP = adsk.core.Application.get()
 UI = APP.userInterface
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -782,7 +782,7 @@ def hub_name():
         return ''
 
 
-def backup(reason='manual', extra=None, quiet=False, target=None):
+def backup(reason='manual', extra=None, quiet=False, target=None, name=None):
     """Back up the cloud folder of the active design (or of the data file target)."""
     doc = APP.activeDocument
     df = target or (doc.dataFile if doc else None)
@@ -851,14 +851,15 @@ def backup(reason='manual', extra=None, quiet=False, target=None):
         with open(os.path.join(work, top, 'RESTORE.txt'), 'w', encoding='utf-8') as fh:
             fh.write(tr('restore'))
         os.makedirs(dest, exist_ok=True)
-        zpath = os.path.join(dest, '%s_%s.zip' % (top, stamp))
+        zname = safe(name) if (in_pkg and name) else top      # из FabKit: <плата>_v<версия>_cloud
+        zpath = os.path.join(dest, '%s_%s.zip' % (zname, stamp))
         with zipfile.ZipFile(zpath, 'w', zipfile.ZIP_DEFLATED) as z:
             for r, _d, fs in os.walk(work):
                 for n in fs:
                     p = os.path.join(r, n)
                     z.write(p, os.path.relpath(p, work))
         keep = max(1, int(STATE['settings'].get('backup_keep') or 30))
-        old = sorted(glob.glob(os.path.join(dest, top + '_????-??-??_??????.zip')))
+        old = sorted(glob.glob(os.path.join(dest, zname + '_????-??-??_??????.zip')))
         for o in old[:-keep]:
             try:
                 os.remove(o)
@@ -969,7 +970,7 @@ def do_inbox():
         if what == 'register':
             register()
         elif what == 'backup':
-            backup(req.get('tool', 'ulp'), req.get('out'), quiet=True)
+            backup(req.get('tool', 'ulp'), req.get('out'), quiet=True, name=req.get('name'))
         elif what == 'fabkit_cam':
             fabkit_cam(req)
         elif what == 'grid':

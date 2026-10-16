@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------- продукт
 
 string FK_NAME    = "dmxON FabKit";
-string FK_VERSION = "2.4.0";              // при каждой переделке поднимать (см. CHANGELOG.md)
+string FK_VERSION = "2.5.0";              // при каждой переделке поднимать (см. CHANGELOG.md)
 string FK_DATE    = "2026-10-16";
 string FK_AUTHOR  = "dmxON by AlexSmith";
 string FK_YEAR    = "2026";
@@ -34,7 +34,7 @@ int    NET_TIMEOUT  = 25;
 
 string opt_root      = "";     // куда выгружать
 int    opt_open      = 1;      // открыть папку после выгрузки
-int    opt_backup    = 1;      // бэкап папки проекта через надстройку dmxON (общий ключ dmxon.backup)
+int    opt_backup    = 1;      // бэкап проекта в 05_BACKUP пакета (общий ключ dmxon.backup), по умолчанию включён
 int    opt_online    = 1;      // искать номера в каталогах
 int    opt_basic     = 1;      // предпочитать Basic/Preferred
 int    opt_tht       = 1;      // выгружать выводные детали

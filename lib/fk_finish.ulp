@@ -50,6 +50,40 @@ string zip_base(string b)
     return t;
 }
 
+// бэкап проекта самим FabKit: схема и плата — те EAGLE 9 файлы, которые Fusion отдаёт ULP (с несохранёнными
+// правками и встроенными библиотеками) — архивом в 05_BACKUP пакета
+string fn_bk_zip = "";
+
+void backup_design()
+{
+    string sch = "", brd = "";
+    if (board) board(B) {
+        brd = B.name;
+        project.schematic(S) sch = S.name;
+    }
+    if (brd == "" || !file_exists(brd)) return;
+    string d5 = fn_out + "/05_BACKUP", zt = fn_tmp + "/bk";
+    string nm = zip_base(fn_fbase);
+    string zn = nm + "_backup_" + t2string(time(), "yyyy-MM-dd_hhmm") + ".zip";
+    output(fn_tmp + "/bk_restore.txt", "wt") {
+        printf("dmxON FabKit - design backup / kopia projektu / Sicherung / copia del diseno\n\n");
+        printf("%s.sch, %s.brd - EAGLE 9 schematic and board as exported by Fusion at %s,\n", nm, nm, t2string(time(), "yyyy-MM-dd hh:mm"));
+        printf("including unsaved changes and the embedded libraries.\n\n");
+        printf("Restore: Fusion -> Data panel -> Upload -> both files (or File -> Open in EAGLE 9);\n");
+        printf("the board and schematic open as one Electronics design.\n");
+    }
+    string files = " " + nm + ".brd RESTORE.txt";
+    string cmd = "mkdir " + qp(zt) + " 2>nul & mkdir " + qp(d5) + " 2>nul & copy /y " + qp(brd) + " " + qp(zt + "/" + nm + ".brd") + " >nul";
+    if (sch != "" && file_exists(sch)) {
+        cmd += " & copy /y " + qp(sch) + " " + qp(zt + "/" + nm + ".sch") + " >nul";
+        files += " " + nm + ".sch";
+    }
+    cmd += " & copy /y " + qp(fn_tmp + "/bk_restore.txt") + " " + qp(zt + "/RESTORE.txt") + " >nul";
+    cmd += " & cd /d " + qp(zt) + " && tar -a -cf ..\\bk.zip" + files + " && copy /y ..\\bk.zip " + qp(d5 + "/" + zn) + " >nul";
+    shell(cmd);
+    if (file_exists(d5 + "/" + zn)) fn_bk_zip = "05_BACKUP/" + zn;
+}
+
 string gf_jlc_name(int i)
 {
     if (gf_code[i] != "XLN" && starts_with(gf_code[i], "XLN")) return fn_fbase + "_" + gf_code[i] + ".XLN";
@@ -949,8 +983,10 @@ void index_page(string dst)
             printf("%s", idx_card(d, "03", L("Документация A4", "A4 documentation"), L("чертежи, порядок пайки, ключи", "drawings, soldering order, keys")));
         }
         if (opt_toner) printf("%s", idx_card("04_TONER_TRANSFER_1to1/HOW_TO_PRINT.html", "04", L("ЛУТ 1:1", "Toner transfer 1:1"), L("PDF слоёв", "layer PDFs")));
-        if (st_geti("backup") && addin_alive())
-            printf("%s", idx_card("05_BACKUP/", "05", L("Бэкап проекта", "Design backup"), L("вся облачная папка проекта, zip", "the whole cloud design folder, zip")));
+        if (fn_bk_zip != "")
+            printf("%s", idx_card("05_BACKUP/", "05", L("Бэкап проекта", "Design backup"),
+                                  addin_alive() ? L("схема и плата EAGLE + вся облачная папка, zip", "EAGLE schematic and board + the whole cloud folder, zip")
+                                                : L("схема и плата EAGLE, zip", "EAGLE schematic and board, zip")));
         printf("</div><footer>%s</footer></div></body></html>\n", h(fk_sign()));
     }
 }
@@ -1013,22 +1049,24 @@ void finish_main(string stfile)
         }
     }
 
+    // бэкап проекта — сам FabKit, в 05_BACKUP; надстройка dmxON добавит туда же всю облачную папку
+    string bk = "";
+    if (st_geti("backup")) {
+        fk_log("backup");
+        backup_design();
+        if (fn_bk_zip != "") bk = L("Бэкап проекта (схема и плата):", "Design backup (schematic and board):") + " " + fn_bk_zip;
+        else bk = L("Бэкап проекта не записан — нет файла платы.", "Design backup not written — no board file.");
+        if (addin_alive()) {
+            addin_request("backup", ",\"tool\":\"fabkit\",\"out\":" + json_s(fn_out) + ",\"name\":" + json_s(zip_base(fn_fbase) + "_cloud"));
+            bk += "\n" + L("Надстройка dmxON добавит туда же всю облачную папку проекта (3D, чертежи, файлы).",
+                           "The dmxON add-in adds the whole cloud design folder there too (3D, drawings, files).");
+        }
+        fk_log(bk);
+    }
+
     index_page(fn_out + "/index.html");
     output(fn_out + "/" + FK_MARKER, "wt") printf("%s\n%s\n", fk_title(), st_get("date"));
     if (!st_geti("keep_tmp")) shell("rmdir /s /q " + qp(fn_tmp));
-
-    // бэкап папки проекта делает надстройка dmxON, когда Fusion освободится
-    string bk = "";
-    if (st_geti("backup")) {
-        if (addin_alive()) {
-            addin_request("backup", ",\"tool\":\"fabkit\",\"out\":" + json_s(fn_out));
-            bk = L("Бэкап папки проекта надстройка dmxON положит в пакет: 05_BACKUP.",
-                   "The dmxON add-in saves the design folder backup into the package: 05_BACKUP.");
-        }
-        else bk = L("Бэкап пропущен: надстройка dmxON не запущена (её ставит INSTALL.ulp).",
-                    "Backup skipped: the dmxON add-in is not running (INSTALL.ulp installs it).");
-        fk_log(bk);
-    }
 
     if (opt_open && !batch_mode) system("explorer.exe \"" + to_win(fn_out) + "\"");
     if (batch_mode) return;
