@@ -5,6 +5,14 @@ Numbering: `MAJOR.MINOR.PATCH` — new feature → MINOR, fix → PATCH.
 
 ---
 
+## 2.6.0 — 2026-10-16
+
+**New**
+
+- **Board STEP in the backup.** With the dmxON add-in (1.4.0) running, the design backup also contains `05_BACKUP\<board>_v<version>.step` — the board with copper, solder mask and the 3D models of the parts (STEP AP214), for enclosures and mechanical design. The add-in builds it through Fusion's «3D PCB» from the current board; a 3D PCB created only for the export is closed without saving, so nothing is added to the cloud project.
+
+---
+
 ## 2.5.1 — 2026-10-16
 
 **Fixed**

@@ -305,8 +305,8 @@ board(B) {
                                     "The package goes to «{0}»: the version is set on the title block tab and appears in every file name and title block; a previous package of this version is replaced completely.",
                                     base + ver_tag(tb_rev) + "_FabKit", "", ""));
                         dlgCheckBox(L("Открыть папку после выгрузки", "Open the folder when done"), opt_open);
-                        dlgCheckBox(L("Бэкап проекта в пакет (05_BACKUP): схема и плата; с надстройкой dmxON — вся облачная папка",
-                                      "Back up the design into the package (05_BACKUP): schematic and board; with the dmxON add-in, the whole cloud folder"), opt_backup);
+                        dlgCheckBox(L("Бэкап проекта в пакет (05_BACKUP): схема и плата; с надстройкой dmxON — STEP платы и вся облачная папка",
+                                      "Back up the design into the package (05_BACKUP): schematic and board; with the dmxON add-in, the board STEP and the whole cloud folder"), opt_backup);
                     }
                     dlgGroup(L("Что создать", "What to build")) {
                         dlgCheckBox(L("Gerber и сверловка для JLCPCB (архив + превью слоёв)", "Gerber and drill for JLCPCB (zip + layer previews)"), opt_gerber);

@@ -985,7 +985,7 @@ void index_page(string dst)
         if (opt_toner) printf("%s", idx_card("04_TONER_TRANSFER_1to1/HOW_TO_PRINT.html", "04", L("ЛУТ 1:1", "Toner transfer 1:1"), L("PDF слоёв", "layer PDFs")));
         if (fn_bk_zip != "")
             printf("%s", idx_card("05_BACKUP/", "05", L("Бэкап проекта", "Design backup"),
-                                  addin_alive() ? L("схема и плата EAGLE + вся облачная папка, zip", "EAGLE schematic and board + the whole cloud folder, zip")
+                                  addin_alive() ? L("схема и плата EAGLE, STEP платы, вся облачная папка", "EAGLE schematic and board, board STEP, the whole cloud folder")
                                                 : L("схема и плата EAGLE, zip", "EAGLE schematic and board, zip")));
         printf("</div><footer>%s</footer></div></body></html>\n", h(fk_sign()));
     }
@@ -1057,9 +1057,10 @@ void finish_main(string stfile)
         if (fn_bk_zip != "") bk = L("Бэкап проекта (схема и плата):", "Design backup (schematic and board):") + " " + fn_bk_zip;
         else bk = L("Бэкап проекта не записан — нет файла платы.", "Design backup not written — no board file.");
         if (addin_alive()) {
-            addin_request("backup", ",\"tool\":\"fabkit\",\"out\":" + json_s(fn_out) + ",\"name\":" + json_s(zip_base(fn_fbase) + "_cloud"));
-            bk += "\n" + L("Надстройка dmxON добавит туда же всю облачную папку проекта (3D, чертежи, файлы).",
-                           "The dmxON add-in adds the whole cloud design folder there too (3D, drawings, files).");
+            addin_request("backup", ",\"tool\":\"fabkit\",\"out\":" + json_s(fn_out) + ",\"name\":" + json_s(zip_base(fn_fbase) + "_cloud") +
+                                    ",\"step\":" + json_s(zip_base(fn_fbase) + ".step"));
+            bk += "\n" + L("Надстройка dmxON добавит туда же STEP платы с деталями и всю облачную папку проекта (3D, чертежи, файлы).",
+                           "The dmxON add-in adds the board STEP with its parts and the whole cloud design folder there too (3D, drawings, files).");
         }
         fk_log(bk);
     }

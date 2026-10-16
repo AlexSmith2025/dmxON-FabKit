@@ -34,7 +34,7 @@ try:
 except ImportError:
     pass
 
-ADDIN_VERSION = '1.3.0'
+ADDIN_VERSION = '1.4.0'
 APP = adsk.core.Application.get()
 UI = APP.userInterface
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -882,6 +882,55 @@ def backup(reason='manual', extra=None, quiet=False, target=None, name=None):
     return zpath
 
 
+# ---------------------------------------------------------------- FabKit: STEP of the board
+def export_board_step(path):
+    """STEP of the active board with its component models. «3D PCB» opens the design's linked 3D PCB or builds a new,
+    unsaved one from the current board; it is exported and, when it was not open before, closed without saving."""
+    board_doc = APP.activeDocument
+    if not board_doc or board_doc.objectType != 'adsk::electron::BoardDocument':
+        return ''
+    cd = UI.commandDefinitions.itemById('Switch3dPcbDocCmd')
+    if cd is None:
+        return ''
+    before = [d for d in APP.documents]
+    try:
+        cd.execute()
+        des, last, stable, t0 = None, -1, 0, time.time()
+        while time.time() - t0 < 180:                       # the 3D PCB is built asynchronously
+            adsk.doEvents()
+            ad = APP.activeDocument
+            if ad and ad.objectType == 'adsk::fusion::FusionDocument':
+                d = adsk.fusion.Design.cast(ad.products.itemByProductType('DesignProductType'))
+                n = d.rootComponent.allOccurrences.count if d else 0
+                if n > 0 and n == last:
+                    stable += 1
+                    if stable >= 6:
+                        des = d
+                        break
+                else:
+                    stable = 0
+                last = n
+            time.sleep(0.25)
+        if des is None:
+            return ''
+        pcb_doc = APP.activeDocument
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        em = des.exportManager
+        ok = em.execute(em.createSTEPExportOptions(path, des.rootComponent))
+        if not any(pcb_doc == d for d in before):
+            pcb_doc.close(False)
+        return path if ok and os.path.exists(path) else ''
+    except Exception:
+        return ''
+    finally:
+        try:
+            if board_doc.isValid:
+                board_doc.activate()
+                adsk.doEvents()
+        except Exception:
+            pass
+
+
 # ---------------------------------------------------------------- FabKit: Gerber through the CAM job, then phase 3
 def fabkit_cam(req):
     """Electron.mfgexport writes <dir>/<CAM job name>/... without the One-Click Export dialog; FabKit gets them as cam.zip."""
@@ -970,7 +1019,11 @@ def do_inbox():
         if what == 'register':
             register()
         elif what == 'backup':
-            backup(req.get('tool', 'ulp'), req.get('out'), quiet=True, name=req.get('name'))
+            # STEP first: it needs the board to be the active document
+            out = req.get('out') or ''
+            if req.get('step') and out and os.path.isdir(out):
+                export_board_step(os.path.join(out, '05_BACKUP', os.path.basename(req.get('step'))))
+            backup(req.get('tool', 'ulp'), out, quiet=True, name=req.get('name'))
         elif what == 'fabkit_cam':
             fabkit_cam(req)
         elif what == 'grid':
